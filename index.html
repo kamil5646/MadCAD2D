@@ -15,11 +15,11 @@
 
         <div class="ribbon-tabs">
           <div class="ribbon-tab-track">
-            <button class="ribbon-tab active" data-page="home">Główne</button>
-            <button class="ribbon-tab" data-page="references">Wymiarowanie</button>
-            <button class="ribbon-tab" data-page="design">Stal</button>
-            <button class="ribbon-tab" data-page="layout">Układ</button>
-            <button class="ribbon-tab" data-page="view">Widok</button>
+            <button class="ribbon-tab has-icon active" data-icon="&#8962;" data-page="home">Główne</button>
+            <button class="ribbon-tab has-icon" data-icon="&#128207;" data-page="references">Wymiarowanie</button>
+            <button class="ribbon-tab has-icon" data-icon="&#128736;" data-page="design">Stal</button>
+            <button class="ribbon-tab has-icon" data-icon="&#128209;" data-page="layout">Układ</button>
+            <button class="ribbon-tab has-icon" data-icon="&#128065;" data-page="view">Widok</button>
           </div>
           <div class="ribbon-actions">
             <button id="undoBtn" class="ribbon-action-btn has-icon" data-icon="&#8630;" data-pages="home" title="Cofnij">Cofnij</button>
@@ -55,13 +55,14 @@
             <div id="fileMenu" class="file-menu file-tab-menu file-tab-menu-right">
               <button
                 id="fileMenuBtn"
-                class="ribbon-tab ribbon-tab-file"
+                class="ribbon-tab ribbon-tab-file has-icon"
+                data-icon="&#128438;"
                 aria-haspopup="true"
                 aria-expanded="false"
                 aria-controls="fileMenuPanel"
-                title="Menu Plik"
+                title="Menu Zapisz/Drukuj"
               >
-                Plik
+                Zapisz/Drukuj
               </button>
               <div id="fileMenuPanel" class="file-menu-panel file-tab-panel" role="menu" hidden>
                 <button id="loadJsonBtn" class="quick-btn has-icon" data-icon="&#128194;" role="menuitem">

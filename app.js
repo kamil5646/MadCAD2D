@@ -607,6 +607,7 @@
       return;
     }
     fileMenu.classList.toggle("open", open);
+    fileMenuBtn.classList.toggle("active", open);
     fileMenuBtn.setAttribute("aria-expanded", open ? "true" : "false");
     fileMenuPanel.hidden = !open;
   }
@@ -7040,7 +7041,7 @@
 
   function applyHoverHelpTooltips() {
     const tooltipById = {
-      fileMenuBtn: "Menu plików: otwieranie, zapis, import i eksport rysunków.",
+      fileMenuBtn: "Menu Zapisz/Drukuj: szybki zapis, druk i eksport rysunku.",
       loadJsonBtn: "Wczytuje projekt z pliku JSON.",
       saveJsonBtn: "Zapisuje projekt do pliku JSON.",
       importDxfBtn: "Importuje geometrię z pliku DXF.",
@@ -7419,6 +7420,15 @@
   function initializeEvents() {
     if (fileMenuBtn && fileMenuPanel) {
       fileMenuBtn.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setFileMenuOpen(!isFileMenuOpen());
+      });
+
+      fileMenuBtn.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") {
+          return;
+        }
         event.preventDefault();
         event.stopPropagation();
         setFileMenuOpen(!isFileMenuOpen());

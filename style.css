@@ -633,6 +633,16 @@ select {
   box-shadow: none;
 }
 
+.ribbon-tab.has-icon {
+  gap: 5px;
+}
+
+.ribbon-tab.has-icon::before {
+  font-size: 10px;
+  color: #9fb9dd;
+  opacity: 0.95;
+}
+
 .ribbon-tab:hover:not(.active):not(.tab-disabled) {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(123, 148, 188, 0.4);
@@ -640,7 +650,7 @@ select {
 }
 
 .ribbon-tab-file {
-  min-width: 44px;
+  min-width: 104px;
   color: #ffffff;
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(137, 163, 202, 0.54);
@@ -648,9 +658,13 @@ select {
 }
 
 .ribbon-actions .ribbon-tab-file {
-  min-width: 42px;
-  padding: 3px 7px 3px;
+  min-width: 102px;
+  padding: 3px 9px 3px;
   font-size: 9px;
+}
+
+.ribbon-tab-file.has-icon::before {
+  color: #c9dcfb;
 }
 
 .ribbon-tab-file:hover {
@@ -669,6 +683,10 @@ select {
   color: #ffffff;
   border-color: rgba(126, 166, 221, 0.62);
   box-shadow: none;
+}
+
+.ribbon-tab.active.has-icon::before {
+  color: #e9f2ff;
 }
 
 .ribbon-tab.active::after {
