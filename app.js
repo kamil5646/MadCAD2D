@@ -1001,6 +1001,38 @@
     return Math.min(max, Math.max(min, value));
   }
 
+  function isFiniteNumber(value) {
+    return Number.isFinite(Number(value));
+  }
+
+  function resetViewTransform() {
+    state.view.scale = 1;
+    state.view.offsetX = 160;
+    state.view.offsetY = 80;
+  }
+
+  function ensureValidViewState() {
+    let changed = false;
+    const scale = Number(state.view.scale);
+    const offsetX = Number(state.view.offsetX);
+    const offsetY = Number(state.view.offsetY);
+
+    if (!Number.isFinite(scale) || scale < 0.01 || scale > 50) {
+      state.view.scale = 1;
+      changed = true;
+    }
+    if (!Number.isFinite(offsetX)) {
+      state.view.offsetX = 160;
+      changed = true;
+    }
+    if (!Number.isFinite(offsetY)) {
+      state.view.offsetY = 80;
+      changed = true;
+    }
+
+    return changed;
+  }
+
   function createId() {
     if (typeof crypto !== "undefined" && crypto.randomUUID) {
       return crypto.randomUUID();
@@ -1284,16 +1316,28 @@
   }
 
   function worldToScreen(point) {
+    ensureValidViewState();
+    const px = Number(point && point.x);
+    const py = Number(point && point.y);
+    if (!Number.isFinite(px) || !Number.isFinite(py)) {
+      return { x: state.view.offsetX, y: state.view.offsetY };
+    }
     return {
-      x: point.x * state.view.scale + state.view.offsetX,
-      y: point.y * state.view.scale + state.view.offsetY
+      x: px * state.view.scale + state.view.offsetX,
+      y: py * state.view.scale + state.view.offsetY
     };
   }
 
   function screenToWorld(point) {
+    ensureValidViewState();
+    const px = Number(point && point.x);
+    const py = Number(point && point.y);
+    if (!Number.isFinite(px) || !Number.isFinite(py)) {
+      return { x: 0, y: 0 };
+    }
     return {
-      x: (point.x - state.view.offsetX) / state.view.scale,
-      y: (point.y - state.view.offsetY) / state.view.scale
+      x: (px - state.view.offsetX) / state.view.scale,
+      y: (py - state.view.offsetY) / state.view.scale
     };
   }
 
@@ -3296,6 +3340,7 @@
   }
 
   function render() {
+    ensureValidViewState();
     drawGrid();
 
     for (const entity of state.entities) {
@@ -4229,6 +4274,7 @@
   }
 
   function fitViewToEntities(options) {
+    ensureValidViewState();
     const includeHidden = Boolean(options && options.includeHidden);
     const sourceEntities =
       options && Array.isArray(options.entities) && options.entities.length > 0
@@ -4249,6 +4295,9 @@
       }
       const current = getEntityBounds(entity);
       if (!current) {
+        continue;
+      }
+      if (![current.minX, current.minY, current.maxX, current.maxY].every((value) => isFiniteNumber(value))) {
         continue;
       }
       if (!bounds) {
@@ -4274,13 +4323,19 @@
     const height = Math.max(1, bounds.maxY - bounds.minY);
     const scaleX = (canvasSize.width - margin * 2) / width;
     const scaleY = (canvasSize.height - margin * 2) / height;
+    const nextScale = clamp(Math.min(scaleX, scaleY), 0.1, 10, 1);
+    const nextOffsetX = margin - bounds.minX * nextScale + (canvasSize.width - margin * 2 - width * nextScale) / 2;
+    const nextOffsetY = margin - bounds.minY * nextScale + (canvasSize.height - margin * 2 - height * nextScale) / 2;
+    if (![nextScale, nextOffsetX, nextOffsetY].every((value) => isFiniteNumber(value))) {
+      resetViewTransform();
+      queueRender();
+      markDirty();
+      return false;
+    }
 
-    state.view.scale = clamp(Math.min(scaleX, scaleY), 0.1, 10, 1);
-    state.view.offsetX =
-      margin - bounds.minX * state.view.scale + (canvasSize.width - margin * 2 - width * state.view.scale) / 2;
-    state.view.offsetY =
-      margin - bounds.minY * state.view.scale +
-      (canvasSize.height - margin * 2 - height * state.view.scale) / 2;
+    state.view.scale = nextScale;
+    state.view.offsetX = nextOffsetX;
+    state.view.offsetY = nextOffsetY;
 
     queueRender();
     markDirty();
@@ -4739,6 +4794,9 @@
   }
 
   function addSteelRect(x, y, w, h, layerId, stroke, fillAlpha) {
+    if (![x, y, w, h].every((value) => isFiniteNumber(value))) {
+      return 0;
+    }
     if (Math.abs(w) < 0.001 || Math.abs(h) < 0.001) {
       return 0;
     }
@@ -4761,6 +4819,9 @@
   }
 
   function addSteelLine(x1, y1, x2, y2, layerId, stroke) {
+    if (![x1, y1, x2, y2].every((value) => isFiniteNumber(value))) {
+      return 0;
+    }
     const length = Math.hypot(x2 - x1, y2 - y1);
     if (length < 0.001) {
       return 0;
@@ -4781,6 +4842,18 @@
   }
 
   function addFrameProfile(originX, originY, width, height, sideProfile, layerId, stroke) {
+    if (![originX, originY, width, height, sideProfile].every((value) => isFiniteNumber(value))) {
+      return {
+        created: 0,
+        inner: {
+          x: 0,
+          y: 0,
+          w: 0,
+          h: 0
+        },
+        thickness: 0
+      };
+    }
     const side = Math.max(8, Math.min(Number(sideProfile) || 8, width / 2, height));
     let created = 0;
     created += addSteelRect(originX, originY, side, height, layerId, stroke, 18);
@@ -5125,7 +5198,16 @@
     const diagonalRequested =
       typeof options.diagonal === "boolean" ? options.diagonal : Boolean(state.steelDiagonal);
     const diagonal = template === "gate" ? diagonalRequested : false;
-    const center = options.center || state.pointerRawWorld || getViewportCenterWorld();
+    const viewportCenter = getViewportCenterWorld();
+    const fallbackCenter = {
+      x: isFiniteNumber(viewportCenter.x) ? Number(viewportCenter.x) : 0,
+      y: isFiniteNumber(viewportCenter.y) ? Number(viewportCenter.y) : 0
+    };
+    const centerCandidate = options.center || state.pointerRawWorld || fallbackCenter;
+    const center = {
+      x: isFiniteNumber(centerCandidate && centerCandidate.x) ? Number(centerCandidate.x) : fallbackCenter.x,
+      y: isFiniteNumber(centerCandidate && centerCandidate.y) ? Number(centerCandidate.y) : fallbackCenter.y
+    };
     const originX = center.x - width / 2;
     const originY = center.y - height / 2;
 
