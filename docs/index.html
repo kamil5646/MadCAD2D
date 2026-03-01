@@ -748,6 +748,8 @@
 
           <div class="admin-actions">
             <input id="tokenSearchInput" type="text" placeholder="Szukaj: właściciel, e-mail, ID urządzenia..." />
+            <input id="manualTokenInput" type="text" placeholder="Wklej istniejący token M2D1... aby dodać do rejestru" />
+            <button id="addManualTokenBtn" class="btn secondary" type="button">Dodaj token ręcznie</button>
             <button id="exportTokensJsonBtn" class="btn secondary" type="button">Eksport JSON</button>
             <button id="exportTokensCsvBtn" class="btn secondary" type="button">Eksport CSV</button>
             <button id="clearTokensBtn" class="btn secondary" type="button">Wyczyść wszystko</button>
@@ -866,6 +868,8 @@
         const tokenAdminContent = document.getElementById("tokenAdminContent");
         const tokenSearchInput = document.getElementById("tokenSearchInput");
         const tokenAdminTableBody = document.getElementById("tokenAdminTableBody");
+        const manualTokenInput = document.getElementById("manualTokenInput");
+        const addManualTokenBtn = document.getElementById("addManualTokenBtn");
         const tokenCountAll = document.getElementById("tokenCountAll");
         const tokenCountActive = document.getElementById("tokenCountActive");
         const tokenCountRevoked = document.getElementById("tokenCountRevoked");
@@ -877,6 +881,7 @@
 
         const TOKEN_REGISTRY_KEY = "madcad-token-registry-v1";
         const TOKEN_LAST_PRIVATE_KEY = "madcad-last-private-token-v1";
+        const TOKEN_LEGACY_LAST_KEY = "generatedPrivateToken";
         const TOKEN_ADMIN_PIN_HASH_KEY = "madcad-token-admin-pin-hash-v1";
         let adminUnlocked = false;
 
@@ -947,10 +952,13 @@
               return [];
             }
             const parsed = JSON.parse(raw);
-            if (!Array.isArray(parsed)) {
-              return [];
+            if (Array.isArray(parsed)) {
+              return parsed.filter((entry) => entry && typeof entry === "object");
             }
-            return parsed.filter((entry) => entry && typeof entry === "object");
+            if (parsed && typeof parsed === "object" && Array.isArray(parsed.items)) {
+              return parsed.items.filter((entry) => entry && typeof entry === "object");
+            }
+            return [];
           } catch {
             return [];
           }
@@ -1073,21 +1081,18 @@
         }
 
         function migrateLegacyTokens() {
-          const existing = readTokenRegistry();
-          if (existing.length > 0) {
-            return false;
-          }
+          let changed = false;
           const candidates = [
             localStorage.getItem(TOKEN_LAST_PRIVATE_KEY),
-            localStorage.getItem("generatedPrivateToken"),
+            localStorage.getItem(TOKEN_LEGACY_LAST_KEY),
             output ? output.value : ""
           ];
           for (const candidate of candidates) {
             if (ensureTokenInRegistry(candidate)) {
-              return true;
+              changed = true;
             }
           }
-          return false;
+          return changed;
         }
 
         function upsertRegistryEntry(nextEntry) {
@@ -1225,6 +1230,7 @@
           }
           try {
             localStorage.setItem(TOKEN_LAST_PRIVATE_KEY, token);
+            localStorage.setItem(TOKEN_LEGACY_LAST_KEY, token);
           } catch {}
           upsertRegistryEntry(buildRegistryEntry(payload, token));
           if (adminUnlocked) {
@@ -1256,6 +1262,30 @@
 
         if (tokenSearchInput) {
           tokenSearchInput.addEventListener("input", renderTokenAdminTable);
+        }
+
+        if (addManualTokenBtn) {
+          addManualTokenBtn.addEventListener("click", () => {
+            const raw = String(manualTokenInput ? manualTokenInput.value : "").trim();
+            if (!raw) {
+              setAdminStatus("Wklej token, który chcesz dodać.", "err");
+              return;
+            }
+            const added = ensureTokenInRegistry(raw);
+            if (!added) {
+              setAdminStatus("Nie udało się dodać tokenu. Sprawdź format i podpis.", "err");
+              return;
+            }
+            try {
+              localStorage.setItem(TOKEN_LAST_PRIVATE_KEY, raw);
+              localStorage.setItem(TOKEN_LEGACY_LAST_KEY, raw);
+            } catch {}
+            if (manualTokenInput) {
+              manualTokenInput.value = "";
+            }
+            renderTokenAdminTable();
+            setAdminStatus("Token został dodany do rejestru.", "ok");
+          });
         }
 
         if (tokenAdminTableBody) {
