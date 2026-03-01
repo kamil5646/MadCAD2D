@@ -1184,6 +1184,30 @@
           return String(localStorage.getItem(TOKEN_ADMIN_PIN_HASH_KEY) || "").trim();
         }
 
+        function wipeAllTokenData() {
+          const keys = [
+            TOKEN_REGISTRY_KEY,
+            TOKEN_LAST_PRIVATE_KEY,
+            TOKEN_LEGACY_LAST_KEY,
+            TOKEN_ADMIN_PIN_HASH_KEY
+          ];
+          keys.forEach((key) => {
+            try {
+              localStorage.removeItem(key);
+            } catch {}
+          });
+          if (output) {
+            output.value = "";
+          }
+          if (manualTokenInput) {
+            manualTokenInput.value = "";
+          }
+          if (tokenSearchInput) {
+            tokenSearchInput.value = "";
+          }
+          renderTokenAdminTable();
+        }
+
         function buildPrivateToken() {
           const ownerName = String(ownerInput ? ownerInput.value : "").trim();
           const email = normalizeEmail(emailInput ? emailInput.value : "");
@@ -1488,6 +1512,11 @@
         const queryDeviceId = String(params.get("deviceId") || "").trim();
         if (queryDeviceId && deviceIdInput && !deviceIdInput.value) {
           deviceIdInput.value = queryDeviceId;
+        }
+
+        if (params.get("wipe") === "1") {
+          wipeAllTokenData();
+          setStatus("Wyczyszczono wszystkie lokalne tokeny i dane panelu.", "ok");
         }
 
         migrateLegacyTokens();
