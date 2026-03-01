@@ -622,6 +622,31 @@
     return Boolean(fileMenu && fileMenu.classList.contains("open"));
   }
 
+  function positionFileMenuPanel() {
+    if (!fileMenuBtn || !fileMenuPanel || fileMenuPanel.hidden) {
+      return;
+    }
+    const margin = 8;
+    const rect = fileMenuBtn.getBoundingClientRect();
+    const panelWidth = fileMenuPanel.offsetWidth || 220;
+    const panelHeight = fileMenuPanel.offsetHeight || 220;
+    let left = rect.right - panelWidth;
+    let top = rect.bottom + 4;
+
+    if (left < margin) {
+      left = margin;
+    }
+    if (left + panelWidth > window.innerWidth - margin) {
+      left = Math.max(margin, window.innerWidth - panelWidth - margin);
+    }
+    if (top + panelHeight > window.innerHeight - margin) {
+      top = Math.max(margin, rect.top - panelHeight - 4);
+    }
+
+    fileMenuPanel.style.left = `${Math.round(left)}px`;
+    fileMenuPanel.style.top = `${Math.round(top)}px`;
+  }
+
   function setFileMenuOpen(value) {
     const open = Boolean(value);
     if (!fileMenu || !fileMenuBtn || !fileMenuPanel) {
@@ -631,6 +656,11 @@
     fileMenuBtn.classList.toggle("active", open);
     fileMenuBtn.setAttribute("aria-expanded", open ? "true" : "false");
     fileMenuPanel.hidden = !open;
+    if (open) {
+      requestAnimationFrame(() => {
+        positionFileMenuPanel();
+      });
+    }
   }
 
   function updateToastAnchor() {
@@ -8165,6 +8195,11 @@
     });
     window.addEventListener("resize", resizeCanvas);
     window.addEventListener("resize", updateToastAnchor);
+    window.addEventListener("resize", () => {
+      if (isFileMenuOpen()) {
+        positionFileMenuPanel();
+      }
+    });
     window.addEventListener("blur", () => {
       setFileMenuOpen(false);
     });

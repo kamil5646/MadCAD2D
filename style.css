@@ -317,8 +317,8 @@ select {
 }
 
 .file-menu-panel {
-  position: absolute;
-  top: calc(100% + 4px);
+  position: fixed;
+  top: 0;
   left: 0;
   min-width: 196px;
   display: grid;
