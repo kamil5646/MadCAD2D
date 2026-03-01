@@ -2,6 +2,20 @@
 
 Desktopowa aplikacja CAD 2D (Mac/Windows) MadCAD 2D, z naciskiem na projektowanie konstrukcji stalowych: bramy, ogrodzenia, balkony.
 
+## Wydanie 2.0
+
+Aktualne pliki instalacyjne znajdziesz w release `2.0`:
+
+- Windows: https://github.com/kamil5646/MadCAD2D/releases/download/2.0/MadCAD.2D-2.0.0-win-x64.exe
+- macOS: https://github.com/kamil5646/MadCAD2D/releases/download/2.0/MadCAD.2D-2.0.0-mac-x64.zip
+- Strona release: https://github.com/kamil5646/MadCAD2D/releases/tag/2.0
+
+## Struktura repo
+
+- `auto-cad/` - główny kod aplikacji desktop (to katalog, z którego uruchamiasz build i dev)
+- `docs/` - strona projektu / dokumentacja publikowana na GitHub Pages
+- katalog główny repo - dokumenty prawne i organizacyjne projektu
+
 ## Najważniejsze funkcje
 
 - Wstążka (Ribbon) z zakładkami: `Główne`, `Wymiarowanie`, `Stal`, `Układ`, `Widok`, `Skróty`.
@@ -15,10 +29,10 @@ Desktopowa aplikacja CAD 2D (Mac/Windows) MadCAD 2D, z naciskiem na projektowani
 
 ## Uruchomienie desktop (dev)
 
-1. Wejdź do katalogu projektu:
+1. Wejdź do katalogu aplikacji:
 
 ```bash
-cd /Users/kamilkasprzak/Documents/inne/auto-cad
+cd auto-cad
 ```
 
 2. Zainstaluj zależności:
@@ -34,6 +48,8 @@ npm run dev
 ```
 
 ## Build aplikacji
+
+Wszystkie komendy build uruchamiaj z katalogu `auto-cad`.
 
 ### macOS
 
