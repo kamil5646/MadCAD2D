@@ -2084,6 +2084,29 @@ button:disabled:hover {
   color: #d3def0;
   padding: 9px 10px;
   line-height: 1.45;
+  display: grid;
+  gap: 6px;
+}
+
+.license-terms-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 3px;
+}
+
+.license-terms-list li {
+  color: #d3def0;
+}
+
+.license-terms-footer {
+  margin: 0;
+  font-size: 12px;
+  color: #becce2;
+}
+
+.license-terms-footer a {
+  color: var(--accent);
 }
 
 .license-grid {
