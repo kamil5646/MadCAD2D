@@ -114,8 +114,9 @@ Najważniejsze zasady:
 
 Po uruchomieniu aplikacji pojawia się ekran aktywacji:
 
-1. Uzupełnij formularz prywatny (imię i nazwisko, e-mail, cel użycia).
-2. Kliknij `Generuj darmowy token`.
-3. Kliknij `Aktywuj token`.
+1. Skopiuj `ID urządzenia` z okna aktywacji.
+2. Otwórz formularz na stronie GitHub Pages: `https://kamil5646.github.io/MadCAD2D/#token-prywatny`.
+3. Wygeneruj token prywatny na stronie.
+4. Wklej token w aplikacji i kliknij `Aktywuj token`.
 
 Token jest przypisany do ID urządzenia i zapisywany lokalnie.

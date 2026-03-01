@@ -344,6 +344,65 @@
         color: #d8e7ff;
       }
 
+      .token-form {
+        display: grid;
+        gap: 10px;
+      }
+
+      .token-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .field {
+        display: grid;
+        gap: 6px;
+      }
+
+      .field label {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .field input,
+      .field textarea {
+        width: 100%;
+        border: 1px solid rgba(127, 162, 208, 0.44);
+        border-radius: 9px;
+        background: rgba(8, 19, 35, 0.66);
+        color: var(--text);
+        padding: 9px 10px;
+        font-family: inherit;
+        font-size: 13px;
+      }
+
+      .field textarea {
+        min-height: 96px;
+        resize: vertical;
+      }
+
+      .token-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .token-status {
+        margin: 0;
+        min-height: 20px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .token-status.ok {
+        color: var(--ok);
+      }
+
+      .token-status.err {
+        color: #ff9f9f;
+      }
+
       .dot {
         width: 10px;
         height: 10px;
@@ -375,6 +434,10 @@
         }
 
         .release {
+          grid-template-columns: 1fr;
+        }
+
+        .token-grid {
           grid-template-columns: 1fr;
         }
       }
@@ -418,6 +481,7 @@
         <div class="nav">
           <a href="#funkcje">Funkcje</a>
           <a href="#jak-dziala">Jak działa</a>
+          <a href="#token-prywatny">Token prywatny</a>
           <a href="#pobierz">Pobierz</a>
           <a href="#faq">FAQ</a>
         </div>
@@ -495,7 +559,7 @@
           </article>
           <article class="step">
             <strong>2. Ustaw parametry</strong>
-            <p>Podaj szerokość, wysokość, profile, panele i odstępy. Generator przelicza układ automatycznie.</p>
+            <p>Podaj szerokość, wysokość, profile i ilość paneli. Generator przelicza układ automatycznie.</p>
           </article>
           <article class="step">
             <strong>3. Dorysuj detale</strong>
@@ -505,6 +569,46 @@
             <strong>4. Zwymiaruj i wyeksportuj</strong>
             <p>Dodaj wymiary (także kąty), potem zapisz DXF/SVG lub wydrukuj dokument PDF.</p>
           </article>
+        </div>
+      </section>
+
+      <section class="section" id="token-prywatny">
+        <h2>Generator darmowego tokenu prywatnego</h2>
+        <p class="lead">
+          Ten formularz generuje token licencji prywatnej do aplikacji MadCAD 2D.
+          Token jest przypisany do jednego urządzenia, dlatego najpierw skopiuj <strong>ID urządzenia</strong> z okna aktywacji w aplikacji.
+        </p>
+
+        <div class="token-form">
+          <div class="token-grid">
+            <div class="field">
+              <label for="tokenOwnerName">Imię i nazwisko</label>
+              <input id="tokenOwnerName" type="text" placeholder="Jan Kowalski" />
+            </div>
+            <div class="field">
+              <label for="tokenEmail">E-mail</label>
+              <input id="tokenEmail" type="email" placeholder="jan@przyklad.pl" />
+            </div>
+            <div class="field">
+              <label for="tokenPurpose">Cel prywatnego użycia</label>
+              <input id="tokenPurpose" type="text" placeholder="Projekt domowy / nauka" />
+            </div>
+            <div class="field">
+              <label for="tokenDeviceId">ID urządzenia (z aplikacji)</label>
+              <input id="tokenDeviceId" type="text" placeholder="wklej ID urządzenia z MadCAD 2D" />
+            </div>
+          </div>
+
+          <div class="token-actions">
+            <button id="generatePrivateTokenBtn" class="btn" type="button">Generuj token prywatny</button>
+            <button id="copyPrivateTokenBtn" class="btn secondary" type="button">Kopiuj token</button>
+          </div>
+
+          <div class="field">
+            <label for="generatedPrivateToken">Wygenerowany token</label>
+            <textarea id="generatedPrivateToken" readonly></textarea>
+          </div>
+          <p id="tokenStatus" class="token-status" aria-live="polite"></p>
         </div>
       </section>
 
@@ -574,5 +678,135 @@
         <a href="https://github.com/kamil5646/MadCAD2D">GitHub</a>
       </footer>
     </main>
+
+    <script>
+      (() => {
+        const LICENSE_SIGNATURE_SALT = "MadCAD2D-Private-NoMods-SingleDevice-2026";
+        const LICENSE_TOKEN_PREFIX = "M2D1";
+
+        const ownerInput = document.getElementById("tokenOwnerName");
+        const emailInput = document.getElementById("tokenEmail");
+        const purposeInput = document.getElementById("tokenPurpose");
+        const deviceIdInput = document.getElementById("tokenDeviceId");
+        const generateBtn = document.getElementById("generatePrivateTokenBtn");
+        const copyBtn = document.getElementById("copyPrivateTokenBtn");
+        const output = document.getElementById("generatedPrivateToken");
+        const statusEl = document.getElementById("tokenStatus");
+
+        function fnv1aHash(input, seed) {
+          const text = String(input || "");
+          let hash = Number.isFinite(seed) ? seed >>> 0 : 0x811c9dc5;
+          for (let i = 0; i < text.length; i += 1) {
+            hash ^= text.charCodeAt(i);
+            hash = Math.imul(hash, 0x01000193) >>> 0;
+          }
+          return hash.toString(16).padStart(8, "0");
+        }
+
+        function encodeBase64Url(text) {
+          const utf8 = unescape(encodeURIComponent(String(text || "")));
+          return btoa(utf8).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+        }
+
+        function makeLicenseSignature(payloadJson) {
+          const source = String(payloadJson || "");
+          const a = fnv1aHash(`${source}|${LICENSE_SIGNATURE_SALT}|A`);
+          const b = fnv1aHash(`${LICENSE_SIGNATURE_SALT}|${source}|B`, 0x9e3779b9);
+          const c = fnv1aHash(`${source}|${LICENSE_SIGNATURE_SALT}|C`, 0x85ebca6b);
+          return `${a}${b}${c}`.toUpperCase();
+        }
+
+        function setStatus(message, kind) {
+          if (!statusEl) {
+            return;
+          }
+          statusEl.textContent = String(message || "");
+          statusEl.classList.remove("ok", "err");
+          if (kind === "ok") {
+            statusEl.classList.add("ok");
+          } else if (kind === "err") {
+            statusEl.classList.add("err");
+          }
+        }
+
+        function normalizeEmail(value) {
+          return String(value || "").trim().toLowerCase();
+        }
+
+        function buildPrivateToken() {
+          const ownerName = String(ownerInput ? ownerInput.value : "").trim();
+          const email = normalizeEmail(emailInput ? emailInput.value : "");
+          const purpose = String(purposeInput ? purposeInput.value : "").trim();
+          const deviceId = String(deviceIdInput ? deviceIdInput.value : "").trim();
+
+          if (!ownerName) {
+            setStatus("Podaj imię i nazwisko.", "err");
+            return;
+          }
+          if (!email || !email.includes("@")) {
+            setStatus("Podaj poprawny adres e-mail.", "err");
+            return;
+          }
+          if (!purpose) {
+            setStatus("Podaj cel prywatnego użycia.", "err");
+            return;
+          }
+          if (!deviceId || deviceId.length < 8) {
+            setStatus("Wklej poprawne ID urządzenia z aplikacji.", "err");
+            return;
+          }
+
+          const payload = {
+            v: 1,
+            app: "MadCAD 2D",
+            scope: "private",
+            ownerName,
+            email,
+            purpose,
+            deviceId,
+            noModifications: true,
+            commercialUse: false,
+            seats: 1,
+            issuedAt: new Date().toISOString()
+          };
+
+          const json = JSON.stringify(payload);
+          const body = encodeBase64Url(json);
+          const signature = makeLicenseSignature(json);
+          const token = `${LICENSE_TOKEN_PREFIX}.${body}.${signature}`;
+          if (output) {
+            output.value = token;
+          }
+          setStatus("Token wygenerowany. Skopiuj i wklej go w aplikacji.", "ok");
+        }
+
+        async function copyToken() {
+          const value = String(output ? output.value : "").trim();
+          if (!value) {
+            setStatus("Najpierw wygeneruj token.", "err");
+            return;
+          }
+          try {
+            await navigator.clipboard.writeText(value);
+            setStatus("Skopiowano token do schowka.", "ok");
+          } catch (error) {
+            setStatus("Nie udało się skopiować tokenu.", "err");
+          }
+        }
+
+        if (generateBtn) {
+          generateBtn.addEventListener("click", buildPrivateToken);
+        }
+        if (copyBtn) {
+          copyBtn.addEventListener("click", copyToken);
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        const queryDeviceId = String(params.get("deviceId") || "").trim();
+        if (queryDeviceId && deviceIdInput && !deviceIdInput.value) {
+          deviceIdInput.value = queryDeviceId;
+        }
+      })();
+    </script>
   </body>
 </html>

@@ -547,30 +547,18 @@
           <section class="license-card">
             <h3 class="has-icon" data-icon="&#127968;">Prywatnie (darmowy token)</h3>
             <label class="control inline">
-              <span>Imię i nazwisko</span>
-              <input id="licensePrivateNameInput" type="text" placeholder="Jan Kowalski" />
-            </label>
-            <label class="control inline">
-              <span>E-mail</span>
-              <input id="licensePrivateEmailInput" type="email" placeholder="jan@przyklad.pl" />
-            </label>
-            <label class="control inline">
-              <span>Cel prywatnego użycia</span>
-              <input id="licensePrivatePurposeInput" type="text" placeholder="Projekt domowy / nauka" />
-            </label>
-            <label class="control inline">
               <span>ID urządzenia</span>
               <input id="licenseDeviceIdInput" type="text" readonly />
             </label>
-            <button id="licenseGeneratePrivateTokenBtn" class="ribbon-btn has-icon" data-icon="&#10010;">
-              Generuj darmowy token
+            <p class="license-note">
+              Darmowy token prywatny generujesz na stronie GitHub projektu. Skopiuj ID urządzenia, otwórz formularz online,
+              wygeneruj token i wklej go poniżej w tej aplikacji.
+            </p>
+            <button id="licenseOpenWebFormBtn" class="ribbon-btn has-icon" data-icon="&#127760;">
+              Otwórz formularz tokenu na GitHub
             </button>
-            <label class="control">
-              <span>Wygenerowany token prywatny</span>
-              <textarea id="licensePrivateTokenOutput" rows="3" readonly></textarea>
-            </label>
-            <button id="licenseCopyPrivateTokenBtn" class="ribbon-btn has-icon" data-icon="&#128203;">
-              Kopiuj token
+            <button id="licenseCopyDeviceIdBtn" class="ribbon-btn has-icon" data-icon="&#128203;">
+              Kopiuj ID urządzenia
             </button>
           </section>
 

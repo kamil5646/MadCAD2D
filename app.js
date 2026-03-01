@@ -108,13 +108,9 @@
   const startScaleValue = document.getElementById("startScaleValue");
   const layoutTabs = Array.from(document.querySelectorAll(".layout-tab[data-layout]"));
   const licenseOverlay = document.getElementById("licenseOverlay");
-  const licensePrivateNameInput = document.getElementById("licensePrivateNameInput");
-  const licensePrivateEmailInput = document.getElementById("licensePrivateEmailInput");
-  const licensePrivatePurposeInput = document.getElementById("licensePrivatePurposeInput");
   const licenseDeviceIdInput = document.getElementById("licenseDeviceIdInput");
-  const licenseGeneratePrivateTokenBtn = document.getElementById("licenseGeneratePrivateTokenBtn");
-  const licensePrivateTokenOutput = document.getElementById("licensePrivateTokenOutput");
-  const licenseCopyPrivateTokenBtn = document.getElementById("licenseCopyPrivateTokenBtn");
+  const licenseOpenWebFormBtn = document.getElementById("licenseOpenWebFormBtn");
+  const licenseCopyDeviceIdBtn = document.getElementById("licenseCopyDeviceIdBtn");
   const licenseCommercialNameInput = document.getElementById("licenseCommercialNameInput");
   const licenseCommercialEmailInput = document.getElementById("licenseCommercialEmailInput");
   const licenseCommercialRefInput = document.getElementById("licenseCommercialRefInput");
@@ -128,6 +124,7 @@
   const LICENSE_STORAGE_KEY = "madcad-license-v1";
   const LICENSE_SIGNATURE_SALT = "MadCAD2D-Private-NoMods-SingleDevice-2026";
   const LICENSE_TOKEN_PREFIX = "M2D1";
+  const LICENSE_PRIVATE_FORM_URL = "https://kamil5646.github.io/MadCAD2D/#token-prywatny";
   const licenseSession = {
     active: false,
     token: "",
@@ -1114,13 +1111,6 @@
     return `${a}${b}${c}`.toUpperCase();
   }
 
-  function buildLicenseToken(payload) {
-    const json = JSON.stringify(payload);
-    const body = encodeBase64Url(json);
-    const signature = makeLicenseSignature(json);
-    return `${LICENSE_TOKEN_PREFIX}.${body}.${signature}`;
-  }
-
   function parseLicenseToken(rawToken) {
     const token = String(rawToken || "").trim();
     const parts = token.split(".");
@@ -1259,56 +1249,6 @@
     return verified;
   }
 
-  function buildPrivateLicensePayload() {
-    const ownerName = String(licensePrivateNameInput ? licensePrivateNameInput.value : "").trim();
-    const email = normalizeLicenseEmail(licensePrivateEmailInput ? licensePrivateEmailInput.value : "");
-    const purpose = String(licensePrivatePurposeInput ? licensePrivatePurposeInput.value : "").trim();
-
-    if (!ownerName) {
-      return { ok: false, error: "Podaj imię i nazwisko." };
-    }
-    if (!email || !email.includes("@")) {
-      return { ok: false, error: "Podaj poprawny adres e-mail." };
-    }
-    if (!purpose) {
-      return { ok: false, error: "Podaj cel prywatnego użycia." };
-    }
-
-    return {
-      ok: true,
-      payload: {
-        v: 1,
-        app: "MadCAD 2D",
-        scope: "private",
-        ownerName,
-        email,
-        purpose,
-        deviceId: getLicenseDeviceId(),
-        noModifications: true,
-        commercialUse: false,
-        seats: 1,
-        issuedAt: new Date().toISOString()
-      }
-    };
-  }
-
-  function generatePrivateLicenseToken() {
-    const payloadResult = buildPrivateLicensePayload();
-    if (!payloadResult.ok) {
-      setLicenseStatus(payloadResult.error, "error");
-      return null;
-    }
-    const token = buildLicenseToken(payloadResult.payload);
-    if (licensePrivateTokenOutput) {
-      licensePrivateTokenOutput.value = token;
-    }
-    if (licenseTokenInput) {
-      licenseTokenInput.value = token;
-    }
-    setLicenseStatus("Wygenerowano darmowy token prywatny. Kliknij: Aktywuj token.", "ok");
-    return token;
-  }
-
   function generateCommercialRequestCode() {
     const ownerName = String(licenseCommercialNameInput ? licenseCommercialNameInput.value : "").trim();
     const email = normalizeLicenseEmail(licenseCommercialEmailInput ? licenseCommercialEmailInput.value : "");
@@ -1366,15 +1306,20 @@
       licenseDeviceIdInput.value = deviceId;
     }
 
-    if (licenseGeneratePrivateTokenBtn) {
-      licenseGeneratePrivateTokenBtn.addEventListener("click", () => {
-        generatePrivateLicenseToken();
+    if (licenseOpenWebFormBtn) {
+      licenseOpenWebFormBtn.addEventListener("click", () => {
+        const url = `${LICENSE_PRIVATE_FORM_URL}?deviceId=${encodeURIComponent(deviceId)}`;
+        window.open(url, "_blank", "noopener,noreferrer");
+        setLicenseStatus("Otworzono formularz tokenu prywatnego na GitHub Pages.", "ok");
       });
     }
-    if (licenseCopyPrivateTokenBtn) {
-      licenseCopyPrivateTokenBtn.addEventListener("click", async () => {
-        const copied = await copyLicenseText(licensePrivateTokenOutput ? licensePrivateTokenOutput.value : "");
-        setLicenseStatus(copied ? "Skopiowano token do schowka." : "Nie udało się skopiować tokenu.", copied ? "ok" : "error");
+    if (licenseCopyDeviceIdBtn) {
+      licenseCopyDeviceIdBtn.addEventListener("click", async () => {
+        const copied = await copyLicenseText(deviceId);
+        setLicenseStatus(
+          copied ? "Skopiowano ID urządzenia do schowka." : "Nie udało się skopiować ID urządzenia.",
+          copied ? "ok" : "error"
+        );
       });
     }
     if (licenseGenerateCommercialRequestBtn) {
@@ -1396,9 +1341,6 @@
         clearPersistedLicenseRecord();
         licenseSession.token = "";
         licenseSession.payload = null;
-        if (licensePrivateTokenOutput) {
-          licensePrivateTokenOutput.value = "";
-        }
         if (licenseTokenInput) {
           licenseTokenInput.value = "";
         }
@@ -1426,7 +1368,7 @@
     }
 
     setLicenseLocked(true);
-    setLicenseStatus("Wymagana aktywacja licencji przed rozpoczęciem pracy.", "error");
+    setLicenseStatus("Wymagana aktywacja. Wygeneruj darmowy token na stronie GitHub i wklej go tutaj.", "error");
     return false;
   }
 
