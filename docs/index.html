@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MadCAD 2D - Pobierz aplikację</title>
+    <meta
+      name="description"
+      content="MadCAD 2D - desktopowa aplikacja CAD 2D do konstrukcji stalowych: bramy, ogrodzenia i balkony."
+    />
+    <style>
+      :root {
+        --bg: #0c1422;
+        --panel: #16263d;
+        --panel-2: #1f3657;
+        --line: #35537f;
+        --text: #e6f0ff;
+        --muted: #9db4d8;
+        --accent: #56a3ff;
+        --accent-2: #7ad4ff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 20% -10%, rgba(86, 163, 255, 0.25), transparent 45%),
+          radial-gradient(circle at 90% 10%, rgba(122, 212, 255, 0.16), transparent 40%),
+          linear-gradient(180deg, #12213a 0%, var(--bg) 55%);
+      }
+
+      .wrap {
+        width: min(980px, calc(100% - 32px));
+        margin: 24px auto;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: 120px 1fr;
+        gap: 18px;
+        align-items: center;
+        padding: 22px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent), var(--panel);
+        box-shadow: 0 18px 36px rgba(3, 7, 14, 0.32);
+      }
+
+      .logo {
+        width: 110px;
+        height: 110px;
+        object-fit: contain;
+        border-radius: 18px;
+        border: 1px solid rgba(166, 197, 240, 0.4);
+        background: rgba(255, 255, 255, 0.04);
+        padding: 8px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: clamp(28px, 4vw, 40px);
+        line-height: 1.05;
+      }
+
+      .subtitle {
+        margin: 0;
+        color: var(--muted);
+        font-size: 16px;
+      }
+
+      .buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 42px;
+        padding: 0 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(132, 180, 240, 0.5);
+        background: linear-gradient(180deg, rgba(86, 163, 255, 0.25), rgba(86, 163, 255, 0.14));
+        color: var(--text);
+        text-decoration: none;
+        font-weight: 600;
+      }
+
+      .btn:hover {
+        border-color: rgba(151, 197, 255, 0.85);
+        background: linear-gradient(180deg, rgba(93, 172, 255, 0.35), rgba(93, 172, 255, 0.2));
+      }
+
+      .btn.secondary {
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .grid {
+        margin-top: 18px;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--panel-2);
+        padding: 14px;
+      }
+
+      .card h2 {
+        margin: 0 0 8px;
+        font-size: 16px;
+      }
+
+      .card p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.45;
+      }
+
+      footer {
+        margin-top: 16px;
+        color: var(--muted);
+        font-size: 13px;
+        text-align: center;
+      }
+
+      @media (max-width: 760px) {
+        .hero {
+          grid-template-columns: 1fr;
+          text-align: center;
+        }
+
+        .logo {
+          margin-inline: auto;
+        }
+
+        .buttons {
+          justify-content: center;
+        }
+
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="hero">
+        <img class="logo" src="./madcad-512.png" alt="Logo MadCAD 2D" />
+        <div>
+          <h1>MadCAD 2D</h1>
+          <p class="subtitle">
+            Prosta aplikacja CAD 2D na Windows i macOS do projektowania konstrukcji stalowych: bramy,
+            ogrodzenia, balkony.
+          </p>
+          <div class="buttons">
+            <a class="btn" href="https://github.com/kamil5646/MadCAD2D/releases/download/1.0/MadCAD.2D-1.0.0-win-x64.exe">Pobierz Windows (.exe)</a>
+            <a class="btn" href="https://github.com/kamil5646/MadCAD2D/releases/download/1.0/MadCAD.2D-1.0.0-mac-x64.zip">Pobierz macOS (.zip)</a>
+            <a class="btn secondary" href="https://github.com/kamil5646/MadCAD2D/releases/tag/1.0">Release 1.0</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="card">
+          <h2>Rysowanie 2D</h2>
+          <p>Linia, polilinia, prostokąt, okrąg, zaznaczanie, kopiowanie, przesuwanie i offset.</p>
+        </article>
+        <article class="card">
+          <h2>Wymiarowanie</h2>
+          <p>Wymiary wyrównane, liniowe, obrócone i kątowe z konfiguracją stylu.</p>
+        </article>
+        <article class="card">
+          <h2>Generator stali</h2>
+          <p>Szablony: brama, ogrodzenie, balkon. Automatyczne rozstawy paneli i profile.</p>
+        </article>
+      </section>
+
+      <footer>
+        GitHub: <a href="https://github.com/kamil5646/MadCAD2D" style="color: var(--accent-2)">@kamil5646/MadCAD2D</a>
+      </footer>
+    </main>
+  </body>
+</html>
