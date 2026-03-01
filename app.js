@@ -129,12 +129,9 @@
   const LICENSE_TOKEN_PREFIX = "M2D1";
   const LICENSE_PRIVATE_FORM_URL = "https://kamil5646.github.io/MadCAD2D/#token-prywatny";
   const licenseSession = {
-    active: true,
+    active: false,
     token: "",
-    payload: {
-      scope: "mit",
-      ownerName: "Open Source"
-    },
+    payload: null,
     deviceId: ""
   };
 
@@ -1255,9 +1252,6 @@
     const scope = String(payload && payload.scope ? payload.scope : "")
       .trim()
       .toLowerCase();
-    if (scope === "mit") {
-      return "MIT";
-    }
     return scope === "commercial" ? "Komercyjna" : "Free";
   }
 
@@ -1360,8 +1354,9 @@
   function activateLicenseToken(rawToken, options) {
     const verified = verifyLicenseToken(rawToken);
     if (!verified.ok) {
+      setLicenseLocked(true);
       if (!options || options.silent !== true) {
-        setLicenseStatus(`Błąd tokenu: ${verified.error}`, "error");
+        setLicenseStatus(`Błąd licencji: ${verified.error}`, "error");
       }
       return verified;
     }
@@ -1488,9 +1483,8 @@
         if (licenseTokenInput) {
           licenseTokenInput.value = "";
         }
-        licenseSession.payload = { scope: "mit", ownerName: "Open Source" };
-        setLicenseLocked(false);
-        setLicenseStatus("Usunięto zapisany token. Aplikacja działa dalej na licencji MIT.", "ok");
+        setLicenseLocked(true);
+        setLicenseStatus("Usunięto zapisany token. Wymagana ponowna aktywacja.", "error");
         appendPrivateLicenseAudit("Czyszczenie tokenu", "Usunięto lokalnie zapisany token.", {
           deviceId: getLicenseDeviceId()
         });
@@ -1518,10 +1512,9 @@
       }
     }
 
-    licenseSession.payload = { scope: "mit", ownerName: "Open Source" };
-    setLicenseLocked(false);
-    setLicenseStatus("Licencja MIT aktywna. Token jest opcjonalny.", "ok");
-    return true;
+    setLicenseLocked(true);
+    setLicenseStatus("Wymagana aktywacja. Wygeneruj darmowy token i wklej go tutaj.", "error");
+    return false;
   }
 
   function resetViewTransform() {
@@ -9005,7 +8998,7 @@
 
   function bootstrap() {
     applyTheme("dark");
-    initializeLicenseManager();
+    const licensedAtBoot = initializeLicenseManager();
 
     restoreSession();
     state.ribbonCollapsed = false;
@@ -9029,6 +9022,9 @@
     echoCommand("Gotowe. Użyj przycisków ze wstążki lub zakładki Skróty.", false, { toast: false });
     if (restoredHiddenLayers) {
       echoCommand("Przywrócono widoczność warstw z istniejącą geometrią.");
+    }
+    if (!licensedAtBoot) {
+      echoCommand("Aktywuj licencję, aby odblokować pracę w MadCAD 2D.", true, { toast: false });
     }
     queueRender();
   }
