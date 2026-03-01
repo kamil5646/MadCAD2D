@@ -15,41 +15,7 @@
 
         <div class="ribbon-tabs">
           <div class="ribbon-tab-track">
-            <div id="fileMenu" class="file-menu file-tab-menu">
-              <button
-                id="fileMenuBtn"
-                class="ribbon-tab ribbon-tab-file"
-                aria-haspopup="true"
-                aria-expanded="false"
-                aria-controls="fileMenuPanel"
-                title="Menu Plik"
-              >
-                Plik
-              </button>
-              <div id="fileMenuPanel" class="file-menu-panel file-tab-panel" role="menu" hidden>
-                <button id="loadJsonBtn" class="quick-btn has-icon" data-icon="&#128194;" role="menuitem">
-                  Wczytaj JSON
-                </button>
-                <button id="saveJsonBtn" class="quick-btn has-icon" data-icon="&#128190;" role="menuitem">
-                  Zapisz JSON
-                </button>
-                <button id="importDxfBtn" class="quick-btn has-icon" data-icon="&#128228;" role="menuitem">
-                  Wczytaj DXF
-                </button>
-                <button id="exportDxfBtn" class="quick-btn has-icon" data-icon="&#128229;" role="menuitem">
-                  Eksport DXF
-                </button>
-                <button id="exportSvgBtn" class="quick-btn has-icon" data-icon="&#128196;" role="menuitem">
-                  Eksport SVG
-                </button>
-                <button id="printDrawingBtn" class="quick-btn has-icon" data-icon="&#128438;" role="menuitem">
-                  Drukuj/PDF
-                </button>
-              </div>
-            </div>
-
-            <button class="ribbon-tab active" data-page="start">Start</button>
-            <button class="ribbon-tab" data-page="home">Główne</button>
+            <button class="ribbon-tab active" data-page="home">Główne</button>
             <button class="ribbon-tab" data-page="references">Wymiarowanie</button>
             <button class="ribbon-tab" data-page="design">Stal</button>
             <button class="ribbon-tab" data-page="layout">Układ</button>
@@ -86,6 +52,38 @@
               Zaznaczenie
             </button>
             <button id="toggleRibbonBtn" class="has-icon" data-icon="&#9660;" data-pages="view">Zwiń wstążkę</button>
+            <div id="fileMenu" class="file-menu file-tab-menu file-tab-menu-right">
+              <button
+                id="fileMenuBtn"
+                class="ribbon-tab ribbon-tab-file"
+                aria-haspopup="true"
+                aria-expanded="false"
+                aria-controls="fileMenuPanel"
+                title="Menu Plik"
+              >
+                Plik
+              </button>
+              <div id="fileMenuPanel" class="file-menu-panel file-tab-panel" role="menu" hidden>
+                <button id="loadJsonBtn" class="quick-btn has-icon" data-icon="&#128194;" role="menuitem">
+                  Wczytaj JSON
+                </button>
+                <button id="saveJsonBtn" class="quick-btn has-icon" data-icon="&#128190;" role="menuitem">
+                  Zapisz JSON
+                </button>
+                <button id="importDxfBtn" class="quick-btn has-icon" data-icon="&#128228;" role="menuitem">
+                  Wczytaj DXF
+                </button>
+                <button id="exportDxfBtn" class="quick-btn has-icon" data-icon="&#128229;" role="menuitem">
+                  Eksport DXF
+                </button>
+                <button id="exportSvgBtn" class="quick-btn has-icon" data-icon="&#128196;" role="menuitem">
+                  Eksport SVG
+                </button>
+                <button id="printDrawingBtn" class="quick-btn has-icon" data-icon="&#128438;" role="menuitem">
+                  Drukuj/PDF
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -142,7 +140,17 @@
                 <select id="dimensionModeSelect">
                   <option value="aligned">Wyrównany</option>
                   <option value="linear">Liniowy</option>
+                  <option value="rotated">Obrócony</option>
+                  <option value="angular">Kątowy</option>
                 </select>
+              </label>
+              <label class="control inline">
+                <span>Kąt wymiaru [°]</span>
+                <input id="dimensionRotationInput" type="number" min="-180" max="180" step="1" value="0" />
+              </label>
+              <label class="control inline">
+                <span>Skok kąta [°]</span>
+                <input id="dimensionAngleSnapInput" type="number" min="0" max="90" step="1" value="15" />
               </label>
               <label class="control inline">
                 <span>Jednostka</span>
@@ -166,6 +174,8 @@
               </label>
               <button id="dimAlignedBtn" class="ribbon-btn has-icon" data-icon="&#8596;">Wymiar wyrównany</button>
               <button id="dimLinearBtn" class="ribbon-btn has-icon" data-icon="&#8646;">Wymiar liniowy</button>
+              <button id="dimRotatedBtn" class="ribbon-btn has-icon" data-icon="&#8736;">Wymiar obrócony</button>
+              <button id="dimAngularBtn" class="ribbon-btn has-icon" data-icon="&#8737;">Wymiar kątowy</button>
             </div>
             <h2 class="has-icon" data-icon="&#128207;">Wymiarowanie</h2>
           </section>
@@ -337,7 +347,7 @@
               <label class="control inline steel-control" data-steel-field="barSpacing">
                 <span class="has-icon" data-icon="&#8644;">Odstęp paneli [mm]</span>
                 <input id="steelBarSpacingInput" type="number" value="80" min="5" step="1" />
-                <small class="steel-help">Dla pionu/siatki liczy gęstość automatycznie, dla poziomu ustawia przerwę między panelami.</small>
+                <small id="steelBarSpacingHint" class="steel-help">Dla pionu/siatki przerwy są automatycznie dopasowywane do ilości paneli i szerokości sekcji.</small>
               </label>
               <label class="control inline steel-control" data-steel-field="infillPattern">
                 <span class="has-icon" data-icon="&#10065;">Typ wypełnienia</span>
@@ -350,16 +360,30 @@
                 <small class="steel-help">Układ elementów wewnątrz każdej sekcji.</small>
               </label>
               <div class="steel-grid">
-                <label class="control steel-control" data-steel-field="topPanel">
+                <div class="control steel-control" data-steel-field="topPanel">
                   <span class="has-icon" data-icon="&#11165;">Panel górny</span>
-                  <input id="steelTopPanelToggle" type="checkbox" checked />
-                  <small class="steel-help">Dodaje poziomy panel przy górnej krawędzi sekcji.</small>
-                </label>
-                <label class="control steel-control" data-steel-field="bottomPanel">
+                  <label class="steel-check-inline">
+                    <input id="steelTopPanelToggle" type="checkbox" checked />
+                    <span>Włącz</span>
+                  </label>
+                  <label class="steel-size-inline">
+                    <span>Rozmiar [mm]</span>
+                    <input id="steelTopPanelSizeInput" type="number" value="20" min="2" step="1" />
+                  </label>
+                  <small class="steel-help">Poziomy panel przy górnej krawędzi sekcji.</small>
+                </div>
+                <div class="control steel-control" data-steel-field="bottomPanel">
                   <span class="has-icon" data-icon="&#11167;">Panel dolny</span>
-                  <input id="steelBottomPanelToggle" type="checkbox" checked />
-                  <small class="steel-help">Dodaje poziomy panel przy dolnej krawędzi sekcji.</small>
-                </label>
+                  <label class="steel-check-inline">
+                    <input id="steelBottomPanelToggle" type="checkbox" checked />
+                    <span>Włącz</span>
+                  </label>
+                  <label class="steel-size-inline">
+                    <span>Rozmiar [mm]</span>
+                    <input id="steelBottomPanelSizeInput" type="number" value="20" min="2" step="1" />
+                  </label>
+                  <small class="steel-help">Poziomy panel przy dolnej krawędzi sekcji.</small>
+                </div>
               </div>
               <div class="steel-grid">
                 <label class="control steel-control" data-steel-field="sectionCount">

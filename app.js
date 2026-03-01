@@ -57,9 +57,12 @@
   const steelPostLengthHint = document.getElementById("steelPostLengthHint");
   const steelBarWidthInput = document.getElementById("steelBarWidthInput");
   const steelBarSpacingInput = document.getElementById("steelBarSpacingInput");
+  const steelBarSpacingHint = document.getElementById("steelBarSpacingHint");
   const steelInfillPatternSelect = document.getElementById("steelInfillPatternSelect");
   const steelTopPanelToggle = document.getElementById("steelTopPanelToggle");
+  const steelTopPanelSizeInput = document.getElementById("steelTopPanelSizeInput");
   const steelBottomPanelToggle = document.getElementById("steelBottomPanelToggle");
+  const steelBottomPanelSizeInput = document.getElementById("steelBottomPanelSizeInput");
   const steelSectionCountInput = document.getElementById("steelSectionCountInput");
   const steelGroundClearanceInput = document.getElementById("steelGroundClearanceInput");
   const steelGateLeafCountSelect = document.getElementById("steelGateLeafCountSelect");
@@ -77,12 +80,16 @@
   const copyCmdBtn = document.getElementById("copyCmdBtn");
   const offsetCmdBtn = document.getElementById("offsetCmdBtn");
   const dimensionModeSelect = document.getElementById("dimensionModeSelect");
+  const dimensionRotationInput = document.getElementById("dimensionRotationInput");
+  const dimensionAngleSnapInput = document.getElementById("dimensionAngleSnapInput");
   const dimensionUnitSelect = document.getElementById("dimensionUnitSelect");
   const dimensionDecimalsInput = document.getElementById("dimensionDecimalsInput");
   const dimensionTextSizeInput = document.getElementById("dimensionTextSizeInput");
   const dimensionColorInput = document.getElementById("dimensionColorInput");
   const dimAlignedBtn = document.getElementById("dimAlignedBtn");
   const dimLinearBtn = document.getElementById("dimLinearBtn");
+  const dimRotatedBtn = document.getElementById("dimRotatedBtn");
+  const dimAngularBtn = document.getElementById("dimAngularBtn");
   const duplicateBtn = document.getElementById("duplicateBtn");
   const deleteBtn = document.getElementById("deleteBtn");
   const toFrontBtn = document.getElementById("toFrontBtn");
@@ -113,6 +120,7 @@
     },
     drawStart: null,
     dimensionSecond: null,
+    dimensionThird: null,
     commandState: null,
     commandHistory: [],
     commandHistoryIndex: -1,
@@ -142,6 +150,8 @@
     fillColor: "#00a9e0",
     fillAlpha: 20,
     dimensionMode: "aligned",
+    dimensionRotation: 0,
+    dimensionAngleSnap: 15,
     dimensionUnit: "mm",
     dimensionDecimals: 0,
     dimensionTextSize: 12,
@@ -156,7 +166,9 @@
     steelBarSpacing: 80,
     steelInfillPattern: "vertical",
     steelTopPanel: true,
+    steelTopPanelThickness: 20,
     steelBottomPanel: true,
+    steelBottomPanelThickness: 20,
     steelSectionCount: 1,
     steelGateLeafCount: 2,
     steelGroundClearance: 40,
@@ -167,7 +179,7 @@
     workspaceMode: "draw",
     activeFlyout: null,
     layoutTab: "model",
-    ribbonPage: "start",
+    ribbonPage: "home",
     ribbonCollapsed: false,
     paletteHidden: false,
     paletteWidth: 300,
@@ -223,7 +235,9 @@
       barSpacing: 80,
       infillPattern: "vertical",
       topPanel: true,
+      topPanelThickness: 20,
       bottomPanel: true,
+      bottomPanelThickness: 20,
       sectionCount: 1,
       gateLeafCount: 2,
       groundClearance: 40,
@@ -241,7 +255,9 @@
       barSpacing: 70,
       infillPattern: "horizontal",
       topPanel: true,
+      topPanelThickness: 18,
       bottomPanel: true,
+      bottomPanelThickness: 18,
       sectionCount: 1,
       gateLeafCount: 1,
       groundClearance: 60,
@@ -259,7 +275,9 @@
       barSpacing: 80,
       infillPattern: "horizontal",
       topPanel: true,
+      topPanelThickness: 16,
       bottomPanel: true,
+      bottomPanelThickness: 16,
       sectionCount: 2,
       gateLeafCount: 1,
       groundClearance: 0,
@@ -295,7 +313,7 @@
 
   if (window.desktopApp && window.desktopApp.platform === "darwin") {
     document.documentElement.classList.add("platform-mac");
-    document.documentElement.style.setProperty("--traffic-space", "92px");
+    document.documentElement.style.setProperty("--traffic-space", "76px");
   } else {
     document.documentElement.style.setProperty("--traffic-space", "0px");
   }
@@ -341,6 +359,8 @@
         fillColor: state.fillColor,
         fillAlpha: state.fillAlpha,
         dimensionMode: state.dimensionMode,
+        dimensionRotation: state.dimensionRotation,
+        dimensionAngleSnap: state.dimensionAngleSnap,
         dimensionUnit: state.dimensionUnit,
         dimensionDecimals: state.dimensionDecimals,
         dimensionTextSize: state.dimensionTextSize,
@@ -356,7 +376,9 @@
         steelBarSpacing: state.steelBarSpacing,
         steelInfillPattern: state.steelInfillPattern,
         steelTopPanel: state.steelTopPanel,
+        steelTopPanelThickness: state.steelTopPanelThickness,
         steelBottomPanel: state.steelBottomPanel,
+        steelBottomPanelThickness: state.steelBottomPanelThickness,
         steelSectionCount: state.steelSectionCount,
         steelGateLeafCount: state.steelGateLeafCount,
         steelGroundClearance: state.steelGroundClearance,
@@ -413,7 +435,14 @@
         state.fillEnabled = Boolean(parsed.settings.fillEnabled);
         state.fillColor = parsed.settings.fillColor || state.fillColor;
         state.fillAlpha = clamp(Number(parsed.settings.fillAlpha), 0, 100, state.fillAlpha);
-        state.dimensionMode = parsed.settings.dimensionMode === "linear" ? "linear" : "aligned";
+        state.dimensionMode = normalizeDimensionMode(parsed.settings.dimensionMode);
+        state.dimensionRotation = normalizeAngleDegrees(parsed.settings.dimensionRotation);
+        state.dimensionAngleSnap = clamp(
+          Math.round(Number(parsed.settings.dimensionAngleSnap)),
+          0,
+          90,
+          state.dimensionAngleSnap
+        );
         state.dimensionUnit =
           parsed.settings.dimensionUnit === "cm" || parsed.settings.dimensionUnit === "m"
             ? parsed.settings.dimensionUnit
@@ -452,10 +481,18 @@
           normalizeInfillPattern(parsed.settings.steelInfillPattern) || state.steelInfillPattern;
         state.steelTopPanel =
           parsed.settings.steelTopPanel === undefined ? state.steelTopPanel : parsed.settings.steelTopPanel !== false;
+        state.steelTopPanelThickness = Math.max(
+          2,
+          Number(parsed.settings.steelTopPanelThickness) || state.steelTopPanelThickness
+        );
         state.steelBottomPanel =
           parsed.settings.steelBottomPanel === undefined
             ? state.steelBottomPanel
             : parsed.settings.steelBottomPanel !== false;
+        state.steelBottomPanelThickness = Math.max(
+          2,
+          Number(parsed.settings.steelBottomPanelThickness) || state.steelBottomPanelThickness
+        );
         state.steelSectionCount = Math.max(
           1,
           Math.min(6, Math.round(Number(parsed.settings.steelSectionCount) || state.steelSectionCount))
@@ -614,7 +651,7 @@
       .trim()
       .toLowerCase();
     if (["start", "poczatek", "początek", "startowa", "startowy"].includes(value)) {
-      return "start";
+      return "home";
     }
     if (["home", "główne", "glowne"].includes(value)) {
       return "home";
@@ -638,7 +675,7 @@
   }
 
   function getAvailableRibbonPages() {
-    return ["start", "home", "references", "design", "layout", "view"];
+    return ["home", "references", "design", "layout", "view"];
   }
 
   function resolveRibbonPageAlias(rawValue) {
@@ -676,9 +713,6 @@
 
   function ribbonPageLabel(page) {
     const normalized = normalizeRibbonPage(page);
-    if (normalized === "start") {
-      return "Start";
-    }
     if (normalized === "references") {
       return "Wymiarowanie";
     }
@@ -864,14 +898,14 @@
       options && options.mode ? normalizeWorkspaceMode(options.mode) : normalizeWorkspaceMode(state.workspaceMode);
     const viewChanged = state.workspaceView !== normalized;
     const modeChanged = state.workspaceMode !== nextMode;
-    const pageResetNeeded = normalized === "start" && state.ribbonPage !== "start";
+    const pageResetNeeded = normalized === "start" && state.ribbonPage !== "home";
     if (!viewChanged && !modeChanged && !pageResetNeeded && !(options && options.force)) {
       return;
     }
     state.workspaceView = normalized;
     state.workspaceMode = nextMode;
     if (normalized === "start") {
-      state.ribbonPage = "start";
+      state.ribbonPage = "home";
     }
     syncWorkspaceView();
     syncRibbonPage();
@@ -1045,8 +1079,45 @@
     return "ciągła";
   }
 
+  function normalizeDimensionMode(mode) {
+    if (mode === "linear") {
+      return "linear";
+    }
+    if (mode === "rotated") {
+      return "rotated";
+    }
+    if (mode === "angular") {
+      return "angular";
+    }
+    return "aligned";
+  }
+
+  function normalizeAngleDegrees(value) {
+    let angle = Number(value);
+    if (!Number.isFinite(angle)) {
+      angle = 0;
+    }
+    while (angle <= -180) {
+      angle += 360;
+    }
+    while (angle > 180) {
+      angle -= 360;
+    }
+    return angle;
+  }
+
   function dimensionModeLabel(mode) {
-    return mode === "linear" ? "liniowy" : "wyrównany";
+    const normalized = normalizeDimensionMode(mode);
+    if (normalized === "linear") {
+      return "liniowy";
+    }
+    if (normalized === "rotated") {
+      return "obrócony";
+    }
+    if (normalized === "angular") {
+      return "kątowy";
+    }
+    return "wyrównany";
   }
 
   function normalizeLayers(layers) {
@@ -1107,9 +1178,14 @@
         if (entity.type === "dimension") {
           const hasRawDimX = entity.dimX !== null && entity.dimX !== undefined && entity.dimX !== "";
           const hasRawDimY = entity.dimY !== null && entity.dimY !== undefined && entity.dimY !== "";
+          const hasRawX3 = entity.x3 !== null && entity.x3 !== undefined && entity.x3 !== "";
+          const hasRawY3 = entity.y3 !== null && entity.y3 !== undefined && entity.y3 !== "";
           const parsedDimX = hasRawDimX ? Number(entity.dimX) : NaN;
           const parsedDimY = hasRawDimY ? Number(entity.dimY) : NaN;
+          const parsedX3 = hasRawX3 ? Number(entity.x3) : NaN;
+          const parsedY3 = hasRawY3 ? Number(entity.y3) : NaN;
           const parsedOffset = Number(entity.offset);
+          const parsedRotation = Number(entity.rotation);
           const parsedDecimals = Math.round(Number(entity.decimals));
           return {
             ...base,
@@ -1119,12 +1195,15 @@
             y1: Number(entity.y1) || 0,
             x2: Number(entity.x2) || 0,
             y2: Number(entity.y2) || 0,
+            x3: Number.isFinite(parsedX3) ? parsedX3 : null,
+            y3: Number.isFinite(parsedY3) ? parsedY3 : null,
             textSize: Math.max(8, Number(entity.textSize) || 12),
             unit: entity.unit || "mm",
             dimX: Number.isFinite(parsedDimX) ? parsedDimX : null,
             dimY: Number.isFinite(parsedDimY) ? parsedDimY : null,
             offset: Number.isFinite(parsedOffset) ? parsedOffset : null,
-            mode: entity.mode === "linear" ? "linear" : "aligned",
+            mode: normalizeDimensionMode(entity.mode),
+            rotation: Number.isFinite(parsedRotation) ? normalizeAngleDegrees(parsedRotation) : 0,
             decimals: Number.isFinite(parsedDecimals) ? clamp(parsedDecimals, 0, 4, 0) : 0
           };
         }
@@ -1362,6 +1441,35 @@
     };
   }
 
+  function segmentIntersectionPoint(a, b, c, d) {
+    const x1 = a.x;
+    const y1 = a.y;
+    const x2 = b.x;
+    const y2 = b.y;
+    const x3 = c.x;
+    const y3 = c.y;
+    const x4 = d.x;
+    const y4 = d.y;
+    const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+    if (Math.abs(denom) < 0.000001) {
+      return null;
+    }
+    const det1 = x1 * y2 - y1 * x2;
+    const det2 = x3 * y4 - y3 * x4;
+    const px = (det1 * (x3 - x4) - (x1 - x2) * det2) / denom;
+    const py = (det1 * (y3 - y4) - (y1 - y2) * det2) / denom;
+    const inRange = (value, min, max) => value >= min - 0.0001 && value <= max + 0.0001;
+    if (
+      !inRange(px, Math.min(x1, x2), Math.max(x1, x2)) ||
+      !inRange(py, Math.min(y1, y2), Math.max(y1, y2)) ||
+      !inRange(px, Math.min(x3, x4), Math.max(x3, x4)) ||
+      !inRange(py, Math.min(y3, y4), Math.max(y3, y4))
+    ) {
+      return null;
+    }
+    return { x: px, y: py };
+  }
+
   function collectSnapPointsForEntity(entity, output) {
     if (!entity || !output) {
       return;
@@ -1394,8 +1502,18 @@
     if (entity.type === "dimension") {
       const geometry = getDimensionGeometry(entity);
       output.push({ x: entity.x1, y: entity.y1 }, { x: entity.x2, y: entity.y2 });
+      if (entity.x3 !== null && entity.x3 !== undefined && entity.x3 !== "") {
+        const x3 = Number(entity.x3);
+        const y3 = Number(entity.y3);
+        if (Number.isFinite(x3) && Number.isFinite(y3)) {
+          output.push({ x: x3, y: y3 });
+        }
+      }
       if (geometry) {
         output.push({ x: geometry.d1.x, y: geometry.d1.y }, { x: geometry.d2.x, y: geometry.d2.y });
+        if (geometry.kind === "angular") {
+          output.push({ x: geometry.vertex.x, y: geometry.vertex.y });
+        }
       }
     }
   }
@@ -1424,9 +1542,18 @@
       if (!geometry) {
         return;
       }
-      output.push({ a: { x: geometry.x1, y: geometry.y1 }, b: { x: geometry.d1.x, y: geometry.d1.y } });
-      output.push({ a: { x: geometry.x2, y: geometry.y2 }, b: { x: geometry.d2.x, y: geometry.d2.y } });
-      output.push({ a: { x: geometry.d1.x, y: geometry.d1.y }, b: { x: geometry.d2.x, y: geometry.d2.y } });
+      if (geometry.kind === "angular") {
+        output.push({ a: geometry.vertex, b: geometry.d1 });
+        output.push({ a: geometry.vertex, b: geometry.d2 });
+        const arcPoints = getAngularArcPolyline(geometry, 56);
+        for (let i = 0; i < arcPoints.length - 1; i += 1) {
+          output.push({ a: arcPoints[i], b: arcPoints[i + 1] });
+        }
+      } else {
+        output.push({ a: { x: geometry.x1, y: geometry.y1 }, b: { x: geometry.d1.x, y: geometry.d1.y } });
+        output.push({ a: { x: geometry.x2, y: geometry.y2 }, b: { x: geometry.d2.x, y: geometry.d2.y } });
+        output.push({ a: { x: geometry.d1.x, y: geometry.d1.y }, b: { x: geometry.d2.x, y: geometry.d2.y } });
+      }
     }
   }
 
@@ -1481,6 +1608,30 @@
       }
     }
 
+    const maxSegmentChecks = 280;
+    if (segments.length > 1 && segments.length <= maxSegmentChecks) {
+      for (let i = 0; i < segments.length; i += 1) {
+        for (let j = i + 1; j < segments.length; j += 1) {
+          const intersection = segmentIntersectionPoint(
+            segments[i].a,
+            segments[i].b,
+            segments[j].a,
+            segments[j].b
+          );
+          if (!intersection) {
+            continue;
+          }
+          const dx = intersection.x - point.x;
+          const dy = intersection.y - point.y;
+          const distSq = dx * dx + dy * dy;
+          if (distSq <= bestDistSq) {
+            bestDistSq = distSq;
+            best = intersection;
+          }
+        }
+      }
+    }
+
     return best;
   }
 
@@ -1494,6 +1645,29 @@
       return { x: point.x, y: anchor.y };
     }
     return { x: anchor.x, y: point.y };
+  }
+
+  function constrainPolar(anchor, point, stepDegrees, enabled) {
+    if (!enabled || !anchor) {
+      return point;
+    }
+    const step = Math.max(0, Number(stepDegrees) || 0);
+    if (step <= 0) {
+      return point;
+    }
+    const dx = point.x - anchor.x;
+    const dy = point.y - anchor.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance <= 0.000001) {
+      return point;
+    }
+    const angle = Math.atan2(dy, dx);
+    const stepRad = (step * Math.PI) / 180;
+    const snappedAngle = Math.round(angle / stepRad) * stepRad;
+    return {
+      x: anchor.x + Math.cos(snappedAngle) * distance,
+      y: anchor.y + Math.sin(snappedAngle) * distance
+    };
   }
 
   function getEntityById(id) {
@@ -1512,6 +1686,7 @@
       state.drawStart = null;
       state.previewPoint = null;
       state.dimensionSecond = null;
+      state.dimensionThird = null;
     }
     if (tool !== "polyline") {
       state.polylineAnchor = null;
@@ -1657,11 +1832,12 @@
   }
 
   function setDimensionMode(mode, options) {
-    const normalized = mode === "linear" ? "linear" : "aligned";
+    const normalized = normalizeDimensionMode(mode);
     state.dimensionMode = normalized;
     if (dimensionModeSelect) {
       dimensionModeSelect.value = normalized;
     }
+    queueRender();
     if (!options || options.persist !== false) {
       markDirty();
     }
@@ -2027,9 +2203,15 @@
       return;
     }
     if (["dimension", "dim", "wymiar", "wymiaruj"].includes(command)) {
-      const modeArg = String(args[0] || "").trim();
+      const modeArg = String(args[0] || "")
+        .trim()
+        .toLowerCase();
       if (["lin", "linear", "liniowy"].includes(modeArg)) {
         setDimensionMode("linear");
+      } else if (["rot", "rotated", "obrocony", "obrócony"].includes(modeArg)) {
+        setDimensionMode("rotated");
+      } else if (["ang", "angular", "katowy", "kątowy"].includes(modeArg)) {
+        setDimensionMode("angular");
       } else if (["ali", "aligned", "rownolegly"].includes(modeArg)) {
         setDimensionMode("aligned");
       }
@@ -2047,6 +2229,18 @@
       setDimensionMode("linear");
       setTool("dimension");
       echoCommand("Tryb WYMIAR (liniowy).");
+      return;
+    }
+    if (["dimrotated", "dro", "dimrot", "dimobrocony", "dimobrócony"].includes(command)) {
+      setDimensionMode("rotated");
+      setTool("dimension");
+      echoCommand("Tryb WYMIAR (obrócony).");
+      return;
+    }
+    if (["dimangular", "dan", "dimkatowy", "dimkątowy"].includes(command)) {
+      setDimensionMode("angular");
+      setTool("dimension");
+      echoCommand("Tryb WYMIAR (kątowy).");
       return;
     }
     if (["pan", "przesun", "h"].includes(command)) {
@@ -2071,9 +2265,15 @@
       startOffsetCommand(args[0]);
       return;
     }
-    if (["start", "home", "strona", "hub"].includes(command)) {
+    if (["start", "strona", "hub"].includes(command)) {
       setWorkspaceView("start");
       echoCommand("Otwarto stronę startową.");
+      return;
+    }
+    if (command === "home") {
+      setWorkspaceMode("draw");
+      setRibbonPage("home", { persist: false });
+      echoCommand("Zakładka: Główne.");
       return;
     }
     if (["model", "rysunek", "workspace"].includes(command)) {
@@ -2090,7 +2290,7 @@
         );
         return;
       }
-      if (["start", "home"].includes(requested)) {
+      if (requested === "start") {
         setWorkspaceView("start");
         echoCommand("Tryb: START.");
         return;
@@ -2125,8 +2325,8 @@
       }
       if (page === "start") {
         setWorkspaceView("start");
-        setRibbonPage("start");
-        echoCommand("Zakładka: start.");
+        setRibbonPage("home");
+        echoCommand("Otwarto stronę startową.");
         return;
       }
       if (page === "design") {
@@ -2180,7 +2380,9 @@
         barSpacing: preset.barSpacing,
         infillPattern: preset.infillPattern,
         topPanel: preset.topPanel,
+        topPanelThickness: preset.topPanelThickness,
         bottomPanel: preset.bottomPanel,
+        bottomPanelThickness: preset.bottomPanelThickness,
         sectionCount: preset.sectionCount,
         gateLeafCount: preset.gateLeafCount,
         groundClearance: preset.groundClearance,
@@ -2212,7 +2414,9 @@
         barSpacing: preset ? preset.barSpacing : state.steelBarSpacing,
         infillPattern: preset ? preset.infillPattern : state.steelInfillPattern,
         topPanel: preset ? preset.topPanel : state.steelTopPanel,
+        topPanelThickness: preset ? preset.topPanelThickness : state.steelTopPanelThickness,
         bottomPanel: preset ? preset.bottomPanel : state.steelBottomPanel,
+        bottomPanelThickness: preset ? preset.bottomPanelThickness : state.steelBottomPanelThickness,
         sectionCount: preset ? preset.sectionCount : state.steelSectionCount,
         gateLeafCount: preset ? preset.gateLeafCount : state.steelGateLeafCount,
         groundClearance: preset ? preset.groundClearance : state.steelGroundClearance,
@@ -2374,28 +2578,92 @@
     }
 
     if (command === "toppanel" || command === "panelgora" || command === "panelgóra") {
+      const parsedSize = Number(args[0]);
+      if (args[0] && Number.isFinite(parsedSize)) {
+        state.steelTopPanelThickness = Math.max(2, parsedSize);
+        syncDocumentControls();
+        markDirty();
+        echoCommand(`Panel górny: ${state.steelTopPanel ? "ON" : "OFF"}, rozmiar ${state.steelTopPanelThickness} mm.`);
+        return;
+      }
       const toggle = parseOnOffToggle(args[0]);
+      if (!args[0]) {
+        echoCommand(`Panel górny: ${state.steelTopPanel ? "ON" : "OFF"}, rozmiar ${state.steelTopPanelThickness} mm.`);
+        return;
+      }
       if (toggle === undefined) {
-        echoCommand("Użyj: toppanel on | toppanel off | toppanel toggle", true);
+        echoCommand("Użyj: toppanel on|off|toggle lub toppanel <mm>", true);
         return;
       }
       state.steelTopPanel = toggle === null ? !state.steelTopPanel : toggle;
       syncDocumentControls();
       markDirty();
-      echoCommand(`Panel górny: ${state.steelTopPanel ? "ON" : "OFF"}.`);
+      echoCommand(`Panel górny: ${state.steelTopPanel ? "ON" : "OFF"}, rozmiar ${state.steelTopPanelThickness} mm.`);
       return;
     }
 
     if (command === "bottompanel" || command === "paneldol" || command === "paneldół") {
+      const parsedSize = Number(args[0]);
+      if (args[0] && Number.isFinite(parsedSize)) {
+        state.steelBottomPanelThickness = Math.max(2, parsedSize);
+        syncDocumentControls();
+        markDirty();
+        echoCommand(
+          `Panel dolny: ${state.steelBottomPanel ? "ON" : "OFF"}, rozmiar ${state.steelBottomPanelThickness} mm.`
+        );
+        return;
+      }
       const toggle = parseOnOffToggle(args[0]);
+      if (!args[0]) {
+        echoCommand(
+          `Panel dolny: ${state.steelBottomPanel ? "ON" : "OFF"}, rozmiar ${state.steelBottomPanelThickness} mm.`
+        );
+        return;
+      }
       if (toggle === undefined) {
-        echoCommand("Użyj: bottompanel on | bottompanel off | bottompanel toggle", true);
+        echoCommand("Użyj: bottompanel on|off|toggle lub bottompanel <mm>", true);
         return;
       }
       state.steelBottomPanel = toggle === null ? !state.steelBottomPanel : toggle;
       syncDocumentControls();
       markDirty();
-      echoCommand(`Panel dolny: ${state.steelBottomPanel ? "ON" : "OFF"}.`);
+      echoCommand(
+        `Panel dolny: ${state.steelBottomPanel ? "ON" : "OFF"}, rozmiar ${state.steelBottomPanelThickness} mm.`
+      );
+      return;
+    }
+
+    if (command === "toppanelsize" || command === "panelgorasize") {
+      const parsed = Number(args[0]);
+      if (!args[0]) {
+        echoCommand(`Rozmiar panelu górnego: ${state.steelTopPanelThickness} mm.`);
+        return;
+      }
+      if (!Number.isFinite(parsed)) {
+        echoCommand("Użyj: toppanelsize <mm>", true);
+        return;
+      }
+      state.steelTopPanelThickness = Math.max(2, parsed);
+      syncDocumentControls();
+      markDirty();
+      echoCommand(`Rozmiar panelu górnego: ${state.steelTopPanelThickness} mm.`);
+      return;
+    }
+
+    if (command === "bottompanelsize" || command === "paneldolsize") {
+      const parsed = Number(args[0]);
+      if (!args[0]) {
+        echoCommand(`Rozmiar panelu dolnego: ${state.steelBottomPanelThickness} mm.`);
+        return;
+      }
+      if (!Number.isFinite(parsed)) {
+        echoCommand("Użyj: bottompanelsize <mm>", true);
+        return;
+      }
+      state.steelBottomPanelThickness = Math.max(2, parsed);
+      syncDocumentControls();
+      markDirty();
+      echoCommand(`Rozmiar panelu dolnego: ${state.steelBottomPanelThickness} mm.`);
       return;
     }
 
@@ -2405,7 +2673,7 @@
       echoCommand(
         `STAL: ${steelTemplateLabel(template)}, ${state.steelWidth}x${state.steelHeight} mm, rama profil ${state.steelFrameProfile} mm, wypełnienie ${infillPatternLabel(
           state.steelInfillPattern
-        )} (profil ${state.steelBarWidth} mm, odstęp ${state.steelBarSpacing} mm), panel góra ${state.steelTopPanel ? "ON" : "OFF"}, panel dół ${state.steelBottomPanel ? "ON" : "OFF"}, słupek ${template === "fence" ? `${state.steelPostWidth}x${state.steelPostLength} mm` : "N/D"}, sekcje ${state.steelSectionCount}, skrzydła ${leafInfo}, prześwit ${state.steelGroundClearance} mm, podmurówka ${state.steelBasePlateHeight} mm, rama wewn. ${state.steelInnerFrame ? "ON" : "OFF"}, ukos ${template === "gate" ? (state.steelDiagonal ? "ON" : "OFF") : "N/D"}.`
+        )} (profil ${state.steelBarWidth} mm, odstęp ${state.steelBarSpacing} mm), panel góra ${state.steelTopPanel ? "ON" : "OFF"} ${state.steelTopPanelThickness} mm, panel dół ${state.steelBottomPanel ? "ON" : "OFF"} ${state.steelBottomPanelThickness} mm, słupek ${template === "fence" ? `${state.steelPostWidth}x${state.steelPostLength} mm` : "N/D"}, sekcje ${state.steelSectionCount}, skrzydła ${leafInfo}, prześwit ${state.steelGroundClearance} mm, podmurówka ${state.steelBasePlateHeight} mm, rama wewn. ${state.steelInnerFrame ? "ON" : "OFF"}, ukos ${template === "gate" ? (state.steelDiagonal ? "ON" : "OFF") : "N/D"}.`
       );
       return;
     }
@@ -2511,7 +2779,10 @@
 
       if (unitArg) {
         if (!["mm", "cm", "m"].includes(unitArg)) {
-          echoCommand("Użyj: dimstyle [mm|cm|m] [precyzja 0-4] [tekst 8-48] [aligned|linear] [#RRGGBB]", true);
+          echoCommand(
+            "Użyj: dimstyle [mm|cm|m] [precyzja 0-4] [tekst 8-48] [aligned|linear|rotated|angular] [#RRGGBB]",
+            true
+          );
           return;
         }
         state.dimensionUnit = unitArg;
@@ -2531,11 +2802,18 @@
         state.dimensionTextSize = clamp(textSizeArg, 8, 48, state.dimensionTextSize);
       }
       if (modeArg) {
-        if (!["aligned", "linear", "ali", "lin"].includes(modeArg)) {
-          echoCommand("Tryb wymiaru: aligned/wyrównany lub linear/liniowy.", true);
+        if (!["aligned", "linear", "rotated", "angular", "ali", "lin", "rot", "ang"].includes(modeArg)) {
+          echoCommand("Tryb wymiaru: aligned/wyrównany, linear/liniowy, rotated/obrócony lub angular/kątowy.", true);
           return;
         }
-        setDimensionMode(modeArg.startsWith("lin") ? "linear" : "aligned", { persist: false });
+        const nextMode = modeArg.startsWith("lin")
+          ? "linear"
+          : modeArg.startsWith("rot")
+            ? "rotated"
+            : modeArg.startsWith("ang")
+              ? "angular"
+              : "aligned";
+        setDimensionMode(nextMode, { persist: false });
       }
       if (colorArg) {
         const normalizedColor = colorArg.startsWith("#") ? colorArg : `#${colorArg}`;
@@ -2551,8 +2829,44 @@
       echoCommand(
         `Styl wymiaru: ${dimensionModeLabel(state.dimensionMode)}, ${state.dimensionUnit}, precyzja ${
           state.dimensionDecimals
-        }, tekst ${state.dimensionTextSize}, kolor ${state.dimensionColor}.`
+        }, tekst ${state.dimensionTextSize}, kąt ${state.dimensionRotation.toFixed(1)}°, skok ${
+          state.dimensionAngleSnap
+        }°, kolor ${state.dimensionColor}.`
       );
+      return;
+    }
+
+    if (command === "dimangle" || command === "katdim" || command === "kątdim") {
+      const parsed = Number(args[0]);
+      if (!args[0]) {
+        echoCommand(`Kąt wymiaru: ${state.dimensionRotation.toFixed(1)}°.`);
+        return;
+      }
+      if (!Number.isFinite(parsed)) {
+        echoCommand("Użyj: dimangle <stopnie>", true);
+        return;
+      }
+      state.dimensionRotation = normalizeAngleDegrees(parsed);
+      syncDocumentControls();
+      markDirty();
+      echoCommand(`Kąt wymiaru: ${state.dimensionRotation.toFixed(1)}°.`);
+      return;
+    }
+
+    if (command === "dimsnap" || command === "katstep" || command === "kątstep") {
+      const parsed = Number(args[0]);
+      if (!args[0]) {
+        echoCommand(`Skok kąta wymiaru: ${state.dimensionAngleSnap}°.`);
+        return;
+      }
+      if (!Number.isFinite(parsed)) {
+        echoCommand("Użyj: dimsnap <0-90>", true);
+        return;
+      }
+      state.dimensionAngleSnap = clamp(Math.round(parsed), 0, 90, state.dimensionAngleSnap);
+      syncDocumentControls();
+      markDirty();
+      echoCommand(`Skok kąta wymiaru: ${state.dimensionAngleSnap}°.`);
       return;
     }
 
@@ -2685,14 +2999,29 @@
     if (selected.type === "dimension") {
       const geometry = getDimensionGeometry(selected);
       const distance = geometry ? geometry.length : Math.hypot(selected.x2 - selected.x1, selected.y2 - selected.y1);
+      const rotationInfo =
+        normalizeDimensionMode(selected.mode) === "rotated"
+          ? `\nKąt: ${normalizeAngleDegrees(selected.rotation).toFixed(1)}°`
+          : "";
+      const angularInfo =
+        geometry && geometry.kind === "angular"
+          ? `\nWierzchołek: (${selected.x1.toFixed(2)}, ${selected.y1.toFixed(2)})\n` +
+            `Ramię 1: (${selected.x2.toFixed(2)}, ${selected.y2.toFixed(2)})\n` +
+            `Ramię 2: (${Number(selected.x3 || 0).toFixed(2)}, ${Number(selected.y3 || 0).toFixed(2)})`
+          : `\nStart: (${selected.x1.toFixed(2)}, ${selected.y1.toFixed(2)})\n` +
+            `Koniec: (${selected.x2.toFixed(2)}, ${selected.y2.toFixed(2)})`;
+      const valueLabel =
+        geometry && geometry.kind === "angular"
+          ? formatDimensionAngle(distance, selected.decimals)
+          : formatDimensionDistance(distance, selected.unit || "mm", selected.decimals);
       selectionInfo.textContent =
         `Typ: Wymiar\n` +
         `Tryb: ${dimensionModeLabel(selected.mode)}\n` +
         `Warstwa: ${layerName}\n` +
         `Styl: ${lineStyleLabel(selected.lineStyle)}\n` +
-        `Start: (${selected.x1.toFixed(2)}, ${selected.y1.toFixed(2)})\n` +
-        `Koniec: (${selected.x2.toFixed(2)}, ${selected.y2.toFixed(2)})\n` +
-        `Długość: ${formatDimensionDistance(distance, selected.unit || "mm", selected.decimals)}`;
+        angularInfo +
+        `\nWartość: ${valueLabel}` +
+        rotationInfo;
       return;
     }
 
@@ -2866,23 +3195,9 @@
       return;
     }
 
-    const start = worldToScreen({ x: geometry.x1, y: geometry.y1 });
-    const end = worldToScreen({ x: geometry.x2, y: geometry.y2 });
-    const dimStart = worldToScreen(geometry.d1);
-    const dimEnd = worldToScreen(geometry.d2);
-    const textPoint = worldToScreen(geometry.text);
     const previewColor = cssColor("--preview", "#00d2ff");
     const color = asPreview ? previewColor : entity.stroke;
-    const label = formatDimensionDistance(geometry.length, entity.unit || "mm", entity.decimals);
-    const dx = dimEnd.x - dimStart.x;
-    const dy = dimEnd.y - dimStart.y;
-    const length = Math.hypot(dx, dy);
-    if (length < 1) {
-      return;
-    }
-
-    const ux = dx / length;
-    const uy = dy / length;
+    const label = formatDimensionLabel(entity, geometry);
 
     const drawArrow = (tipX, tipY, dirX, dirY, size) => {
       const bx = tipX + dirX * size;
@@ -2903,51 +3218,114 @@
     ctx.lineWidth = Math.max(1, entity.lineWidth || 1);
     ctx.setLineDash(asPreview ? [8, 6] : getDashForStyle(entity.lineStyle));
 
-    ctx.beginPath();
-    ctx.moveTo(start.x, start.y);
-    ctx.lineTo(dimStart.x, dimStart.y);
-    ctx.moveTo(end.x, end.y);
-    ctx.lineTo(dimEnd.x, dimEnd.y);
-    ctx.moveTo(dimStart.x, dimStart.y);
-    ctx.lineTo(dimEnd.x, dimEnd.y);
-    ctx.stroke();
+    if (geometry.kind === "angular") {
+      const vertex = worldToScreen(geometry.vertex);
+      const dimStart = worldToScreen(geometry.d1);
+      const dimEnd = worldToScreen(geometry.d2);
+      const textPoint = worldToScreen(geometry.text);
+      const arcPoints = getAngularArcPolyline(geometry, 88).map(worldToScreen);
 
-    if (asPreview) {
-      ctx.setLineDash([4, 5]);
+      ctx.beginPath();
+      ctx.moveTo(vertex.x, vertex.y);
+      ctx.lineTo(dimStart.x, dimStart.y);
+      ctx.moveTo(vertex.x, vertex.y);
+      ctx.lineTo(dimEnd.x, dimEnd.y);
+      if (arcPoints.length > 1) {
+        ctx.moveTo(arcPoints[0].x, arcPoints[0].y);
+        for (let i = 1; i < arcPoints.length; i += 1) {
+          ctx.lineTo(arcPoints[i].x, arcPoints[i].y);
+        }
+      }
+      ctx.stroke();
+
+      ctx.setLineDash([]);
+      drawArrow(dimStart.x, dimStart.y, geometry.tangentStart.x, geometry.tangentStart.y, 9);
+      drawArrow(dimEnd.x, dimEnd.y, -geometry.tangentEnd.x, -geometry.tangentEnd.y, 9);
+
+      const textSize = Math.max(10, entity.textSize || 12);
+      ctx.font = `${textSize}px Segoe UI, sans-serif`;
+      const paddingX = 5;
+      const paddingY = 3;
+      const textWidth = ctx.measureText(label).width;
+      const rectW = textWidth + paddingX * 2;
+      const rectH = Math.max(16, textSize + paddingY * 2);
+      const textAngleRaw = geometry.midAngle + Math.PI / 2;
+      const textAngle =
+        textAngleRaw > Math.PI / 2 || textAngleRaw < -Math.PI / 2 ? textAngleRaw + Math.PI : textAngleRaw;
+      ctx.save();
+      ctx.translate(textPoint.x, textPoint.y);
+      ctx.rotate(textAngle);
+      ctx.fillStyle = asPreview ? "rgba(15, 26, 40, 0.72)" : "rgba(14, 24, 38, 0.84)";
+      ctx.fillRect(-rectW / 2, -rectH / 2, rectW, rectH);
+      ctx.strokeStyle = color;
+      ctx.strokeRect(-rectW / 2, -rectH / 2, rectW, rectH);
+      ctx.fillStyle = color;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(label, 0, 0.5);
+      ctx.restore();
+    } else {
+      const start = worldToScreen({ x: geometry.x1, y: geometry.y1 });
+      const end = worldToScreen({ x: geometry.x2, y: geometry.y2 });
+      const dimStart = worldToScreen(geometry.d1);
+      const dimEnd = worldToScreen(geometry.d2);
+      const textPoint = worldToScreen(geometry.text);
+      const dx = dimEnd.x - dimStart.x;
+      const dy = dimEnd.y - dimStart.y;
+      const length = Math.hypot(dx, dy);
+      if (length < 1) {
+        ctx.restore();
+        return;
+      }
+
+      const ux = dx / length;
+      const uy = dy / length;
       ctx.beginPath();
       ctx.moveTo(start.x, start.y);
-      ctx.lineTo(end.x, end.y);
+      ctx.lineTo(dimStart.x, dimStart.y);
+      ctx.moveTo(end.x, end.y);
+      ctx.lineTo(dimEnd.x, dimEnd.y);
+      ctx.moveTo(dimStart.x, dimStart.y);
+      ctx.lineTo(dimEnd.x, dimEnd.y);
       ctx.stroke();
+
+      if (asPreview) {
+        ctx.setLineDash([4, 5]);
+        ctx.beginPath();
+        ctx.moveTo(start.x, start.y);
+        ctx.lineTo(end.x, end.y);
+        ctx.stroke();
+      }
+
+      ctx.setLineDash([]);
+      drawArrow(dimStart.x, dimStart.y, ux, uy, 9);
+      drawArrow(dimEnd.x, dimEnd.y, -ux, -uy, 9);
+
+      const textX = textPoint.x;
+      const textY = textPoint.y;
+      const textSize = Math.max(10, entity.textSize || 12);
+      ctx.font = `${textSize}px Segoe UI, sans-serif`;
+      const paddingX = 5;
+      const paddingY = 3;
+      const textWidth = ctx.measureText(label).width;
+      const rectW = textWidth + paddingX * 2;
+      const rectH = Math.max(16, textSize + paddingY * 2);
+      const textAngleRaw = Math.atan2(dimEnd.y - dimStart.y, dimEnd.x - dimStart.x);
+      const textAngle =
+        textAngleRaw > Math.PI / 2 || textAngleRaw < -Math.PI / 2 ? textAngleRaw + Math.PI : textAngleRaw;
+      ctx.save();
+      ctx.translate(textX, textY);
+      ctx.rotate(textAngle);
+      ctx.fillStyle = asPreview ? "rgba(15, 26, 40, 0.72)" : "rgba(14, 24, 38, 0.84)";
+      ctx.fillRect(-rectW / 2, -rectH / 2, rectW, rectH);
+      ctx.strokeStyle = color;
+      ctx.strokeRect(-rectW / 2, -rectH / 2, rectW, rectH);
+      ctx.fillStyle = color;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(label, 0, 0.5);
+      ctx.restore();
     }
-
-    ctx.setLineDash([]);
-    drawArrow(dimStart.x, dimStart.y, ux, uy, 9);
-    drawArrow(dimEnd.x, dimEnd.y, -ux, -uy, 9);
-
-    const textX = textPoint.x;
-    const textY = textPoint.y;
-    const textSize = Math.max(10, entity.textSize || 12);
-    ctx.font = `${textSize}px Segoe UI, sans-serif`;
-    const paddingX = 5;
-    const paddingY = 3;
-    const textWidth = ctx.measureText(label).width;
-    const rectW = textWidth + paddingX * 2;
-    const rectH = Math.max(16, textSize + paddingY * 2);
-    const textAngleRaw = Math.atan2(dimEnd.y - dimStart.y, dimEnd.x - dimStart.x);
-    const textAngle =
-      textAngleRaw > Math.PI / 2 || textAngleRaw < -Math.PI / 2 ? textAngleRaw + Math.PI : textAngleRaw;
-    ctx.save();
-    ctx.translate(textX, textY);
-    ctx.rotate(textAngle);
-    ctx.fillStyle = asPreview ? "rgba(15, 26, 40, 0.72)" : "rgba(14, 24, 38, 0.84)";
-    ctx.fillRect(-rectW / 2, -rectH / 2, rectW, rectH);
-    ctx.strokeStyle = color;
-    ctx.strokeRect(-rectW / 2, -rectH / 2, rectW, rectH);
-    ctx.fillStyle = color;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(label, 0, 0.5);
-    ctx.restore();
 
     if (isSelected) {
       drawSelectionBox(entity);
@@ -3025,10 +3403,45 @@
         return null;
       }
       const textSize = Math.max(10, Number(entity.textSize) || 12);
-      const label = formatDimensionDistance(geometry.length, entity.unit || "mm", entity.decimals);
+      const label = formatDimensionLabel(entity, geometry);
       const textHalfW = Math.max(18, label.length * textSize * 0.33);
       const textHalfH = Math.max(10, textSize * 0.6);
       const pad = 4;
+      if (geometry.kind === "angular") {
+        const points = [
+          geometry.vertex,
+          { x: geometry.x2, y: geometry.y2 },
+          { x: geometry.x3, y: geometry.y3 },
+          geometry.d1,
+          geometry.d2,
+          geometry.text
+        ];
+        const checkpoints = [0, Math.PI / 2, Math.PI, Math.PI * 1.5];
+        checkpoints.forEach((angle) => {
+          if (isAngleOnForwardPath(angle, geometry.startAngle, geometry.endAngle)) {
+            points.push({
+              x: geometry.vertex.x + Math.cos(angle) * geometry.radius,
+              y: geometry.vertex.y + Math.sin(angle) * geometry.radius
+            });
+          }
+        });
+        let minX = Number.POSITIVE_INFINITY;
+        let minY = Number.POSITIVE_INFINITY;
+        let maxX = Number.NEGATIVE_INFINITY;
+        let maxY = Number.NEGATIVE_INFINITY;
+        points.forEach((point) => {
+          minX = Math.min(minX, point.x);
+          minY = Math.min(minY, point.y);
+          maxX = Math.max(maxX, point.x);
+          maxY = Math.max(maxY, point.y);
+        });
+        return {
+          minX: Math.min(minX, geometry.text.x - textHalfW) - pad,
+          maxX: Math.max(maxX, geometry.text.x + textHalfW) + pad,
+          minY: Math.min(minY, geometry.text.y - textHalfH) - pad,
+          maxY: Math.max(maxY, geometry.text.y + textHalfH) + pad
+        };
+      }
       return {
         minX:
           Math.min(geometry.x1, geometry.x2, geometry.d1.x, geometry.d2.x, geometry.text.x - textHalfW) - pad,
@@ -3201,7 +3614,76 @@
         true
       );
     } else if (state.tool === "dimension") {
-      if (!state.dimensionSecond) {
+      const dimensionMode = normalizeDimensionMode(state.dimensionMode);
+      if (dimensionMode === "angular") {
+        if (!state.dimensionSecond) {
+          drawLine(
+            {
+              type: "line",
+              x1: state.drawStart.x,
+              y1: state.drawStart.y,
+              x2: state.previewPoint.x,
+              y2: state.previewPoint.y,
+              stroke,
+              lineWidth,
+              lineStyle
+            },
+            false,
+            true
+          );
+        } else if (!state.dimensionThird) {
+          drawLine(
+            {
+              type: "line",
+              x1: state.drawStart.x,
+              y1: state.drawStart.y,
+              x2: state.dimensionSecond.x,
+              y2: state.dimensionSecond.y,
+              stroke,
+              lineWidth,
+              lineStyle
+            },
+            false,
+            true
+          );
+          drawLine(
+            {
+              type: "line",
+              x1: state.drawStart.x,
+              y1: state.drawStart.y,
+              x2: state.previewPoint.x,
+              y2: state.previewPoint.y,
+              stroke,
+              lineWidth,
+              lineStyle
+            },
+            false,
+            true
+          );
+        } else {
+          const previewEntity = {
+            type: "dimension",
+            x1: state.drawStart.x,
+            y1: state.drawStart.y,
+            x2: state.dimensionSecond.x,
+            y2: state.dimensionSecond.y,
+            x3: state.dimensionThird.x,
+            y3: state.dimensionThird.y,
+            dimX: state.previewPoint.x,
+            dimY: state.previewPoint.y,
+            offset: null,
+            mode: "angular",
+            rotation: 0,
+            stroke,
+            lineWidth,
+            lineStyle,
+            textSize: state.dimensionTextSize,
+            unit: state.dimensionUnit,
+            decimals: state.dimensionDecimals
+          };
+          drawDimension(previewEntity, false, true);
+        }
+      } else if (!state.dimensionSecond) {
         drawLine(
           {
             type: "line",
@@ -3226,7 +3708,8 @@
           dimX: state.previewPoint.x,
           dimY: state.previewPoint.y,
           offset: null,
-          mode: state.dimensionMode,
+          mode: normalizeDimensionMode(state.dimensionMode),
+          rotation: normalizeAngleDegrees(state.dimensionRotation),
           stroke,
           lineWidth,
           lineStyle,
@@ -3445,20 +3928,39 @@
         if (!geometry) {
           continue;
         }
-        const dExt1 = distanceToSegment(worldPoint, { x: geometry.x1, y: geometry.y1 }, geometry.d1);
-        const dExt2 = distanceToSegment(worldPoint, { x: geometry.x2, y: geometry.y2 }, geometry.d2);
-        const dMain = distanceToSegment(worldPoint, geometry.d1, geometry.d2);
-        if (dExt1 <= threshold) {
-          pickCandidate(entity, 0, dExt1, i);
-        }
-        if (dExt2 <= threshold) {
-          pickCandidate(entity, 0, dExt2, i);
-        }
-        if (dMain <= threshold) {
-          pickCandidate(entity, 0, dMain, i);
+        if (geometry.kind === "angular") {
+          const dExt1 = distanceToSegment(worldPoint, geometry.vertex, geometry.d1);
+          const dExt2 = distanceToSegment(worldPoint, geometry.vertex, geometry.d2);
+          if (dExt1 <= threshold) {
+            pickCandidate(entity, 0, dExt1, i);
+          }
+          if (dExt2 <= threshold) {
+            pickCandidate(entity, 0, dExt2, i);
+          }
+          const radial = Math.hypot(worldPoint.x - geometry.vertex.x, worldPoint.y - geometry.vertex.y);
+          const angle = Math.atan2(worldPoint.y - geometry.vertex.y, worldPoint.x - geometry.vertex.x);
+          if (isAngleOnForwardPath(angle, geometry.startAngle, geometry.endAngle)) {
+            const dArc = Math.abs(radial - geometry.radius);
+            if (dArc <= threshold) {
+              pickCandidate(entity, 0, dArc, i);
+            }
+          }
+        } else {
+          const dExt1 = distanceToSegment(worldPoint, { x: geometry.x1, y: geometry.y1 }, geometry.d1);
+          const dExt2 = distanceToSegment(worldPoint, { x: geometry.x2, y: geometry.y2 }, geometry.d2);
+          const dMain = distanceToSegment(worldPoint, geometry.d1, geometry.d2);
+          if (dExt1 <= threshold) {
+            pickCandidate(entity, 0, dExt1, i);
+          }
+          if (dExt2 <= threshold) {
+            pickCandidate(entity, 0, dExt2, i);
+          }
+          if (dMain <= threshold) {
+            pickCandidate(entity, 0, dMain, i);
+          }
         }
         const textSize = Math.max(10, Number(entity.textSize) || 12);
-        const label = formatDimensionDistance(geometry.length, entity.unit || "mm", entity.decimals);
+        const label = formatDimensionLabel(entity, geometry);
         const textBounds = {
           minX: geometry.text.x - Math.max(18, label.length * textSize * 0.33),
           maxX: geometry.text.x + Math.max(18, label.length * textSize * 0.33),
@@ -3552,6 +4054,12 @@
       entity.y1 += dy;
       entity.x2 += dx;
       entity.y2 += dy;
+      if (entity.x3 !== null && entity.x3 !== undefined && entity.x3 !== "") {
+        entity.x3 += dx;
+      }
+      if (entity.y3 !== null && entity.y3 !== undefined && entity.y3 !== "") {
+        entity.y3 += dy;
+      }
       if (entity.dimX !== null && entity.dimX !== undefined && entity.dimX !== "") {
         entity.dimX += dx;
       }
@@ -3683,6 +4191,7 @@
   function clearDrawingPreview() {
     state.drawStart = null;
     state.dimensionSecond = null;
+    state.dimensionThird = null;
     state.previewPoint = null;
   }
 
@@ -3703,9 +4212,14 @@
     return { screen, raw, snapped };
   }
 
-  function getConstrainedPoint(anchor, rawPoint, event) {
+  function getConstrainedPoint(anchor, rawPoint, event, options) {
+    const config = options && typeof options === "object" ? options : {};
     const shouldOrtho = Boolean(state.ortho || event.shiftKey);
     let point = rawPoint;
+    const polarEnabled = Boolean(config.polar);
+    if (polarEnabled && !shouldOrtho) {
+      point = constrainPolar(anchor, point, config.polarStep, true);
+    }
     if (shouldOrtho) {
       point = constrainOrtho(anchor, point, true);
     }
@@ -3756,11 +4270,74 @@
     return `${value.toFixed(precision)} ${safeUnit}`;
   }
 
+  function formatDimensionAngle(angleDegrees, decimals) {
+    const value = Math.max(0, Number(angleDegrees) || 0);
+    const precision = clamp(Math.round(Number(decimals)), 0, 4, 0);
+    return `${value.toFixed(precision)}\u00B0`;
+  }
+
+  function formatDimensionLabel(entity, geometry) {
+    if (geometry && geometry.kind === "angular") {
+      return formatDimensionAngle(geometry.length, entity.decimals);
+    }
+    return formatDimensionDistance(geometry ? geometry.length : 0, entity.unit || "mm", entity.decimals);
+  }
+
+  function normalizeAngleRadians(value) {
+    const tau = Math.PI * 2;
+    let angle = Number(value);
+    if (!Number.isFinite(angle)) {
+      angle = 0;
+    }
+    while (angle < 0) {
+      angle += tau;
+    }
+    while (angle >= tau) {
+      angle -= tau;
+    }
+    return angle;
+  }
+
+  function angleDeltaForward(startAngle, endAngle) {
+    const tau = Math.PI * 2;
+    let delta = normalizeAngleRadians(endAngle) - normalizeAngleRadians(startAngle);
+    if (delta < 0) {
+      delta += tau;
+    }
+    return delta;
+  }
+
+  function isAngleOnForwardPath(angle, startAngle, endAngle) {
+    const total = angleDeltaForward(startAngle, endAngle);
+    const progress = angleDeltaForward(startAngle, angle);
+    return progress <= total + 0.00001;
+  }
+
+  function getAngularArcPolyline(geometry, stepHint) {
+    if (!geometry || geometry.kind !== "angular") {
+      return [];
+    }
+    const steps = Math.max(
+      12,
+      Math.min(96, Math.ceil((geometry.span / (Math.PI * 2)) * (Number(stepHint) || 72)))
+    );
+    const points = [];
+    for (let i = 0; i <= steps; i += 1) {
+      const angle = geometry.startAngle + (geometry.span * i) / steps;
+      points.push({
+        x: geometry.vertex.x + Math.cos(angle) * geometry.radius,
+        y: geometry.vertex.y + Math.sin(angle) * geometry.radius
+      });
+    }
+    return points;
+  }
+
   function getDimensionGeometry(entity) {
     if (!entity || entity.type !== "dimension") {
       return null;
     }
 
+    const mode = normalizeDimensionMode(entity.mode);
     const x1 = Number(entity.x1);
     const y1 = Number(entity.y1);
     const x2 = Number(entity.x2);
@@ -3769,26 +4346,10 @@
       return null;
     }
 
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const length = Math.hypot(dx, dy);
-    if (length <= 0.0001) {
-      return null;
-    }
-
-    const mode = entity.mode === "linear" ? "linear" : "aligned";
-    const ux = dx / length;
-    const uy = dy / length;
-    let nx = -uy;
-    let ny = ux;
-    const midX = (x1 + x2) / 2;
-    const midY = (y1 + y2) / 2;
-
     const rawDimX = entity.dimX;
     const rawDimY = entity.dimY;
     const dimX = Number(rawDimX);
     const dimY = Number(rawDimY);
-    let offset = Number(entity.offset);
     const hasDimPoint =
       rawDimX !== null &&
       rawDimX !== undefined &&
@@ -3798,6 +4359,112 @@
       rawDimY !== "" &&
       Number.isFinite(dimX) &&
       Number.isFinite(dimY);
+
+    if (mode === "angular") {
+      const x3 = Number(entity.x3);
+      const y3 = Number(entity.y3);
+      if (![x3, y3].every(Number.isFinite)) {
+        return null;
+      }
+
+      const v1x = x2 - x1;
+      const v1y = y2 - y1;
+      const v2x = x3 - x1;
+      const v2y = y3 - y1;
+      const leg1 = Math.hypot(v1x, v1y);
+      const leg2 = Math.hypot(v2x, v2y);
+      if (leg1 <= 0.0001 || leg2 <= 0.0001) {
+        return null;
+      }
+
+      const a1 = Math.atan2(v1y, v1x);
+      const a2 = Math.atan2(v2y, v2x);
+      const span12 = angleDeltaForward(a1, a2);
+      const span21 = angleDeltaForward(a2, a1);
+      let startAngle = a1;
+      let endAngle = a2;
+      let span = span12;
+
+      if (hasDimPoint) {
+        const pointerAngle = Math.atan2(dimY - y1, dimX - x1);
+        if (!isAngleOnForwardPath(pointerAngle, a1, a2)) {
+          startAngle = a2;
+          endAngle = a1;
+          span = span21;
+        }
+      } else if (span12 > Math.PI) {
+        startAngle = a2;
+        endAngle = a1;
+        span = span21;
+      }
+      if (span <= 0.0001 || Math.abs(span - Math.PI * 2) <= 0.0001) {
+        return null;
+      }
+
+      const minLeg = Math.max(12, Math.min(leg1, leg2));
+      let radius = hasDimPoint ? Math.hypot(dimX - x1, dimY - y1) : minLeg * 0.6;
+      if (!Number.isFinite(radius) || radius < 12) {
+        radius = Math.max(12, minLeg * 0.6);
+      }
+      radius = clamp(radius, 12, Math.max(24, Math.max(leg1, leg2) * 2), minLeg * 0.6);
+      const midAngle = normalizeAngleRadians(startAngle + span / 2);
+      const textRadius = radius + 14;
+      const d1 = { x: x1 + Math.cos(startAngle) * radius, y: y1 + Math.sin(startAngle) * radius };
+      const d2 = { x: x1 + Math.cos(endAngle) * radius, y: y1 + Math.sin(endAngle) * radius };
+      const text = {
+        x: x1 + Math.cos(midAngle) * textRadius,
+        y: y1 + Math.sin(midAngle) * textRadius
+      };
+
+      return {
+        x1,
+        y1,
+        x2,
+        y2,
+        x3,
+        y3,
+        dx: v1x,
+        dy: v1y,
+        length: (span * 180) / Math.PI,
+        rawLength: leg1,
+        ux: v1x / leg1,
+        uy: v1y / leg1,
+        nx: 0,
+        ny: 0,
+        mode,
+        rotation: 0,
+        midX: x1,
+        midY: y1,
+        offset: radius,
+        d1,
+        d2,
+        text,
+        kind: "angular",
+        vertex: { x: x1, y: y1 },
+        span,
+        startAngle,
+        endAngle,
+        midAngle,
+        radius,
+        tangentStart: { x: -Math.sin(startAngle), y: Math.cos(startAngle) },
+        tangentEnd: { x: -Math.sin(endAngle), y: Math.cos(endAngle) }
+      };
+    }
+
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const length = Math.hypot(dx, dy);
+    if (length <= 0.0001) {
+      return null;
+    }
+
+    const ux = dx / length;
+    const uy = dy / length;
+    let nx = -uy;
+    let ny = ux;
+    const midX = (x1 + x2) / 2;
+    const midY = (y1 + y2) / 2;
+    let offset = Number(entity.offset);
     let d1 = null;
     let d2 = null;
     let measureLength = length;
@@ -3830,6 +4497,26 @@
         d2 = { x: xDim, y: y2 };
         measureLength = Math.abs(y2 - y1);
       }
+    } else if (mode === "rotated") {
+      const rotation = normalizeAngleDegrees(entity.rotation);
+      const rotationRad = (rotation * Math.PI) / 180;
+      const rux = Math.cos(rotationRad);
+      const ruy = Math.sin(rotationRad);
+      nx = -ruy;
+      ny = rux;
+      const t1 = x1 * rux + y1 * ruy;
+      const t2 = x2 * rux + y2 * ruy;
+      const midN = midX * nx + midY * ny;
+      if (!Number.isFinite(offset) && hasDimPoint) {
+        offset = dimX * nx + dimY * ny - midN;
+      }
+      if (!Number.isFinite(offset) || Math.abs(offset) < 2) {
+        offset = offset < 0 ? -24 : 24;
+      }
+      const dimN = midN + offset;
+      d1 = { x: rux * t1 + nx * dimN, y: ruy * t1 + ny * dimN };
+      d2 = { x: rux * t2 + nx * dimN, y: ruy * t2 + ny * dimN };
+      measureLength = Math.abs(t2 - t1);
     } else {
       if (!Number.isFinite(offset) && hasDimPoint) {
         offset = (dimX - midX) * nx + (dimY - midY) * ny;
@@ -3861,23 +4548,30 @@
       nx,
       ny,
       mode,
+      rotation: mode === "rotated" ? normalizeAngleDegrees(entity.rotation) : 0,
       midX,
       midY,
       offset,
       d1,
       d2,
-      text
+      text,
+      kind: "linear"
     };
   }
 
   function createDimensionEntity(start, end, dimPoint) {
+    const mode = normalizeDimensionMode(state.dimensionMode);
+    if (mode === "angular") {
+      return null;
+    }
     const probe = {
       type: "dimension",
       x1: start.x,
       y1: start.y,
       x2: end.x,
       y2: end.y,
-      mode: state.dimensionMode,
+      mode,
+      rotation: state.dimensionRotation,
       dimX: dimPoint ? dimPoint.x : null,
       dimY: dimPoint ? dimPoint.y : null
     };
@@ -3896,7 +4590,46 @@
       dimX: geometry.midX + geometry.nx * geometry.offset,
       dimY: geometry.midY + geometry.ny * geometry.offset,
       offset: geometry.offset,
-      mode: state.dimensionMode,
+      mode,
+      rotation: mode === "rotated" ? normalizeAngleDegrees(state.dimensionRotation) : 0,
+      textSize: state.dimensionTextSize,
+      unit: state.dimensionUnit,
+      decimals: state.dimensionDecimals
+    };
+  }
+
+  function createAngularDimensionEntity(vertex, ray1, ray2, dimPoint) {
+    const probe = {
+      type: "dimension",
+      mode: "angular",
+      x1: vertex.x,
+      y1: vertex.y,
+      x2: ray1.x,
+      y2: ray1.y,
+      x3: ray2.x,
+      y3: ray2.y,
+      dimX: dimPoint ? dimPoint.x : null,
+      dimY: dimPoint ? dimPoint.y : null
+    };
+    const geometry = getDimensionGeometry(probe);
+    if (!geometry || geometry.kind !== "angular") {
+      return null;
+    }
+
+    return {
+      ...createBaseEntity("dimension"),
+      stroke: state.dimensionColor,
+      x1: geometry.vertex.x,
+      y1: geometry.vertex.y,
+      x2: geometry.x2,
+      y2: geometry.y2,
+      x3: geometry.x3,
+      y3: geometry.y3,
+      dimX: dimPoint ? dimPoint.x : geometry.text.x,
+      dimY: dimPoint ? dimPoint.y : geometry.text.y,
+      offset: geometry.radius,
+      mode: "angular",
+      rotation: 0,
       textSize: state.dimensionTextSize,
       unit: state.dimensionUnit,
       decimals: state.dimensionDecimals
@@ -4013,18 +4746,77 @@
       if (!assertCanDrawOnActiveLayer()) {
         return;
       }
+      const dimensionMode = normalizeDimensionMode(state.dimensionMode);
 
       if (!state.drawStart) {
         state.drawStart = state.snap ? snapped : raw;
         state.dimensionSecond = null;
+        state.dimensionThird = null;
         state.previewPoint = state.drawStart;
         state.lastMeasure = null;
         queueRender();
         return;
       }
 
+      if (dimensionMode === "angular") {
+        if (!state.dimensionSecond) {
+          const secondPoint = getConstrainedPoint(state.drawStart, raw, event, {
+            polar: true,
+            polarStep: state.dimensionAngleSnap
+          });
+          const length = Math.hypot(secondPoint.x - state.drawStart.x, secondPoint.y - state.drawStart.y);
+          if (length > 0.0001) {
+            state.dimensionSecond = secondPoint;
+            state.previewPoint = secondPoint;
+          }
+          queueRender();
+          return;
+        }
+
+        if (!state.dimensionThird) {
+          const thirdPoint = getConstrainedPoint(state.drawStart, raw, event, {
+            polar: true,
+            polarStep: state.dimensionAngleSnap
+          });
+          const length = Math.hypot(thirdPoint.x - state.drawStart.x, thirdPoint.y - state.drawStart.y);
+          if (length > 0.0001) {
+            const cross =
+              (state.dimensionSecond.x - state.drawStart.x) * (thirdPoint.y - state.drawStart.y) -
+              (state.dimensionSecond.y - state.drawStart.y) * (thirdPoint.x - state.drawStart.x);
+            if (Math.abs(cross) < 0.001) {
+              echoCommand("Wymiar kątowy: ramię 2 nie może być współliniowe z ramieniem 1.", true);
+            } else {
+              state.dimensionThird = thirdPoint;
+              state.previewPoint = state.snap ? snapped : raw;
+            }
+          }
+          queueRender();
+          return;
+        }
+
+        const dimPoint = state.snap ? snapped : raw;
+        const entity = createAngularDimensionEntity(
+          state.drawStart,
+          state.dimensionSecond,
+          state.dimensionThird,
+          dimPoint
+        );
+        if (entity) {
+          saveHistory();
+          state.entities.push(entity);
+          state.selectedId = entity.id;
+          markDirty();
+        }
+        clearDrawingPreview();
+        queueRender();
+        return;
+      }
+
       if (!state.dimensionSecond) {
-        const secondPoint = getConstrainedPoint(state.drawStart, raw, event);
+        const secondPoint = getConstrainedPoint(state.drawStart, raw, event, {
+          polar: true,
+          polarStep: state.dimensionAngleSnap
+        });
         const length = Math.hypot(secondPoint.x - state.drawStart.x, secondPoint.y - state.drawStart.y);
         if (length > 0) {
           state.dimensionSecond = secondPoint;
@@ -4198,9 +4990,26 @@
 
     if (state.drawStart) {
       let preview = state.snap ? snapped : raw;
-      if (state.tool === "dimension" && state.dimensionSecond) {
-        preview = state.snap ? snapped : raw;
-      } else if (state.tool === "line" || state.tool === "measure" || state.tool === "dimension") {
+      if (state.tool === "dimension") {
+        const dimensionMode = normalizeDimensionMode(state.dimensionMode);
+        if (dimensionMode === "angular") {
+          if (!state.dimensionSecond || !state.dimensionThird) {
+            preview = getConstrainedPoint(state.drawStart, raw, event, {
+              polar: true,
+              polarStep: state.dimensionAngleSnap
+            });
+          } else {
+            preview = state.snap ? snapped : raw;
+          }
+        } else if (state.dimensionSecond) {
+          preview = state.snap ? snapped : raw;
+        } else {
+          preview = getConstrainedPoint(state.drawStart, raw, event, {
+            polar: true,
+            polarStep: state.dimensionAngleSnap
+          });
+        }
+      } else if (state.tool === "line" || state.tool === "measure") {
         preview = getConstrainedPoint(state.drawStart, raw, event);
       }
       if (state.tool === "rect" && (state.ortho || event.shiftKey)) {
@@ -4351,6 +5160,7 @@
     state.commandState = null;
     state.drawStart = null;
     state.dimensionSecond = null;
+    state.dimensionThird = null;
     state.previewPoint = null;
     state.polylineAnchor = null;
     markDirty();
@@ -4376,6 +5186,7 @@
     state.commandState = null;
     state.drawStart = null;
     state.dimensionSecond = null;
+    state.dimensionThird = null;
     state.previewPoint = null;
     state.polylineAnchor = null;
     state.selectionBoxStart = null;
@@ -4593,7 +5404,9 @@
       barSpacing: Math.max(5, Number(preset.barSpacing) || Math.round(preset.barWidth * 3)),
       infillPattern: preset.infillPattern,
       topPanel: preset.topPanel !== false,
+      topPanelThickness: Math.max(2, Number(preset.topPanelThickness) || Number(preset.barWidth) || 20),
       bottomPanel: preset.bottomPanel !== false,
+      bottomPanelThickness: Math.max(2, Number(preset.bottomPanelThickness) || Number(preset.barWidth) || 20),
       sectionCount: preset.sectionCount,
       gateLeafCount: Math.max(1, Math.min(2, Number(preset.gateLeafCount) || (normalized === "gate" ? 2 : 1))),
       groundClearance: preset.groundClearance,
@@ -4692,6 +5505,7 @@
     if (diagonalControl) {
       diagonalControl.classList.toggle("is-disabled", !diagonalAllowed);
     }
+    updateSteelSpacingHint();
   }
 
   function applySteelPreset(template, options) {
@@ -4706,7 +5520,9 @@
     state.steelBarSpacing = preset.barSpacing;
     state.steelInfillPattern = preset.infillPattern;
     state.steelTopPanel = preset.topPanel;
+    state.steelTopPanelThickness = preset.topPanelThickness;
     state.steelBottomPanel = preset.bottomPanel;
+    state.steelBottomPanelThickness = preset.bottomPanelThickness;
     state.steelSectionCount = preset.sectionCount;
     state.steelGateLeafCount = preset.gateLeafCount;
     state.steelGroundClearance = preset.groundClearance;
@@ -4869,6 +5685,7 @@
     const safeSpan = Math.max(0, Number(span) || 0);
     const safeBar = Math.max(5, Number(bar) || 5);
     const safeGap = Math.max(5, Number(requestedGap) || 5);
+    const minGap = 5;
 
     if (safeSpan <= safeBar) {
       return { count: 1, gap: 0, edgeOffset: Math.max(0, (safeSpan - safeBar) / 2) };
@@ -4882,15 +5699,18 @@
       return { count: 1, gap: 0, edgeOffset: Math.max(0, (safeSpan - safeBar) / 2) };
     }
 
-    // Trzymamy zadany odstęp między panelami i rozkładamy nadmiar jako marginesy boczne.
-    let gap = safeGap;
-    let used = count * safeBar + (count - 1) * gap;
-    while (count > 1 && used > safeSpan) {
+    // Liczba paneli bierze się z docelowego odstępu, a finalna przerwa jest auto-dopasowana,
+    // żeby panel był równy także przy krawędziach (słupek/profil).
+    let gap = (safeSpan - count * safeBar) / (count + 1);
+    while (count > 1 && (!Number.isFinite(gap) || gap < minGap)) {
       count -= 1;
-      used = count * safeBar + (count - 1) * gap;
+      gap = (safeSpan - count * safeBar) / (count + 1);
+    }
+    if (count <= 1 || !Number.isFinite(gap)) {
+      return { count: 1, gap: 0, edgeOffset: Math.max(0, (safeSpan - safeBar) / 2) };
     }
 
-    const edgeOffset = Math.max(0, (safeSpan - used) / 2);
+    const edgeOffset = Math.max(0, gap);
     return { count, gap, edgeOffset };
   }
 
@@ -4943,6 +5763,166 @@
       return fallback;
     }
     return Math.max(minGap, requested);
+  }
+
+  function estimateGateSectionClearWidth(options) {
+    const width = Math.max(200, Number(options.width) || state.steelWidth);
+    const height = Math.max(200, Number(options.height) || state.steelHeight);
+    const frameProfile = Math.max(20, Number(options.frameProfile) || state.steelFrameProfile);
+    const barWidth = Math.max(5, Number(options.barWidth) || state.steelBarWidth);
+    const sectionCount = Math.max(
+      1,
+      Math.min(
+        6,
+        Math.round(
+          Number.isFinite(Number(options.sectionCount))
+            ? Number(options.sectionCount)
+            : Number(state.steelSectionCount)
+        )
+      )
+    );
+    const gateLeafCount = Math.max(
+      1,
+      Math.min(
+        2,
+        Math.round(
+          Number.isFinite(Number(options.gateLeafCount))
+            ? Number(options.gateLeafCount)
+            : Number(state.steelGateLeafCount)
+        )
+      )
+    );
+    const groundClearance = Math.max(
+      0,
+      Number.isFinite(Number(options.groundClearance))
+        ? Number(options.groundClearance)
+        : Number(state.steelGroundClearance)
+    );
+    const basePlateHeight = Math.max(
+      0,
+      Number.isFinite(Number(options.basePlateHeight))
+        ? Number(options.basePlateHeight)
+        : Number(state.steelBasePlateHeight)
+    );
+    const innerFrame =
+      typeof options.innerFrame === "boolean" ? options.innerFrame : Boolean(state.steelInnerFrame);
+
+    const leafGap = gateLeafCount > 1 ? Math.max(8, Math.round(frameProfile * 0.35)) : 0;
+    const totalGap = leafGap * (gateLeafCount - 1);
+    const usableWidth = width - totalGap;
+    if (usableWidth <= frameProfile * 2 + 20) {
+      return null;
+    }
+
+    const leafWidth = usableWidth / gateLeafCount;
+    const side = Math.max(8, Math.min(frameProfile, leafWidth / 2, height));
+    let clearWidth = Math.max(0, leafWidth - side * 2);
+    let clearHeight = height;
+
+    const clearanceUsed = Math.min(Math.max(0, groundClearance), Math.max(0, clearHeight - 20));
+    clearHeight = Math.max(0, clearHeight - clearanceUsed);
+    const baseUsed = Math.min(Math.max(0, basePlateHeight), Math.max(0, clearHeight - 20));
+    clearHeight = Math.max(0, clearHeight - baseUsed);
+
+    if (innerFrame && clearWidth > 0 && clearHeight > 0) {
+      const innerProfile = Math.max(
+        10,
+        Math.min(Math.round(frameProfile * 0.45), Math.min(clearWidth, clearHeight) / 2)
+      );
+      clearWidth = Math.max(0, clearWidth - innerProfile * 2);
+      clearHeight = Math.max(0, clearHeight - innerProfile * 2);
+    }
+
+    const divider = Math.max(6, barWidth);
+    const availableWidth = clearWidth - divider * (sectionCount - 1);
+    if (sectionCount > 1 && availableWidth > sectionCount * 20) {
+      clearWidth = availableWidth / sectionCount;
+    }
+
+    return clearWidth > 0 ? clearWidth : null;
+  }
+
+  function buildGateSpacingAutoInfo(options) {
+    const source = options && typeof options === "object" ? options : {};
+    const template = normalizeSteelTemplate(source.template) || normalizeSteelTemplate(state.steelPreset) || "gate";
+    const pattern = normalizeInfillPattern(source.infillPattern) || normalizeInfillPattern(state.steelInfillPattern) || "vertical";
+    if (template !== "gate" || !["vertical", "grid"].includes(pattern)) {
+      return null;
+    }
+
+    const sectionWidth = estimateGateSectionClearWidth({
+      width: Number.isFinite(Number(source.width)) ? Number(source.width) : state.steelWidth,
+      height: Number.isFinite(Number(source.height)) ? Number(source.height) : state.steelHeight,
+      frameProfile: Number.isFinite(Number(source.frameProfile))
+        ? Number(source.frameProfile)
+        : state.steelFrameProfile,
+      barWidth: Number.isFinite(Number(source.barWidth)) ? Number(source.barWidth) : state.steelBarWidth,
+      sectionCount: Number.isFinite(Number(source.sectionCount))
+        ? Number(source.sectionCount)
+        : state.steelSectionCount,
+      gateLeafCount: Number.isFinite(Number(source.gateLeafCount))
+        ? Number(source.gateLeafCount)
+        : state.steelGateLeafCount,
+      groundClearance: Number.isFinite(Number(source.groundClearance))
+        ? Number(source.groundClearance)
+        : state.steelGroundClearance,
+      basePlateHeight: Number.isFinite(Number(source.basePlateHeight))
+        ? Number(source.basePlateHeight)
+        : state.steelBasePlateHeight,
+      innerFrame:
+        typeof source.innerFrame === "boolean"
+          ? source.innerFrame
+          : Boolean(state.steelInnerFrame)
+    });
+
+    if (!Number.isFinite(sectionWidth) || sectionWidth <= 30) {
+      return null;
+    }
+
+    const bar = Math.max(
+      5,
+      Number.isFinite(Number(source.barWidth)) ? Number(source.barWidth) : Number(state.steelBarWidth) || 5
+    );
+    const requestedGap = Number.isFinite(Number(source.barSpacing))
+      ? Number(source.barSpacing)
+      : Number(state.steelBarSpacing);
+    const targetGap = resolveInfillGap(requestedGap, bar);
+    const layout = resolveBarLayout(sectionWidth, bar, targetGap);
+    if (!layout || layout.count < 1) {
+      return null;
+    }
+
+    return {
+      count: layout.count,
+      sectionWidth,
+      targetGap,
+      gap: layout.gap
+    };
+  }
+
+  function updateSteelSpacingHint() {
+    if (!steelBarSpacingHint) {
+      return;
+    }
+    const baseText =
+      "Dla pionu/siatki liczy gęstość automatycznie, dla poziomu ustawia przerwę między panelami.";
+    const autoInfo = buildGateSpacingAutoInfo();
+    if (!autoInfo) {
+      steelBarSpacingHint.textContent = baseText;
+      return;
+    }
+
+    const autoGap = Math.max(5, Math.round(autoInfo.gap));
+
+    if (autoInfo.count <= 1) {
+      steelBarSpacingHint.textContent =
+        "Auto: w sekcji mieści się 1 panel, więc przerwa jest ustawiona symetrycznie od krawędzi.";
+      return;
+    }
+
+    steelBarSpacingHint.textContent =
+      `Auto: przerwy dopasowane do ilości paneli (${autoInfo.count} szt./sekcja), ` +
+      `ustawiona przerwa: ${autoGap} mm.`;
   }
 
   function addInfillPattern(
@@ -5043,9 +6023,19 @@
       };
     }
 
-    const enabledCount = (topEnabled ? 1 : 0) + (bottomEnabled ? 1 : 0);
-    const requestedThickness = Math.max(5, Number(options?.thickness) || 5);
-    const panelThickness = Math.max(2, Math.min(requestedThickness, area.h / enabledCount));
+    const fallbackThickness = Math.max(2, Number(options?.thickness) || 5);
+    let topThickness = topEnabled
+      ? Math.max(2, Number(options?.topThickness) || fallbackThickness)
+      : 0;
+    let bottomThickness = bottomEnabled
+      ? Math.max(2, Number(options?.bottomThickness) || fallbackThickness)
+      : 0;
+    const totalThickness = topThickness + bottomThickness;
+    if (totalThickness > area.h && totalThickness > 0) {
+      const ratio = area.h / totalThickness;
+      topThickness = topEnabled ? Math.max(1, topThickness * ratio) : 0;
+      bottomThickness = bottomEnabled ? Math.max(1, bottomThickness * ratio) : 0;
+    }
     let created = 0;
     let topY = area.y;
     let bottomY = area.y + area.h;
@@ -5055,21 +6045,21 @@
         area.x,
         topY,
         area.w,
-        panelThickness,
+        topThickness,
         options.layerId,
         options.stroke,
         14
       );
-      topY += panelThickness;
+      topY += topThickness;
     }
 
     if (bottomEnabled) {
-      bottomY -= panelThickness;
+      bottomY -= bottomThickness;
       created += addSteelRect(
         area.x,
         bottomY,
         area.w,
-        panelThickness,
+        bottomThickness,
         options.layerId,
         options.stroke,
         14
@@ -5185,8 +6175,20 @@
         : Number(state.steelBasePlateHeight)
     );
     const topPanel = typeof options.topPanel === "boolean" ? options.topPanel : Boolean(state.steelTopPanel);
+    const topPanelThickness = Math.max(
+      2,
+      Number.isFinite(Number(options.topPanelThickness))
+        ? Number(options.topPanelThickness)
+        : Number(state.steelTopPanelThickness) || barWidth
+    );
     const bottomPanel =
       typeof options.bottomPanel === "boolean" ? options.bottomPanel : Boolean(state.steelBottomPanel);
+    const bottomPanelThickness = Math.max(
+      2,
+      Number.isFinite(Number(options.bottomPanelThickness))
+        ? Number(options.bottomPanelThickness)
+        : Number(state.steelBottomPanelThickness) || barWidth
+    );
     const innerFrame =
       typeof options.innerFrame === "boolean" ? options.innerFrame : Boolean(state.steelInnerFrame);
     const diagonalRequested =
@@ -5204,11 +6206,29 @@
     };
     const originX = center.x - width / 2;
     const originY = center.y - height / 2;
+    const autoSpacingPlan = buildGateSpacingAutoInfo({
+      template,
+      infillPattern,
+      width,
+      height,
+      frameProfile,
+      barWidth,
+      barSpacing,
+      sectionCount,
+      gateLeafCount,
+      groundClearance,
+      basePlateHeight,
+      innerFrame
+    });
 
     const frameLayer = ensureLayerByName("KONSTRUKCJA");
     const infillLayer = ensureLayerByName("WYPELNIENIE");
     const frameStroke = "#9ad9ff";
     const infillStroke = "#d7e8ff";
+
+    if (state.workspaceView !== "model" || state.workspaceMode !== "steel") {
+      setWorkspaceMode("steel", { persist: false });
+    }
 
     saveHistory();
     const entityCountBefore = state.entities.length;
@@ -5217,6 +6237,7 @@
       ensureLayerVisibleUnlocked(frameLayer) || ensureLayerVisibleUnlocked(infillLayer);
 
     let created = 0;
+    let generatedGateSpacingInfo = null;
     if (template === "gate") {
       const leafGap = gateLeafCount > 1 ? Math.max(8, Math.round(frameProfile * 0.35)) : 0;
       const totalGap = leafGap * (gateLeafCount - 1);
@@ -5266,11 +6287,26 @@
             topPanel,
             bottomPanel,
             thickness: barWidth,
+            topThickness: topPanelThickness,
+            bottomThickness: bottomPanelThickness,
             layerId: infillLayer.id,
             stroke: infillStroke
           });
           created += edgePanels.created;
           if (edgePanels.area.w > 0 && edgePanels.area.h > 0) {
+            if (!generatedGateSpacingInfo && ["vertical", "grid"].includes(infillPattern)) {
+              const bar = Math.max(5, Number(barWidth) || 5);
+              const requestedGap = resolveInfillGap(barSpacing, bar);
+              const layout = resolveBarLayout(edgePanels.area.w, bar, requestedGap);
+              if (layout && layout.count >= 1) {
+                generatedGateSpacingInfo = {
+                  count: layout.count,
+                  sectionWidth: edgePanels.area.w,
+                  targetGap: requestedGap,
+                  gap: layout.gap
+                };
+              }
+            }
             diagonalSections.push(edgePanels.area);
             created += addInfillPattern(
               edgePanels.area,
@@ -5370,6 +6406,8 @@
           topPanel,
           bottomPanel,
           thickness: barWidth,
+          topThickness: topPanelThickness,
+          bottomThickness: bottomPanelThickness,
           layerId: infillLayer.id,
           stroke: infillStroke
         });
@@ -5425,6 +6463,8 @@
           topPanel,
           bottomPanel,
           thickness: barWidth,
+          topThickness: topPanelThickness,
+          bottomThickness: bottomPanelThickness,
           layerId: infillLayer.id,
           stroke: infillStroke
         });
@@ -5452,16 +6492,21 @@
     state.steelPostWidth = postWidth;
     state.steelPostLength = postLength;
     state.steelBarWidth = barWidth;
-    state.steelBarSpacing = barSpacing;
     state.steelInfillPattern = infillPattern;
     state.steelTopPanel = topPanel;
+    state.steelTopPanelThickness = topPanelThickness;
     state.steelBottomPanel = bottomPanel;
+    state.steelBottomPanelThickness = bottomPanelThickness;
     state.steelSectionCount = sectionCount;
     state.steelGateLeafCount = gateLeafCount;
     state.steelGroundClearance = groundClearance;
     state.steelBasePlateHeight = basePlateHeight;
     state.steelInnerFrame = innerFrame;
     state.steelDiagonal = diagonal;
+    const finalSpacingAutoInfo = generatedGateSpacingInfo || autoSpacingPlan;
+    state.steelBarSpacing = finalSpacingAutoInfo
+      ? Math.max(5, Math.round(finalSpacingAutoInfo.gap))
+      : barSpacing;
     state.selectedId = state.entities[state.entities.length - 1].id;
     state.activeLayerId = frameLayer.id;
     if (!state.showGrid) {
@@ -5469,14 +6514,11 @@
       syncModeIndicators();
     }
     state.lastMeasure = null;
-    if (state.workspaceView === "start") {
-      setWorkspaceMode("draw", { persist: false });
-    }
-    if (state.workspaceMode === "steel") {
-      setRibbonPage("design", { persist: false });
-    }
+    setWorkspaceMode("steel", { persist: false });
+    setRibbonPage("design", { persist: false });
     syncDocumentControls();
     markDirty();
+    resizeCanvas();
     const generatedEntities = state.entities.slice(entityCountBefore);
     const fitted = fitViewToEntities({ includeHidden: true, entities: generatedEntities });
     if (!fitted) {
@@ -5491,6 +6533,17 @@
         infillPattern
       )}).`
     );
+    if (finalSpacingAutoInfo) {
+      const autoGap = Math.max(5, Math.round(finalSpacingAutoInfo.gap));
+      state.steelBarSpacing = autoGap;
+      if (steelBarSpacingInput) {
+        steelBarSpacingInput.value = String(autoGap);
+      }
+      echoCommand(
+        `Przerwy dopasowano automatycznie do ilości paneli: ${finalSpacingAutoInfo.count} szt./sekcja, ` +
+          `ustawiona przerwa: ${autoGap} mm.`
+      );
+    }
     if (layerStateAdjusted) {
       echoCommand("Automatycznie odkryto i odblokowano warstwy KONSTRUKCJA/WYPELNIENIE.");
     }
@@ -5509,7 +6562,9 @@
       barSpacing: Number(steelBarSpacingInput.value),
       infillPattern: steelInfillPatternSelect.value,
       topPanel: steelTopPanelToggle.checked,
+      topPanelThickness: Number(steelTopPanelSizeInput.value),
       bottomPanel: steelBottomPanelToggle.checked,
+      bottomPanelThickness: Number(steelBottomPanelSizeInput.value),
       sectionCount: Number(steelSectionCountInput.value),
       gateLeafCount: Number(steelGateLeafCountSelect.value),
       groundClearance: Number(steelGroundClearanceInput.value),
@@ -5694,9 +6749,18 @@
         if (!geometry) {
           continue;
         }
-        pushLine(layerName, geometry.x1, geometry.y1, geometry.d1.x, geometry.d1.y);
-        pushLine(layerName, geometry.x2, geometry.y2, geometry.d2.x, geometry.d2.y);
-        pushLine(layerName, geometry.d1.x, geometry.d1.y, geometry.d2.x, geometry.d2.y);
+        if (geometry.kind === "angular") {
+          pushLine(layerName, geometry.vertex.x, geometry.vertex.y, geometry.d1.x, geometry.d1.y);
+          pushLine(layerName, geometry.vertex.x, geometry.vertex.y, geometry.d2.x, geometry.d2.y);
+          const arcPoints = getAngularArcPolyline(geometry, 36);
+          for (let i = 0; i < arcPoints.length - 1; i += 1) {
+            pushLine(layerName, arcPoints[i].x, arcPoints[i].y, arcPoints[i + 1].x, arcPoints[i + 1].y);
+          }
+        } else {
+          pushLine(layerName, geometry.x1, geometry.y1, geometry.d1.x, geometry.d1.y);
+          pushLine(layerName, geometry.x2, geometry.y2, geometry.d2.x, geometry.d2.y);
+          pushLine(layerName, geometry.d1.x, geometry.d1.y, geometry.d2.x, geometry.d2.y);
+        }
         lines.push(
           "0",
           "TEXT",
@@ -5709,7 +6773,7 @@
           "40",
           String(Math.max(10, Number(entity.textSize) || 12)),
           "1",
-          formatDimensionDistance(geometry.length, entity.unit || "mm", entity.decimals)
+          formatDimensionLabel(entity, geometry)
         );
       } else if (entity.type === "rect") {
         const corners = [
@@ -5807,15 +6871,49 @@
         if (!geometry) {
           return "";
         }
+        const arrow = 9;
+        const label = escapeXml(formatDimensionLabel(entity, geometry));
+        const textSize = Math.max(10, Number(entity.textSize) || 12);
+        if (geometry.kind === "angular") {
+          const arcPoints = getAngularArcPolyline(geometry, 64);
+          const arcPath = arcPoints
+            .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`)
+            .join(" ");
+          const tangentStartX = geometry.tangentStart.x;
+          const tangentStartY = geometry.tangentStart.y;
+          const tangentEndX = -geometry.tangentEnd.x;
+          const tangentEndY = -geometry.tangentEnd.y;
+          const nxStart = -tangentStartY;
+          const nyStart = tangentStartX;
+          const nxEnd = -tangentEndY;
+          const nyEnd = tangentEndX;
+          const arrowStart1X = geometry.d1.x + tangentStartX * arrow + nxStart * (arrow * 0.45);
+          const arrowStart1Y = geometry.d1.y + tangentStartY * arrow + nyStart * (arrow * 0.45);
+          const arrowStart2X = geometry.d1.x + tangentStartX * arrow - nxStart * (arrow * 0.45);
+          const arrowStart2Y = geometry.d1.y + tangentStartY * arrow - nyStart * (arrow * 0.45);
+          const arrowEnd1X = geometry.d2.x + tangentEndX * arrow + nxEnd * (arrow * 0.45);
+          const arrowEnd1Y = geometry.d2.y + tangentEndY * arrow + nyEnd * (arrow * 0.45);
+          const arrowEnd2X = geometry.d2.x + tangentEndX * arrow - nxEnd * (arrow * 0.45);
+          const arrowEnd2Y = geometry.d2.y + tangentEndY * arrow - nyEnd * (arrow * 0.45);
+          const textAngleRaw = geometry.midAngle + Math.PI / 2;
+          const textAngle =
+            textAngleRaw > Math.PI / 2 || textAngleRaw < -Math.PI / 2 ? textAngleRaw + Math.PI : textAngleRaw;
+          const textAngleDeg = (textAngle * 180) / Math.PI;
+
+          return [
+            `<line x1="${geometry.vertex.x}" y1="${geometry.vertex.y}" x2="${geometry.d1.x}" y2="${geometry.d1.y}" stroke="${stroke}" stroke-width="${strokeWidth}" fill="none"${dashAttr} />`,
+            `<line x1="${geometry.vertex.x}" y1="${geometry.vertex.y}" x2="${geometry.d2.x}" y2="${geometry.d2.y}" stroke="${stroke}" stroke-width="${strokeWidth}" fill="none"${dashAttr} />`,
+            `<path d="${arcPath}" stroke="${stroke}" stroke-width="${strokeWidth}" fill="none"${dashAttr} />`,
+            `<polygon points="${geometry.d1.x},${geometry.d1.y} ${arrowStart1X},${arrowStart1Y} ${arrowStart2X},${arrowStart2Y}" fill="${stroke}" />`,
+            `<polygon points="${geometry.d2.x},${geometry.d2.y} ${arrowEnd1X},${arrowEnd1Y} ${arrowEnd2X},${arrowEnd2Y}" fill="${stroke}" />`,
+            `<text x="${geometry.text.x}" y="${geometry.text.y}" fill="${stroke}" font-size="${textSize}" text-anchor="middle" dominant-baseline="middle" transform="rotate(${textAngleDeg} ${geometry.text.x} ${geometry.text.y})" font-family="Segoe UI, Arial, sans-serif">${label}</text>`
+          ].join("");
+        }
+
         const ux = geometry.ux;
         const uy = geometry.uy;
         const nx = geometry.nx;
         const ny = geometry.ny;
-        const arrow = 9;
-        const label = escapeXml(
-          formatDimensionDistance(geometry.length, entity.unit || "mm", entity.decimals)
-        );
-        const textSize = Math.max(10, Number(entity.textSize) || 12);
         const arrowStart1X = geometry.d1.x + ux * arrow + nx * (arrow * 0.45);
         const arrowStart1Y = geometry.d1.y + uy * arrow + ny * (arrow * 0.45);
         const arrowStart2X = geometry.d1.x + ux * arrow - nx * (arrow * 0.45);
@@ -5962,6 +7060,8 @@
       clearBtn: "Czyści cały rysunek po potwierdzeniu.",
       dimAlignedBtn: "Włącza wymiar wyrównany do mierzonego odcinka.",
       dimLinearBtn: "Włącza wymiar liniowy (poziomy/pionowy).",
+      dimRotatedBtn: "Włącza wymiar obrócony według zadanego kąta.",
+      dimAngularBtn: "Włącza wymiar kątowy (4 wskazania: wierzchołek, ramię 1, ramię 2, położenie łuku).",
       flyoutLayersBtn: "Otwiera panel warstw i ustawień siatki.",
       steelGenerateQuickBtn: "Szybko generuje konstrukcję stalową z aktualnych parametrów.",
       flyoutSelectionBtn: "Otwiera panel właściwości zaznaczenia.",
@@ -5973,8 +7073,12 @@
       orthoToggle: "Ogranicza rysowanie do kierunku poziomego i pionowego.",
       activeLayerSelect: "Wybiera aktywną warstwę dla nowych obiektów.",
       gridSizeInput: "Ustawia rozmiar oczka siatki roboczej.",
+      dimensionRotationInput: "Ustawia kąt wymiaru dla trybu obróconego.",
+      dimensionAngleSnapInput: "Ustawia skok przyciągania kątowego podczas wskazywania punktów wymiaru.",
       newLayerNameInput: "Wpisz nazwę nowej warstwy.",
       addLayerBtn: "Dodaje nową warstwę do projektu.",
+      steelTopPanelSizeInput: "Ustawia wysokość panelu górnego w milimetrach.",
+      steelBottomPanelSizeInput: "Ustawia wysokość panelu dolnego w milimetrach.",
       steelGenerateBtn: "Generuje konstrukcję według bieżących parametrów."
     };
 
@@ -5986,7 +7090,6 @@
     });
 
     const tabHelp = {
-      start: "Strona startowa aplikacji i podsumowanie projektu.",
       home: "Narzędzia rysowania, modyfikacji i właściwości obiektów.",
       references: "Narzędzia i ustawienia wymiarowania.",
       design: "Generator i konfiguracja konstrukcji stalowych.",
@@ -6020,7 +7123,7 @@
     document.querySelectorAll(".control").forEach((control) => {
       const label = control.querySelector("span");
       const help = control.querySelector("small");
-      const field = control.querySelector("input, select, textarea");
+      const fields = Array.from(control.querySelectorAll("input, select, textarea"));
       const labelText = label ? label.textContent.replace(/\s+/g, " ").trim() : "";
       const helpText = help ? help.textContent.replace(/\s+/g, " ").trim() : "";
       const tooltipText = helpText || (labelText ? `Ustawienie: ${labelText}.` : "");
@@ -6030,9 +7133,11 @@
       if (!control.title) {
         control.title = tooltipText;
       }
-      if (field && !field.title) {
-        field.title = tooltipText;
-      }
+      fields.forEach((field) => {
+        if (!field.title) {
+          field.title = tooltipText;
+        }
+      });
     });
 
     document.querySelectorAll("button").forEach((button) => {
@@ -6057,6 +7162,12 @@
     fillAlphaInput.value = String(state.fillAlpha);
     if (dimensionModeSelect) {
       dimensionModeSelect.value = state.dimensionMode;
+    }
+    if (dimensionRotationInput) {
+      dimensionRotationInput.value = String(normalizeAngleDegrees(state.dimensionRotation));
+    }
+    if (dimensionAngleSnapInput) {
+      dimensionAngleSnapInput.value = String(clamp(Math.round(state.dimensionAngleSnap), 0, 90, 15));
     }
     if (dimensionUnitSelect) {
       dimensionUnitSelect.value = state.dimensionUnit;
@@ -6089,7 +7200,13 @@
     }
     steelSectionCountInput.value = String(state.steelSectionCount);
     steelTopPanelToggle.checked = state.steelTopPanel;
+    if (steelTopPanelSizeInput) {
+      steelTopPanelSizeInput.value = String(state.steelTopPanelThickness);
+    }
     steelBottomPanelToggle.checked = state.steelBottomPanel;
+    if (steelBottomPanelSizeInput) {
+      steelBottomPanelSizeInput.value = String(state.steelBottomPanelThickness);
+    }
     steelGateLeafCountSelect.value = String(state.steelGateLeafCount);
     if (steelGateLeafCountSelect.value !== String(state.steelGateLeafCount)) {
       steelGateLeafCountSelect.value = "2";
@@ -6322,12 +7439,6 @@
       tab.addEventListener("click", () => {
         setFileMenuOpen(false);
         const page = normalizeRibbonPage(tab.dataset.page);
-        if (page === "start") {
-          setWorkspaceView("start");
-          setRibbonPage("start", { persist: false });
-          echoCommand("Zakładka: start.");
-          return;
-        }
         if (page === "design") {
           openCustomSteelSetup();
           return;
@@ -6408,6 +7519,20 @@
         setDimensionMode("linear");
         setTool("dimension");
         echoCommand("Tryb WYMIAR (liniowy).");
+      });
+    }
+    if (dimRotatedBtn) {
+      dimRotatedBtn.addEventListener("click", () => {
+        setDimensionMode("rotated");
+        setTool("dimension");
+        echoCommand(`Tryb WYMIAR (obrócony, kąt ${state.dimensionRotation.toFixed(1)}°).`);
+      });
+    }
+    if (dimAngularBtn) {
+      dimAngularBtn.addEventListener("click", () => {
+        setDimensionMode("angular");
+        setTool("dimension");
+        echoCommand("Tryb WYMIAR (kątowy). Wskaż: wierzchołek, ramię 1, ramię 2, położenie łuku.");
       });
     }
 
@@ -6564,6 +7689,28 @@
       });
     }
 
+    if (dimensionRotationInput) {
+      dimensionRotationInput.addEventListener("change", () => {
+        state.dimensionRotation = normalizeAngleDegrees(dimensionRotationInput.value);
+        dimensionRotationInput.value = String(state.dimensionRotation);
+        markDirty();
+        queueRender();
+      });
+    }
+
+    if (dimensionAngleSnapInput) {
+      dimensionAngleSnapInput.addEventListener("change", () => {
+        state.dimensionAngleSnap = clamp(
+          Math.round(Number(dimensionAngleSnapInput.value)),
+          0,
+          90,
+          state.dimensionAngleSnap
+        );
+        dimensionAngleSnapInput.value = String(state.dimensionAngleSnap);
+        markDirty();
+      });
+    }
+
     if (dimensionUnitSelect) {
       dimensionUnitSelect.addEventListener("change", () => {
         const value = dimensionUnitSelect.value;
@@ -6624,12 +7771,14 @@
     steelWidthInput.addEventListener("change", () => {
       state.steelWidth = Math.max(200, Number(steelWidthInput.value) || state.steelWidth);
       steelWidthInput.value = String(state.steelWidth);
+      updateSteelSpacingHint();
       markDirty();
     });
 
     steelHeightInput.addEventListener("change", () => {
       state.steelHeight = Math.max(200, Number(steelHeightInput.value) || state.steelHeight);
       steelHeightInput.value = String(state.steelHeight);
+      updateSteelSpacingHint();
       markDirty();
     });
 
@@ -6638,6 +7787,7 @@
         20,
         Number(steelFrameProfileSelect.value) || state.steelFrameProfile
       );
+      updateSteelSpacingHint();
       markDirty();
     });
 
@@ -6656,12 +7806,14 @@
     steelBarWidthInput.addEventListener("change", () => {
       state.steelBarWidth = Math.max(5, Number(steelBarWidthInput.value) || state.steelBarWidth);
       steelBarWidthInput.value = String(state.steelBarWidth);
+      updateSteelSpacingHint();
       markDirty();
     });
 
     steelBarSpacingInput.addEventListener("change", () => {
       state.steelBarSpacing = Math.max(5, Number(steelBarSpacingInput.value) || state.steelBarSpacing);
       steelBarSpacingInput.value = String(state.steelBarSpacing);
+      updateSteelSpacingHint();
       markDirty();
     });
 
@@ -6673,6 +7825,7 @@
       }
       state.steelInfillPattern = pattern;
       syncSteelTemplateMeta();
+      updateSteelSpacingHint();
       markDirty();
     });
 
@@ -6681,10 +7834,34 @@
       markDirty();
     });
 
+    if (steelTopPanelSizeInput) {
+      steelTopPanelSizeInput.addEventListener("change", () => {
+        const parsed = Number(steelTopPanelSizeInput.value);
+        state.steelTopPanelThickness = Math.max(
+          2,
+          Number.isFinite(parsed) ? parsed : state.steelTopPanelThickness
+        );
+        steelTopPanelSizeInput.value = String(state.steelTopPanelThickness);
+        markDirty();
+      });
+    }
+
     steelBottomPanelToggle.addEventListener("change", () => {
       state.steelBottomPanel = steelBottomPanelToggle.checked;
       markDirty();
     });
+
+    if (steelBottomPanelSizeInput) {
+      steelBottomPanelSizeInput.addEventListener("change", () => {
+        const parsed = Number(steelBottomPanelSizeInput.value);
+        state.steelBottomPanelThickness = Math.max(
+          2,
+          Number.isFinite(parsed) ? parsed : state.steelBottomPanelThickness
+        );
+        steelBottomPanelSizeInput.value = String(state.steelBottomPanelThickness);
+        markDirty();
+      });
+    }
 
     steelSectionCountInput.addEventListener("change", () => {
       const parsed = Number(steelSectionCountInput.value);
@@ -6693,6 +7870,7 @@
         Math.min(6, Math.round(Number.isFinite(parsed) ? parsed : state.steelSectionCount))
       );
       steelSectionCountInput.value = String(state.steelSectionCount);
+      updateSteelSpacingHint();
       markDirty();
     });
 
@@ -6703,6 +7881,7 @@
         Math.min(2, Math.round(Number.isFinite(parsed) ? parsed : state.steelGateLeafCount))
       );
       steelGateLeafCountSelect.value = String(state.steelGateLeafCount);
+      updateSteelSpacingHint();
       markDirty();
     });
 
@@ -6713,6 +7892,7 @@
         Number.isFinite(parsed) ? parsed : state.steelGroundClearance
       );
       steelGroundClearanceInput.value = String(state.steelGroundClearance);
+      updateSteelSpacingHint();
       markDirty();
     });
 
@@ -6723,11 +7903,13 @@
         Number.isFinite(parsed) ? parsed : state.steelBasePlateHeight
       );
       steelBasePlateHeightInput.value = String(state.steelBasePlateHeight);
+      updateSteelSpacingHint();
       markDirty();
     });
 
     steelInnerFrameToggle.addEventListener("change", () => {
       state.steelInnerFrame = steelInnerFrameToggle.checked;
+      updateSteelSpacingHint();
       markDirty();
     });
 
@@ -6961,6 +8143,7 @@
     applyTheme("dark");
 
     restoreSession();
+    setWorkspaceView("start", { mode: "draw", force: true, persist: false });
     setFileMenuOpen(false);
     state.activeFlyout = null;
     ensureActiveLayer();
