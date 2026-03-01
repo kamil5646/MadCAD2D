@@ -310,6 +310,8 @@
   let lastCanvasClientHeight = 0;
   const POINTER_DRAG_THRESHOLD_PX = 5;
   const OBJECT_SNAP_THRESHOLD_PX = 14;
+  const SESSION_STORAGE_KEY = "cad-session-v2";
+  const SESSION_PERSIST_ENABLED = false;
 
   if (window.desktopApp && window.desktopApp.platform === "darwin") {
     document.documentElement.classList.add("platform-mac");
@@ -330,6 +332,9 @@
   }
 
   function markDirty() {
+    if (!SESSION_PERSIST_ENABLED) {
+      return;
+    }
     state.persistPending = true;
     if (state.persistTimer) {
       clearTimeout(state.persistTimer);
@@ -337,7 +342,19 @@
     state.persistTimer = setTimeout(persistSession, 500);
   }
 
+  function clearPersistedSession() {
+    try {
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+    } catch (error) {
+      console.warn("Nie udało się wyczyścić sesji:", error);
+    }
+  }
+
   function persistSession() {
+    if (!SESSION_PERSIST_ENABLED) {
+      state.persistPending = false;
+      return;
+    }
     if (!state.persistPending) {
       return;
     }
@@ -399,15 +416,19 @@
     };
 
     try {
-      localStorage.setItem("cad-session-v2", JSON.stringify(payload));
+      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(payload));
     } catch (error) {
       console.warn("Nie udało się zapisać sesji:", error);
     }
   }
 
   function restoreSession() {
+    if (!SESSION_PERSIST_ENABLED) {
+      clearPersistedSession();
+      return;
+    }
     try {
-      const raw = localStorage.getItem("cad-session-v2");
+      const raw = localStorage.getItem(SESSION_STORAGE_KEY);
       if (!raw) {
         return;
       }
@@ -8152,6 +8173,9 @@
   function bootstrap() {
     applyTheme("dark");
 
+    if (!SESSION_PERSIST_ENABLED) {
+      clearPersistedSession();
+    }
     restoreSession();
     setWorkspaceView("start", { mode: "draw", force: true, persist: false });
     setFileMenuOpen(false);

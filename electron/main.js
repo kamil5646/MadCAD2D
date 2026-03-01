@@ -1,10 +1,13 @@
 const path = require('path');
-const { app, BrowserWindow, Menu, shell, nativeImage } = require('electron');
+const { app, BrowserWindow, Menu, shell, nativeImage, dialog } = require('electron');
 
 const isMac = process.platform === 'darwin';
 const appIconPng = path.join(__dirname, '..', 'assets', 'icons', 'madcad-512.png');
 
 function createMainWindow() {
+  let allowImmediateClose = false;
+  let closePromptVisible = false;
+
   const win = new BrowserWindow({
     width: 1680,
     height: 980,
@@ -40,6 +43,51 @@ function createMainWindow() {
   if (!app.isPackaged) {
     win.webContents.openDevTools({ mode: 'detach' });
   }
+
+  win.on('close', async (event) => {
+    if (allowImmediateClose || closePromptVisible) {
+      return;
+    }
+
+    event.preventDefault();
+    closePromptVisible = true;
+
+    try {
+      const result = await dialog.showMessageBox(win, {
+        type: 'question',
+        buttons: ['Zapisz i zamknij', 'Zamknij bez zapisu', 'Anuluj'],
+        defaultId: 0,
+        cancelId: 2,
+        noLink: true,
+        title: 'Wyjście z aplikacji',
+        message: 'Czy chcesz zapisać projekt przed zamknięciem?',
+        detail: 'Opcja „Zapisz i zamknij” uruchomi zapis pliku JSON.'
+      });
+
+      if (result.response === 2) {
+        return;
+      }
+
+      if (result.response === 0 && !win.isDestroyed()) {
+        try {
+          await win.webContents.executeJavaScript(
+            "document.getElementById('saveJsonBtn')?.click(); true;",
+            true
+          );
+          await new Promise((resolve) => setTimeout(resolve, 250));
+        } catch (error) {
+          console.error('Nie udało się uruchomić zapisu przed zamknięciem:', error);
+        }
+      }
+
+      allowImmediateClose = true;
+      if (!win.isDestroyed()) {
+        win.close();
+      }
+    } finally {
+      closePromptVisible = false;
+    }
+  });
 
   return win;
 }
