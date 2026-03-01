@@ -403,6 +403,93 @@
         color: #ff9f9f;
       }
 
+      .token-admin {
+        display: none;
+      }
+
+      .token-admin.visible {
+        display: block;
+      }
+
+      .admin-gate {
+        display: grid;
+        gap: 10px;
+        padding: 12px;
+        border: 1px solid rgba(127, 162, 208, 0.38);
+        border-radius: 12px;
+        background: rgba(8, 18, 34, 0.5);
+      }
+
+      .admin-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .admin-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .admin-kpi {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .admin-kpi .box {
+        margin: 0;
+        padding: 10px;
+      }
+
+      .admin-table-wrap {
+        overflow: auto;
+        border: 1px solid rgba(127, 162, 208, 0.28);
+        border-radius: 10px;
+      }
+
+      .admin-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 920px;
+      }
+
+      .admin-table th,
+      .admin-table td {
+        padding: 8px;
+        border-bottom: 1px solid rgba(127, 162, 208, 0.2);
+        font-size: 12px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .admin-table th {
+        color: var(--muted);
+        background: rgba(255, 255, 255, 0.04);
+        font-weight: 700;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 7px;
+        border-radius: 999px;
+        border: 1px solid rgba(127, 162, 208, 0.4);
+        font-size: 11px;
+        white-space: nowrap;
+      }
+
+      .chip.ok {
+        border-color: rgba(43, 182, 115, 0.6);
+        color: #b7ffd9;
+      }
+
+      .chip.revoked {
+        border-color: rgba(255, 159, 159, 0.58);
+        color: #ffc8c8;
+      }
+
       .dot {
         width: 10px;
         height: 10px;
@@ -612,6 +699,80 @@
         </div>
       </section>
 
+      <section class="section token-admin" id="token-admin">
+        <h2>Prywatny panel zarządzania tokenami</h2>
+        <p class="lead">
+          Panel administratora działa tylko po wejściu przez link prywatny i odblokowaniu PIN-em.
+          Dane są zapisywane lokalnie w przeglądarce (nie są publicznie publikowane na stronie).
+        </p>
+
+        <div id="adminGate" class="admin-gate">
+          <div class="admin-grid">
+            <div class="field">
+              <label for="adminPinInput">PIN administratora</label>
+              <input id="adminPinInput" type="password" placeholder="Wpisz PIN" />
+            </div>
+            <div class="field">
+              <label for="adminNewPinInput">Nowy PIN (pierwsza konfiguracja)</label>
+              <input id="adminNewPinInput" type="password" placeholder="Nowy PIN" />
+            </div>
+            <div class="field">
+              <label for="adminNewPinConfirmInput">Potwierdź nowy PIN</label>
+              <input id="adminNewPinConfirmInput" type="password" placeholder="Powtórz PIN" />
+            </div>
+          </div>
+          <div class="admin-actions">
+            <button id="adminUnlockBtn" class="btn" type="button">Odblokuj panel</button>
+            <button id="adminSetPinBtn" class="btn secondary" type="button">Ustaw/Zmień PIN</button>
+            <button id="adminLockBtn" class="btn secondary" type="button">Zablokuj</button>
+          </div>
+          <p id="adminStatus" class="token-status" aria-live="polite"></p>
+        </div>
+
+        <div id="tokenAdminContent" class="token-form" hidden>
+          <div class="admin-kpi">
+            <article class="box">
+              <strong>Wszystkie</strong>
+              <p id="tokenCountAll">0</p>
+            </article>
+            <article class="box">
+              <strong>Aktywne</strong>
+              <p id="tokenCountActive">0</p>
+            </article>
+            <article class="box">
+              <strong>Unieważnione</strong>
+              <p id="tokenCountRevoked">0</p>
+            </article>
+          </div>
+
+          <div class="admin-actions">
+            <input id="tokenSearchInput" type="text" placeholder="Szukaj: właściciel, e-mail, ID urządzenia..." />
+            <button id="exportTokensJsonBtn" class="btn secondary" type="button">Eksport JSON</button>
+            <button id="exportTokensCsvBtn" class="btn secondary" type="button">Eksport CSV</button>
+            <button id="clearTokensBtn" class="btn secondary" type="button">Wyczyść wszystko</button>
+            <button id="openTokenImportBtn" class="btn secondary" type="button">Import JSON</button>
+            <input id="tokenImportInput" type="file" accept=".json,application/json" hidden />
+          </div>
+
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Status</th>
+                  <th>Właściciel</th>
+                  <th>E-mail</th>
+                  <th>ID urządzenia</th>
+                  <th>Token</th>
+                  <th>Akcje</th>
+                </tr>
+              </thead>
+              <tbody id="tokenAdminTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
       <section class="section" id="release">
         <h2>Wydanie 1.0</h2>
         <div class="release">
@@ -692,6 +853,30 @@
         const copyBtn = document.getElementById("copyPrivateTokenBtn");
         const output = document.getElementById("generatedPrivateToken");
         const statusEl = document.getElementById("tokenStatus");
+        const tokenAdminSection = document.getElementById("token-admin");
+        const adminGate = document.getElementById("adminGate");
+        const adminPinInput = document.getElementById("adminPinInput");
+        const adminNewPinInput = document.getElementById("adminNewPinInput");
+        const adminNewPinConfirmInput = document.getElementById("adminNewPinConfirmInput");
+        const adminUnlockBtn = document.getElementById("adminUnlockBtn");
+        const adminSetPinBtn = document.getElementById("adminSetPinBtn");
+        const adminLockBtn = document.getElementById("adminLockBtn");
+        const adminStatus = document.getElementById("adminStatus");
+        const tokenAdminContent = document.getElementById("tokenAdminContent");
+        const tokenSearchInput = document.getElementById("tokenSearchInput");
+        const tokenAdminTableBody = document.getElementById("tokenAdminTableBody");
+        const tokenCountAll = document.getElementById("tokenCountAll");
+        const tokenCountActive = document.getElementById("tokenCountActive");
+        const tokenCountRevoked = document.getElementById("tokenCountRevoked");
+        const exportTokensJsonBtn = document.getElementById("exportTokensJsonBtn");
+        const exportTokensCsvBtn = document.getElementById("exportTokensCsvBtn");
+        const clearTokensBtn = document.getElementById("clearTokensBtn");
+        const openTokenImportBtn = document.getElementById("openTokenImportBtn");
+        const tokenImportInput = document.getElementById("tokenImportInput");
+
+        const TOKEN_REGISTRY_KEY = "madcad-token-registry-v1";
+        const TOKEN_ADMIN_PIN_HASH_KEY = "madcad-token-admin-pin-hash-v1";
+        let adminUnlocked = false;
 
         function fnv1aHash(input, seed) {
           const text = String(input || "");
@@ -731,6 +916,199 @@
 
         function normalizeEmail(value) {
           return String(value || "").trim().toLowerCase();
+        }
+
+        function setAdminStatus(message, kind) {
+          if (!adminStatus) {
+            return;
+          }
+          adminStatus.textContent = String(message || "");
+          adminStatus.classList.remove("ok", "err");
+          if (kind === "ok") {
+            adminStatus.classList.add("ok");
+          } else if (kind === "err") {
+            adminStatus.classList.add("err");
+          }
+        }
+
+        function readTokenRegistry() {
+          try {
+            const raw = localStorage.getItem(TOKEN_REGISTRY_KEY);
+            if (!raw) {
+              return [];
+            }
+            const parsed = JSON.parse(raw);
+            if (!Array.isArray(parsed)) {
+              return [];
+            }
+            return parsed.filter((entry) => entry && typeof entry === "object");
+          } catch {
+            return [];
+          }
+        }
+
+        function writeTokenRegistry(entries) {
+          try {
+            localStorage.setItem(TOKEN_REGISTRY_KEY, JSON.stringify(entries));
+          } catch {
+            setAdminStatus("Nie udało się zapisać rejestru tokenów.", "err");
+          }
+        }
+
+        function hashPin(value) {
+          return fnv1aHash(`PIN|${String(value || "").trim()}|MadCAD`);
+        }
+
+        function isAdminModeEnabled() {
+          const params = new URLSearchParams(window.location.search);
+          return params.get("admin") === "1";
+        }
+
+        function maskToken(tokenValue) {
+          const token = String(tokenValue || "");
+          if (token.length <= 24) {
+            return token;
+          }
+          return `${token.slice(0, 18)}...${token.slice(-10)}`;
+        }
+
+        function escapeHtml(text) {
+          return String(text || "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#39;");
+        }
+
+        function formatDate(iso) {
+          const date = new Date(String(iso || ""));
+          if (Number.isNaN(date.getTime())) {
+            return "-";
+          }
+          return date.toLocaleString("pl-PL");
+        }
+
+        function toCsvLine(values) {
+          return values
+            .map((value) => `"${String(value ?? "").replaceAll('"', '""')}"`)
+            .join(",");
+        }
+
+        function downloadText(filename, text) {
+          const blob = new Blob([String(text || "")], { type: "text/plain;charset=utf-8" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = filename;
+          document.body.append(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        }
+
+        function buildRegistryEntry(payload, token) {
+          const idSeed = `${payload.deviceId}|${payload.ownerName}|${payload.email}|${payload.issuedAt}|${token}`;
+          return {
+            id: `tok-${Date.now()}-${fnv1aHash(idSeed).slice(0, 8)}`,
+            createdAt: payload.issuedAt,
+            status: "active",
+            type: "private",
+            ownerName: payload.ownerName,
+            email: payload.email,
+            purpose: payload.purpose,
+            deviceId: payload.deviceId,
+            token
+          };
+        }
+
+        function upsertRegistryEntry(nextEntry) {
+          const entries = readTokenRegistry();
+          const withoutSameToken = entries.filter((entry) => String(entry.token || "") !== String(nextEntry.token || ""));
+          withoutSameToken.unshift(nextEntry);
+          writeTokenRegistry(withoutSameToken.slice(0, 1500));
+          return withoutSameToken;
+        }
+
+        function renderTokenAdminTable() {
+          if (!tokenAdminTableBody || !tokenAdminContent) {
+            return;
+          }
+          const entries = readTokenRegistry();
+          const filter = String(tokenSearchInput ? tokenSearchInput.value : "").trim().toLowerCase();
+          const filtered = entries.filter((entry) => {
+            const haystack = [
+              entry.ownerName,
+              entry.email,
+              entry.deviceId,
+              entry.token,
+              entry.status
+            ]
+              .join(" ")
+              .toLowerCase();
+            return !filter || haystack.includes(filter);
+          });
+
+          if (tokenCountAll) {
+            tokenCountAll.textContent = String(entries.length);
+          }
+          if (tokenCountActive) {
+            tokenCountActive.textContent = String(entries.filter((entry) => entry.status !== "revoked").length);
+          }
+          if (tokenCountRevoked) {
+            tokenCountRevoked.textContent = String(entries.filter((entry) => entry.status === "revoked").length);
+          }
+
+          if (filtered.length === 0) {
+            tokenAdminTableBody.innerHTML =
+              '<tr><td colspan="7" style="color:#9fb5d1;">Brak tokenów spełniających kryteria.</td></tr>';
+            return;
+          }
+
+          tokenAdminTableBody.innerHTML = filtered
+            .map((entry) => {
+              const isRevoked = entry.status === "revoked";
+              const statusChip = isRevoked
+                ? '<span class="chip revoked">Unieważniony</span>'
+                : '<span class="chip ok">Aktywny</span>';
+              const tokenShort = maskToken(entry.token);
+              const actions = isRevoked
+                ? `<button class="btn secondary" data-action="restore" data-id="${escapeHtml(entry.id)}" type="button">Przywróć</button>`
+                : `<button class="btn secondary" data-action="revoke" data-id="${escapeHtml(entry.id)}" type="button">Unieważnij</button>`;
+              return `
+                <tr>
+                  <td>${escapeHtml(formatDate(entry.createdAt))}</td>
+                  <td>${statusChip}</td>
+                  <td>${escapeHtml(entry.ownerName)}</td>
+                  <td>${escapeHtml(entry.email)}</td>
+                  <td><code>${escapeHtml(entry.deviceId)}</code></td>
+                  <td><code title="${escapeHtml(entry.token)}">${escapeHtml(tokenShort)}</code></td>
+                  <td>
+                    <button class="btn secondary" data-action="copy" data-id="${escapeHtml(entry.id)}" type="button">Kopiuj</button>
+                    ${actions}
+                    <button class="btn secondary" data-action="delete" data-id="${escapeHtml(entry.id)}" type="button">Usuń</button>
+                  </td>
+                </tr>
+              `;
+            })
+            .join("");
+        }
+
+        function setAdminUnlocked(next) {
+          adminUnlocked = Boolean(next);
+          if (tokenAdminContent) {
+            tokenAdminContent.hidden = !adminUnlocked;
+          }
+          if (adminGate) {
+            adminGate.style.opacity = adminUnlocked ? "0.84" : "1";
+          }
+          if (adminUnlocked) {
+            renderTokenAdminTable();
+          }
+        }
+
+        function getStoredPinHash() {
+          return String(localStorage.getItem(TOKEN_ADMIN_PIN_HASH_KEY) || "").trim();
         }
 
         function buildPrivateToken() {
@@ -777,6 +1155,10 @@
           if (output) {
             output.value = token;
           }
+          upsertRegistryEntry(buildRegistryEntry(payload, token));
+          if (adminUnlocked) {
+            renderTokenAdminTable();
+          }
           setStatus("Token wygenerowany. Skopiuj i wklej go w aplikacji.", "ok");
         }
 
@@ -801,10 +1183,220 @@
           copyBtn.addEventListener("click", copyToken);
         }
 
+        if (tokenSearchInput) {
+          tokenSearchInput.addEventListener("input", renderTokenAdminTable);
+        }
+
+        if (tokenAdminTableBody) {
+          tokenAdminTableBody.addEventListener("click", async (event) => {
+            const target = event.target;
+            if (!(target instanceof HTMLElement)) {
+              return;
+            }
+            const button = target.closest("button[data-action][data-id]");
+            if (!button) {
+              return;
+            }
+            const action = String(button.dataset.action || "");
+            const id = String(button.dataset.id || "");
+            const entries = readTokenRegistry();
+            const index = entries.findIndex((entry) => String(entry.id) === id);
+            if (index < 0) {
+              setAdminStatus("Nie znaleziono wskazanego wpisu.", "err");
+              return;
+            }
+            const entry = entries[index];
+            if (action === "copy") {
+              try {
+                await navigator.clipboard.writeText(String(entry.token || ""));
+                setAdminStatus("Skopiowano token do schowka.", "ok");
+              } catch {
+                setAdminStatus("Nie udało się skopiować tokenu.", "err");
+              }
+              return;
+            }
+            if (action === "revoke") {
+              entries[index] = {
+                ...entry,
+                status: "revoked",
+                revokedAt: new Date().toISOString()
+              };
+              writeTokenRegistry(entries);
+              setAdminStatus("Token został unieważniony.", "ok");
+              renderTokenAdminTable();
+              return;
+            }
+            if (action === "restore") {
+              entries[index] = {
+                ...entry,
+                status: "active",
+                revokedAt: null
+              };
+              writeTokenRegistry(entries);
+              setAdminStatus("Token został przywrócony.", "ok");
+              renderTokenAdminTable();
+              return;
+            }
+            if (action === "delete") {
+              entries.splice(index, 1);
+              writeTokenRegistry(entries);
+              setAdminStatus("Wpis tokenu został usunięty.", "ok");
+              renderTokenAdminTable();
+            }
+          });
+        }
+
+        if (adminSetPinBtn) {
+          adminSetPinBtn.addEventListener("click", () => {
+            const pin = String(adminNewPinInput ? adminNewPinInput.value : "").trim();
+            const confirm = String(adminNewPinConfirmInput ? adminNewPinConfirmInput.value : "").trim();
+            if (pin.length < 4) {
+              setAdminStatus("PIN musi mieć co najmniej 4 znaki.", "err");
+              return;
+            }
+            if (pin !== confirm) {
+              setAdminStatus("PIN i potwierdzenie nie są takie same.", "err");
+              return;
+            }
+            localStorage.setItem(TOKEN_ADMIN_PIN_HASH_KEY, hashPin(pin));
+            if (adminPinInput) {
+              adminPinInput.value = "";
+            }
+            if (adminNewPinInput) {
+              adminNewPinInput.value = "";
+            }
+            if (adminNewPinConfirmInput) {
+              adminNewPinConfirmInput.value = "";
+            }
+            setAdminStatus("PIN administratora został zapisany.", "ok");
+          });
+        }
+
+        if (adminUnlockBtn) {
+          adminUnlockBtn.addEventListener("click", () => {
+            const storedHash = getStoredPinHash();
+            if (!storedHash) {
+              setAdminStatus("Najpierw ustaw PIN administratora.", "err");
+              return;
+            }
+            const pin = String(adminPinInput ? adminPinInput.value : "").trim();
+            if (!pin) {
+              setAdminStatus("Wpisz PIN administratora.", "err");
+              return;
+            }
+            if (hashPin(pin) !== storedHash) {
+              setAdminStatus("Nieprawidłowy PIN.", "err");
+              return;
+            }
+            setAdminUnlocked(true);
+            if (adminPinInput) {
+              adminPinInput.value = "";
+            }
+            setAdminStatus("Panel administratora odblokowany.", "ok");
+          });
+        }
+
+        if (adminLockBtn) {
+          adminLockBtn.addEventListener("click", () => {
+            setAdminUnlocked(false);
+            setAdminStatus("Panel administratora został zablokowany.", "ok");
+          });
+        }
+
+        if (exportTokensJsonBtn) {
+          exportTokensJsonBtn.addEventListener("click", () => {
+            const entries = readTokenRegistry();
+            const file = JSON.stringify(entries, null, 2);
+            downloadText("madcad-tokeny.json", file);
+            setAdminStatus("Wyeksportowano JSON z tokenami.", "ok");
+          });
+        }
+
+        if (exportTokensCsvBtn) {
+          exportTokensCsvBtn.addEventListener("click", () => {
+            const entries = readTokenRegistry();
+            const header = toCsvLine([
+              "id",
+              "createdAt",
+              "status",
+              "ownerName",
+              "email",
+              "purpose",
+              "deviceId",
+              "token",
+              "revokedAt"
+            ]);
+            const rows = entries.map((entry) =>
+              toCsvLine([
+                entry.id,
+                entry.createdAt,
+                entry.status,
+                entry.ownerName,
+                entry.email,
+                entry.purpose,
+                entry.deviceId,
+                entry.token,
+                entry.revokedAt || ""
+              ])
+            );
+            downloadText("madcad-tokeny.csv", [header, ...rows].join("\n"));
+            setAdminStatus("Wyeksportowano CSV z tokenami.", "ok");
+          });
+        }
+
+        if (clearTokensBtn) {
+          clearTokensBtn.addEventListener("click", () => {
+            const approved = window.confirm("Na pewno usunąć cały rejestr tokenów?");
+            if (!approved) {
+              return;
+            }
+            writeTokenRegistry([]);
+            renderTokenAdminTable();
+            setAdminStatus("Wyczyszczono cały rejestr tokenów.", "ok");
+          });
+        }
+
+        if (openTokenImportBtn && tokenImportInput) {
+          openTokenImportBtn.addEventListener("click", () => {
+            tokenImportInput.click();
+          });
+          tokenImportInput.addEventListener("change", async () => {
+            const file = tokenImportInput.files && tokenImportInput.files[0];
+            if (!file) {
+              return;
+            }
+            try {
+              const content = await file.text();
+              const parsed = JSON.parse(content);
+              if (!Array.isArray(parsed)) {
+                throw new Error("Nieprawidłowy format JSON.");
+              }
+              const safe = parsed.filter((entry) => entry && typeof entry === "object");
+              writeTokenRegistry(safe);
+              renderTokenAdminTable();
+              setAdminStatus(`Zaimportowano ${safe.length} wpisów.`, "ok");
+            } catch (error) {
+              setAdminStatus(`Błąd importu: ${error.message || "nieznany"}`, "err");
+            } finally {
+              tokenImportInput.value = "";
+            }
+          });
+        }
+
         const params = new URLSearchParams(window.location.search);
         const queryDeviceId = String(params.get("deviceId") || "").trim();
         if (queryDeviceId && deviceIdInput && !deviceIdInput.value) {
           deviceIdInput.value = queryDeviceId;
+        }
+
+        if (tokenAdminSection && isAdminModeEnabled()) {
+          tokenAdminSection.classList.add("visible");
+          setAdminStatus(
+            getStoredPinHash()
+              ? "Panel prywatny gotowy. Wpisz PIN, aby zobaczyć tokeny."
+              : "Ustaw najpierw PIN administratora, aby zabezpieczyć dostęp.",
+            "ok"
+          );
         }
       })();
     </script>

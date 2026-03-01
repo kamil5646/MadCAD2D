@@ -26,6 +26,8 @@
   const fileMenu = document.getElementById("fileMenu");
   const fileMenuBtn = document.getElementById("fileMenuBtn");
   const fileMenuPanel = document.getElementById("fileMenuPanel");
+  const licenseCategoryBtn = document.getElementById("licenseCategoryBtn");
+  const licenseSummaryChip = document.getElementById("licenseSummaryChip") || licenseCategoryBtn;
   const fitViewBtn = document.getElementById("fitViewBtn");
   const clearBtn = document.getElementById("clearBtn");
   const steelGenerateQuickBtn = document.getElementById("steelGenerateQuickBtn");
@@ -119,6 +121,7 @@
   const licenseTokenInput = document.getElementById("licenseTokenInput");
   const licenseActivateTokenBtn = document.getElementById("licenseActivateTokenBtn");
   const licenseClearTokenBtn = document.getElementById("licenseClearTokenBtn");
+  const licenseCloseBtn = document.getElementById("licenseCloseBtn");
   const licenseStatus = document.getElementById("licenseStatus");
 
   const LICENSE_STORAGE_KEY = "madcad-license-v1";
@@ -126,9 +129,12 @@
   const LICENSE_TOKEN_PREFIX = "M2D1";
   const LICENSE_PRIVATE_FORM_URL = "https://kamil5646.github.io/MadCAD2D/#token-prywatny";
   const licenseSession = {
-    active: false,
+    active: true,
     token: "",
-    payload: null,
+    payload: {
+      scope: "mit",
+      ownerName: "Open Source"
+    },
     deviceId: ""
   };
 
@@ -199,7 +205,7 @@
     steelBasePlateHeight: 0,
     steelInnerFrame: false,
     steelDiagonal: false,
-    workspaceView: "start",
+    workspaceView: "model",
     workspaceMode: "draw",
     activeFlyout: null,
     layoutTab: "model",
@@ -335,7 +341,12 @@
   const POINTER_DRAG_THRESHOLD_PX = 5;
   const OBJECT_SNAP_THRESHOLD_PX = 14;
 
-  if (window.desktopApp && window.desktopApp.platform === "darwin") {
+  const detectedMac =
+    (window.desktopApp && window.desktopApp.platform === "darwin") ||
+    /(Mac|iPhone|iPad|iPod)/i.test(navigator.platform || "") ||
+    /Mac OS X/i.test(navigator.userAgent || "");
+
+  if (detectedMac) {
     document.documentElement.classList.add("platform-mac");
     document.documentElement.style.setProperty("--traffic-space", "76px");
   } else {
@@ -444,7 +455,7 @@
       ensureActiveLayer();
       state.entities = normalizeEntities(parsed.entities);
       ensureEntityLayers();
-      state.workspaceView = state.entities.length > 0 ? "model" : "start";
+      state.workspaceView = "model";
       state.workspaceMode = "draw";
       state.ribbonPage = "home";
 
@@ -579,7 +590,7 @@
           state.steelPanelCount = clamp(Math.round(inferred), 1, 120, state.steelPanelCount);
         }
         if (parsed.settings.workspaceView === "start" || parsed.settings.workspaceView === "model") {
-          state.workspaceView = parsed.settings.workspaceView;
+          state.workspaceView = normalizeWorkspaceView(parsed.settings.workspaceView);
         }
         if (parsed.settings.workspaceMode === "draw" || parsed.settings.workspaceMode === "steel") {
           state.workspaceMode = parsed.settings.workspaceMode;
@@ -649,6 +660,32 @@
     return Boolean(fileMenu && fileMenu.classList.contains("open"));
   }
 
+  function positionFileMenuPanel() {
+    if (!fileMenuBtn || !fileMenuPanel || fileMenuPanel.hidden) {
+      return;
+    }
+    const buttonRect = fileMenuBtn.getBoundingClientRect();
+    const margin = 6;
+    const panelWidth = Math.max(196, fileMenuPanel.offsetWidth || 0);
+    const panelHeight = Math.max(120, fileMenuPanel.offsetHeight || 0);
+
+    let left = buttonRect.right - panelWidth;
+    left = Math.max(margin, Math.min(left, window.innerWidth - panelWidth - margin));
+
+    let top = buttonRect.bottom + 4;
+    if (top + panelHeight > window.innerHeight - margin) {
+      const aboveTop = buttonRect.top - panelHeight - 4;
+      if (aboveTop >= margin) {
+        top = aboveTop;
+      } else {
+        top = Math.max(margin, window.innerHeight - panelHeight - margin);
+      }
+    }
+
+    fileMenuPanel.style.left = `${Math.round(left)}px`;
+    fileMenuPanel.style.top = `${Math.round(top)}px`;
+  }
+
   function setFileMenuOpen(value) {
     const open = Boolean(value);
     if (!fileMenu || !fileMenuBtn || !fileMenuPanel) {
@@ -657,6 +694,12 @@
     fileMenu.classList.toggle("open", open);
     fileMenuBtn.setAttribute("aria-expanded", open ? "true" : "false");
     fileMenuPanel.hidden = !open;
+    if (open) {
+      requestAnimationFrame(positionFileMenuPanel);
+    } else {
+      fileMenuPanel.style.left = "";
+      fileMenuPanel.style.top = "";
+    }
   }
 
   function updateToastAnchor() {
@@ -676,8 +719,8 @@
     document.documentElement.style.setProperty("--dock-top", `${Math.max(52, dockTop)}px`);
   }
 
-  function normalizeWorkspaceView(view) {
-    return view === "start" ? "start" : "model";
+  function normalizeWorkspaceView(_view) {
+    return "model";
   }
 
   function normalizeWorkspaceMode(mode) {
@@ -699,7 +742,7 @@
       .trim()
       .toLowerCase();
     if (["start", "poczatek", "początek", "startowa", "startowy"].includes(value)) {
-      return "home";
+      return "shortcuts";
     }
     if (["home", "główne", "glowne"].includes(value)) {
       return "home";
@@ -716,6 +759,9 @@
     if (["view", "widok"].includes(value)) {
       return "view";
     }
+    if (["shortcuts", "skr", "skrót", "skrot", "skróty", "skroty"].includes(value)) {
+      return "shortcuts";
+    }
     if (["insert", "wstaw", "wstawianie", "mailings", "mailing", "review", "recenzja", "sprawdzenie"].includes(value)) {
       return "home";
     }
@@ -723,7 +769,7 @@
   }
 
   function getAvailableRibbonPages() {
-    return ["home", "references", "design", "layout", "view"];
+    return ["home", "references", "design", "layout", "view", "shortcuts"];
   }
 
   function resolveRibbonPageAlias(rawValue) {
@@ -732,7 +778,7 @@
       return null;
     }
     if (["start", "poczatek", "początek", "startowa", "startowy"].includes(value)) {
-      return "start";
+      return "shortcuts";
     }
     if (["home", "główne", "glowne"].includes(value)) {
       return "home";
@@ -753,6 +799,9 @@
     if (["view", "widok"].includes(value)) {
       return "view";
     }
+    if (["shortcuts", "skr", "skrót", "skrot", "skróty", "skroty"].includes(value)) {
+      return "shortcuts";
+    }
     if (["insert", "wstaw", "wstawianie", "mailings", "mailing", "korespondencja", "review", "recenzja", "sprawdzenie"].includes(value)) {
       return "home";
     }
@@ -772,6 +821,9 @@
     }
     if (normalized === "view") {
       return "Widok";
+    }
+    if (normalized === "shortcuts") {
+      return "Skróty";
     }
     return "Główne";
   }
@@ -1159,20 +1211,8 @@
       return { ok: false, error: "Token nie jest przypisany do tego urządzenia." };
     }
     if (scope === "private") {
-      if (
-        !String(parsed.payload.ownerName || "").trim() ||
-        !normalizeLicenseEmail(parsed.payload.email) ||
-        !String(parsed.payload.purpose || "").trim()
-      ) {
+      if (!String(parsed.payload.ownerName || "").trim()) {
         return { ok: false, error: "Token prywatny ma niepełne dane formularza." };
-      }
-      if (parsed.payload.noModifications !== true || parsed.payload.commercialUse !== false) {
-        return { ok: false, error: "Token prywatny ma błędne uprawnienia." };
-      }
-    }
-    if (scope === "commercial") {
-      if (Number(parsed.payload.donationUsd) !== 50 || Number(parsed.payload.seats) !== 1) {
-        return { ok: false, error: "Token komercyjny nie spełnia warunku 50 USD / 1 urządzenie." };
       }
     }
     return {
@@ -1196,16 +1236,104 @@
     }
   }
 
+  function normalizeLicenseOwner(payload) {
+    if (!payload || typeof payload !== "object") {
+      return "";
+    }
+    const ownerName = String(payload.ownerName || "").trim();
+    if (ownerName) {
+      return ownerName;
+    }
+    const email = normalizeLicenseEmail(payload.email);
+    if (email) {
+      return email;
+    }
+    return "";
+  }
+
+  function getLicenseScopeLabel(payload) {
+    const scope = String(payload && payload.scope ? payload.scope : "")
+      .trim()
+      .toLowerCase();
+    if (scope === "mit") {
+      return "MIT";
+    }
+    return scope === "commercial" ? "Komercyjna" : "Free";
+  }
+
+  function updateLicenseSummaryChip() {
+    if (!licenseSummaryChip) {
+      return;
+    }
+    licenseSummaryChip.classList.remove("is-free", "is-commercial", "is-missing");
+
+    if (!licenseSession.active) {
+      licenseSummaryChip.dataset.icon = "\u26A0";
+      licenseSummaryChip.textContent = "Licencja: brak";
+      licenseSummaryChip.classList.add("is-missing");
+      licenseSummaryChip.title = "Brak aktywnej licencji na tym urządzeniu.";
+      return;
+    }
+
+    const payload = licenseSession.payload;
+    const scopeLabel = getLicenseScopeLabel(payload);
+    const owner = normalizeLicenseOwner(payload) || "bez nazwy";
+    const scopeRaw = String(payload && payload.scope ? payload.scope : "").toLowerCase();
+    const isCommercial = scopeRaw === "commercial";
+    licenseSummaryChip.dataset.icon = isCommercial ? "\uD83D\uDCBC" : "\uD83C\uDFE0";
+    licenseSummaryChip.textContent = `Licencja: ${scopeLabel} • ${owner}`;
+    licenseSummaryChip.classList.add(isCommercial ? "is-commercial" : "is-free");
+    licenseSummaryChip.title = `Aktywna licencja ${scopeLabel.toLowerCase()} (${owner}).`;
+  }
+
+  function appendPrivateLicenseAudit(type, details, meta) {
+    if (!window.desktopApp || typeof window.desktopApp.appendLicenseAudit !== "function") {
+      return;
+    }
+    const payload = {
+      type: String(type || "akcja"),
+      details: String(details || ""),
+      meta: meta && typeof meta === "object" ? meta : {}
+    };
+    window.desktopApp.appendLicenseAudit(payload).catch((error) => {
+      console.warn("Nie udało się zapisać prywatnego audytu licencji:", error);
+    });
+  }
+
+  function setLicenseOverlayVisible(visible) {
+    if (!licenseOverlay) {
+      return;
+    }
+    const next = Boolean(visible);
+    licenseOverlay.hidden = !next;
+    licenseOverlay.setAttribute("aria-hidden", next ? "false" : "true");
+  }
+
+  function openLicenseManager() {
+    setLicenseOverlayVisible(true);
+    if (licenseTokenInput) {
+      licenseTokenInput.focus();
+    }
+  }
+
+  function closeLicenseManager() {
+    if (!licenseSession.active) {
+      return;
+    }
+    setLicenseOverlayVisible(false);
+  }
+
   function setLicenseLocked(locked) {
     const isLocked = Boolean(locked);
     licenseSession.active = !isLocked;
     if (appRoot) {
       appRoot.classList.toggle("license-locked", isLocked);
     }
-    if (licenseOverlay) {
-      licenseOverlay.hidden = !isLocked;
-      licenseOverlay.setAttribute("aria-hidden", isLocked ? "false" : "true");
+    if (licenseCloseBtn) {
+      licenseCloseBtn.hidden = isLocked;
     }
+    setLicenseOverlayVisible(isLocked);
+    updateLicenseSummaryChip();
   }
 
   function persistLicenseRecord(token, payload) {
@@ -1232,9 +1360,8 @@
   function activateLicenseToken(rawToken, options) {
     const verified = verifyLicenseToken(rawToken);
     if (!verified.ok) {
-      setLicenseLocked(true);
       if (!options || options.silent !== true) {
-        setLicenseStatus(`Błąd licencji: ${verified.error}`, "error");
+        setLicenseStatus(`Błąd tokenu: ${verified.error}`, "error");
       }
       return verified;
     }
@@ -1244,8 +1371,15 @@
       persistLicenseRecord(verified.token, verified.payload);
     }
     setLicenseLocked(false);
-    const scopeLabel = verified.scope === "commercial" ? "komercyjna" : "prywatna";
-    setLicenseStatus(`Licencja ${scopeLabel} aktywna na tym urządzeniu.`, "ok");
+    const scopeLabel = verified.scope === "commercial" ? "komercyjny" : "prywatny";
+    setLicenseStatus(`Token ${scopeLabel} został aktywowany na tym urządzeniu.`, "ok");
+    if (!options || options.silent !== true) {
+      const owner = normalizeLicenseOwner(verified.payload) || "bez nazwy";
+      appendPrivateLicenseAudit("Aktywacja tokenu", `${scopeLabel} | ${owner}`, {
+        scope: verified.scope,
+        owner
+      });
+    }
     return verified;
   }
 
@@ -1267,7 +1401,6 @@
       ownerName,
       email,
       deviceId: getLicenseDeviceId(),
-      donationUsd: 50,
       seats: 1,
       donationRef: donationRef || null,
       requestedAt: new Date().toISOString()
@@ -1276,10 +1409,12 @@
     if (licenseCommercialRequestOutput) {
       licenseCommercialRequestOutput.value = requestCode;
     }
-    setLicenseStatus(
-      "Wygenerowano kod zgłoszenia komercyjnego. Po potwierdzeniu wpłaty 50 USD otrzymasz token.",
-      "ok"
-    );
+    setLicenseStatus("Wygenerowano kod zgłoszenia komercyjnego.", "ok");
+    appendPrivateLicenseAudit("Formularz komercyjny", `${ownerName} | ${email} | kod: ${requestCode.slice(0, 42)}...`, {
+      ownerName,
+      email
+    });
+    return requestCode;
   }
 
   async function copyLicenseText(text) {
@@ -1298,6 +1433,7 @@
   function initializeLicenseManager() {
     if (!licenseOverlay) {
       licenseSession.active = true;
+      updateLicenseSummaryChip();
       return true;
     }
 
@@ -1311,6 +1447,9 @@
         const url = `${LICENSE_PRIVATE_FORM_URL}?deviceId=${encodeURIComponent(deviceId)}`;
         window.open(url, "_blank", "noopener,noreferrer");
         setLicenseStatus("Otworzono formularz tokenu prywatnego na GitHub Pages.", "ok");
+        appendPrivateLicenseAudit("Formularz prywatny", `ID urządzenia: ${deviceId}`, {
+          deviceId
+        });
       });
     }
     if (licenseCopyDeviceIdBtn) {
@@ -1332,8 +1471,13 @@
         const token = licenseTokenInput ? licenseTokenInput.value : "";
         const result = activateLicenseToken(token);
         if (result.ok) {
-          echoCommand("Licencja aktywna. Możesz korzystać z aplikacji.");
+          echoCommand("Token aktywny.");
         }
+      });
+    }
+    if (licenseCloseBtn) {
+      licenseCloseBtn.addEventListener("click", () => {
+        closeLicenseManager();
       });
     }
     if (licenseClearTokenBtn) {
@@ -1344,10 +1488,16 @@
         if (licenseTokenInput) {
           licenseTokenInput.value = "";
         }
-        setLicenseLocked(true);
-        setLicenseStatus("Usunięto zapisany token. Wymagana ponowna aktywacja.", "error");
+        licenseSession.payload = { scope: "mit", ownerName: "Open Source" };
+        setLicenseLocked(false);
+        setLicenseStatus("Usunięto zapisany token. Aplikacja działa dalej na licencji MIT.", "ok");
+        appendPrivateLicenseAudit("Czyszczenie tokenu", "Usunięto lokalnie zapisany token.", {
+          deviceId: getLicenseDeviceId()
+        });
       });
     }
+
+    updateLicenseSummaryChip();
 
     let storedToken = "";
     try {
@@ -1363,13 +1513,15 @@
     if (storedToken) {
       const result = activateLicenseToken(storedToken, { persist: false, silent: true });
       if (result.ok) {
+        updateLicenseSummaryChip();
         return true;
       }
     }
 
-    setLicenseLocked(true);
-    setLicenseStatus("Wymagana aktywacja. Wygeneruj darmowy token na stronie GitHub i wklej go tutaj.", "error");
-    return false;
+    licenseSession.payload = { scope: "mit", ownerName: "Open Source" };
+    setLicenseLocked(false);
+    setLicenseStatus("Licencja MIT aktywna. Token jest opcjonalny.", "ok");
+    return true;
   }
 
   function resetViewTransform() {
@@ -2066,13 +2218,9 @@
       toolInfoLabel.dataset.icon = TOOL_ICONS[state.tool] || "\u2699";
     }
     if (workspaceStateInfo) {
-      if (state.workspaceView === "start") {
-        workspaceStateInfo.textContent = "Tryb: Start";
-      } else {
-        const modeLabel = state.workspaceMode === "steel" ? "Generator stali" : "Rysowanie 2D";
-        const layoutLabel = state.layoutTab === "sheet1" ? "Arkusz1" : "Model";
-        workspaceStateInfo.textContent = `Tryb: ${modeLabel} | Układ: ${layoutLabel}`;
-      }
+      const modeLabel = state.workspaceMode === "steel" ? "Generator stali" : "Rysowanie 2D";
+      const layoutLabel = state.layoutTab === "sheet1" ? "Arkusz1" : "Model";
+      workspaceStateInfo.textContent = `Tryb: ${modeLabel} | Układ: ${layoutLabel}`;
     }
     syncStartSummary();
   }
@@ -2621,9 +2769,9 @@
       startOffsetCommand(args[0]);
       return;
     }
-    if (["start", "strona", "hub"].includes(command)) {
-      setWorkspaceView("start");
-      echoCommand("Otwarto stronę startową.");
+    if (["start", "strona", "hub", "skroty", "skróty"].includes(command)) {
+      setRibbonPage("shortcuts");
+      echoCommand("Zakładka: Skróty.");
       return;
     }
     if (command === "home") {
@@ -2641,14 +2789,12 @@
     if (command === "mode" || command === "tryb") {
       const requested = String(args[0] || "").trim().toLowerCase();
       if (!requested) {
-        echoCommand(
-          `Tryb: ${state.workspaceView === "start" ? "start" : state.workspaceMode === "steel" ? "stal" : "rysunek"}`
-        );
+        echoCommand(`Tryb: ${state.workspaceMode === "steel" ? "stal" : "rysunek"}`);
         return;
       }
       if (requested === "start") {
-        setWorkspaceView("start");
-        echoCommand("Tryb: START.");
+        setRibbonPage("shortcuts");
+        echoCommand("Zakładka: Skróty.");
         return;
       }
       if (["draw", "rysunek", "model", "cad"].includes(requested)) {
@@ -2661,7 +2807,7 @@
         openCustomSteelSetup();
         return;
       }
-      echoCommand("Użyj: mode start | mode rysunek | mode stal", true);
+      echoCommand("Użyj: mode rysunek | mode stal", true);
       return;
     }
     if (command === "tab" || command === "zakladka" || command === "zakładka" || command === "ribbontab") {
@@ -2676,13 +2822,7 @@
         return;
       }
       if (page === undefined) {
-        echoCommand("Użyj: tab start|główne|wymiarowanie|stal|układ|widok", true);
-        return;
-      }
-      if (page === "start") {
-        setWorkspaceView("start");
-        setRibbonPage("home");
-        echoCommand("Otwarto stronę startową.");
+        echoCommand("Użyj: tab główne|wymiarowanie|stal|układ|widok|skróty", true);
         return;
       }
       if (page === "design") {
@@ -7518,11 +7658,6 @@
 
   function openPrintPreview() {
     const svgContent = toSvgText();
-    const printWindow = window.open("", "_blank", "width=1200,height=860");
-    if (!printWindow) {
-      return false;
-    }
-
     const timestamp = new Date().toLocaleString("pl-PL");
     const documentTitle = "MadCAD 2D - wydruk";
     const html = [
@@ -7562,37 +7697,141 @@
       "</body>",
       "</html>"
     ].join("");
+    let printWindow = null;
+    try {
+      printWindow = window.open("", "_blank", "width=1200,height=860");
+    } catch (error) {
+      printWindow = null;
+    }
 
-    printWindow.document.open();
-    printWindow.document.write(html);
-    printWindow.document.close();
-    return true;
+    if (printWindow) {
+      printWindow.document.open();
+      printWindow.document.write(html);
+      printWindow.document.close();
+      return { ok: true, mode: "window" };
+    }
+
+    // Fallback bez popupu: tymczasowy iframe i systemowe okno druku.
+    try {
+      const iframe = document.createElement("iframe");
+      iframe.style.position = "fixed";
+      iframe.style.width = "0";
+      iframe.style.height = "0";
+      iframe.style.opacity = "0";
+      iframe.style.pointerEvents = "none";
+      iframe.setAttribute("aria-hidden", "true");
+      document.body.append(iframe);
+      const iframeDoc = iframe.contentDocument;
+      if (!iframeDoc) {
+        iframe.remove();
+        return { ok: false, mode: "none" };
+      }
+      iframeDoc.open();
+      iframeDoc.write(html);
+      iframeDoc.close();
+      setTimeout(() => {
+        const iframeWindow = iframe.contentWindow;
+        if (iframeWindow) {
+          iframeWindow.focus();
+          iframeWindow.print();
+        }
+        setTimeout(() => {
+          iframe.remove();
+        }, 1200);
+      }, 40);
+      return { ok: true, mode: "iframe" };
+    } catch (error) {
+      return { ok: false, mode: "none" };
+    }
   }
 
   function triggerPrintWithFeedback() {
     const printed = openPrintPreview();
     echoCommand(
-      printed
-        ? "Otwarto podgląd wydruku. W nowym oknie wybierz Drukuj lub Zapisz jako PDF."
+      printed.ok
+        ? printed.mode === "window"
+          ? "Otwarto podgląd wydruku. W nowym oknie wybierz Drukuj lub Zapisz jako PDF."
+          : "Otwarto okno systemowe druku (tryb awaryjny bez popupu)."
         : "Nie udało się otworzyć podglądu wydruku (sprawdź blokadę popup).",
-      !printed
+      !printed.ok
     );
-    return printed;
+    return printed.ok;
   }
 
-  function downloadTextFile(filename, text) {
-    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = filename;
-    anchor.click();
-    URL.revokeObjectURL(url);
+  function detectFileFilters(filename) {
+    const lower = String(filename || "").trim().toLowerCase();
+    if (lower.endsWith(".json")) {
+      return [{ name: "JSON", extensions: ["json"] }];
+    }
+    if (lower.endsWith(".dxf")) {
+      return [{ name: "DXF", extensions: ["dxf"] }];
+    }
+    if (lower.endsWith(".svg")) {
+      return [{ name: "SVG", extensions: ["svg"] }];
+    }
+    return [{ name: "Pliki tekstowe", extensions: ["txt"] }];
+  }
+
+  async function downloadTextFile(filename, text) {
+    const normalizedFilename = String(filename || "rysunek.txt").trim() || "rysunek.txt";
+    const normalizedText = String(text ?? "");
+
+    if (
+      window.desktopApp &&
+      window.desktopApp.isDesktop &&
+      typeof window.desktopApp.saveTextFile === "function"
+    ) {
+      const result = await window.desktopApp.saveTextFile({
+        defaultName: normalizedFilename,
+        text: normalizedText,
+        filters: detectFileFilters(normalizedFilename)
+      });
+      return result || { ok: false, canceled: false, error: "Brak odpowiedzi modułu zapisu." };
+    }
+
+    try {
+      const blob = new Blob([normalizedText], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = normalizedFilename;
+      anchor.style.display = "none";
+      document.body.append(anchor);
+      anchor.click();
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        anchor.remove();
+      }, 0);
+      return { ok: true, canceled: false };
+    } catch (error) {
+      return {
+        ok: false,
+        canceled: false,
+        error: error && error.message ? String(error.message) : "Nie udało się pobrać pliku."
+      };
+    }
+  }
+
+  async function saveTextWithFeedback(filename, text, successLabel) {
+    const result = await downloadTextFile(filename, text);
+    if (!result || result.ok !== true) {
+      if (result && result.canceled) {
+        echoCommand("Zapis anulowany.");
+      } else {
+        const details = result && result.error ? `: ${result.error}` : ".";
+        echoCommand(`Błąd zapisu${details}`, true);
+      }
+      return false;
+    }
+    const savedPath = result.filePath ? ` (${result.filePath})` : "";
+    echoCommand(`${successLabel}${savedPath}`);
+    return true;
   }
 
   function applyHoverHelpTooltips() {
     const tooltipById = {
-      fileMenuBtn: "Menu plików: otwieranie, zapis, import i eksport rysunków.",
+      fileMenuBtn: "Menu zapisu i druku: otwieranie, zapis, import i eksport rysunków.",
+      licenseCategoryBtn: "Otwiera panel informacji o licencji MIT i opcjonalnych tokenach.",
       loadJsonBtn: "Wczytuje projekt z pliku JSON.",
       saveJsonBtn: "Zapisuje projekt do pliku JSON.",
       importDxfBtn: "Importuje geometrię z pliku DXF.",
@@ -7646,7 +7885,8 @@
       references: "Narzędzia i ustawienia wymiarowania.",
       design: "Generator i konfiguracja konstrukcji stalowych.",
       layout: "Przełączanie między modelem i arkuszem.",
-      view: "Ustawienia widoku, siatki i paneli."
+      view: "Ustawienia widoku, siatki i paneli.",
+      shortcuts: "Skróty klawiaturowe i szybkie komendy aplikacji."
     };
     document.querySelectorAll(".ribbon-tab[data-page]").forEach((tab) => {
       const key = String(tab.dataset.page || "").trim().toLowerCase();
@@ -7801,9 +8041,8 @@
 
     if (event.key === "F2") {
       event.preventDefault();
-      const next = state.workspaceView === "start" ? "model" : "start";
-      setWorkspaceView(next);
-      echoCommand(next === "start" ? "Otwarto stronę startową." : "Przełączono na model.");
+      setRibbonPage("shortcuts");
+      echoCommand("Zakładka: Skróty.");
       return;
     }
 
@@ -7824,6 +8063,17 @@
       setOrthoEnabled(!state.ortho);
       echoCommand(`ORTHO: ${state.ortho ? "WŁ." : "WYŁ."} (F8)`);
       return;
+    }
+
+    if (event.key === "Escape") {
+      if (isFileMenuOpen()) {
+        setFileMenuOpen(false);
+        return;
+      }
+      if (licenseOverlay && !licenseOverlay.hidden && licenseSession.active) {
+        closeLicenseManager();
+        return;
+      }
     }
 
     if (isTextInput) {
@@ -7884,8 +8134,7 @@
           layers: state.layers,
           activeLayerId: state.activeLayerId
         };
-        downloadTextFile("rysunek.json", JSON.stringify(payload, null, 2));
-        echoCommand("Zapisano plik: rysunek.json (Ctrl+S).");
+        void saveTextWithFeedback("rysunek.json", JSON.stringify(payload, null, 2), "Zapisano plik: rysunek.json (Ctrl+S).");
       }
       return;
     }
@@ -7976,11 +8225,46 @@
   }
 
   function initializeEvents() {
+    const licenseEntryButtons = [licenseCategoryBtn].filter(Boolean);
+    licenseEntryButtons.forEach((button) => {
+      button.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        openLicenseManager();
+        setFileMenuOpen(false);
+        echoCommand("Otwarto menedżer licencji.");
+      });
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (event.detail === 0) {
+          openLicenseManager();
+          setFileMenuOpen(false);
+          echoCommand("Otwarto menedżer licencji.");
+        }
+      });
+    });
+
     if (fileMenuBtn && fileMenuPanel) {
+      const toggleFileMenu = () => {
+        setFileMenuOpen(!isFileMenuOpen());
+      };
+
+      fileMenuBtn.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        toggleFileMenu();
+      });
+
       fileMenuBtn.addEventListener("click", (event) => {
         event.preventDefault();
         event.stopPropagation();
-        setFileMenuOpen(!isFileMenuOpen());
       });
 
       fileMenuPanel.addEventListener("click", (event) => {
@@ -8567,7 +8851,7 @@
       }
     });
 
-    saveJsonBtn.addEventListener("click", () => {
+    saveJsonBtn.addEventListener("click", async () => {
       const payload = {
         version: 2,
         exportedAt: new Date().toISOString(),
@@ -8575,8 +8859,7 @@
         layers: state.layers,
         activeLayerId: state.activeLayerId
       };
-      downloadTextFile("rysunek.json", JSON.stringify(payload, null, 2));
-      echoCommand("Zapisano plik: rysunek.json");
+      await saveTextWithFeedback("rysunek.json", JSON.stringify(payload, null, 2), "Zapisano plik: rysunek.json");
     });
 
     loadJsonBtn.addEventListener("click", () => {
@@ -8617,14 +8900,12 @@
       }
     });
 
-    exportDxfBtn.addEventListener("click", () => {
-      downloadTextFile("rysunek.dxf", toDxfText());
-      echoCommand("Wyeksportowano plik: rysunek.dxf");
+    exportDxfBtn.addEventListener("click", async () => {
+      await saveTextWithFeedback("rysunek.dxf", toDxfText(), "Wyeksportowano plik: rysunek.dxf");
     });
 
-    exportSvgBtn.addEventListener("click", () => {
-      downloadTextFile("rysunek.svg", toSvgText());
-      echoCommand("Wyeksportowano plik: rysunek.svg");
+    exportSvgBtn.addEventListener("click", async () => {
+      await saveTextWithFeedback("rysunek.svg", toSvgText(), "Wyeksportowano plik: rysunek.svg");
     });
 
     if (printDrawingBtn) {
@@ -8703,6 +8984,20 @@
     });
     window.addEventListener("resize", resizeCanvas);
     window.addEventListener("resize", updateToastAnchor);
+    window.addEventListener("resize", () => {
+      if (isFileMenuOpen()) {
+        positionFileMenuPanel();
+      }
+    });
+    window.addEventListener(
+      "scroll",
+      () => {
+        if (isFileMenuOpen()) {
+          positionFileMenuPanel();
+        }
+      },
+      true
+    );
     window.addEventListener("blur", () => {
       setFileMenuOpen(false);
     });
@@ -8710,12 +9005,13 @@
 
   function bootstrap() {
     applyTheme("dark");
-    const licensedAtBoot = initializeLicenseManager();
+    initializeLicenseManager();
 
     restoreSession();
-    setWorkspaceView("start", { mode: "draw", force: true, persist: false });
-    setFileMenuOpen(false);
+    state.ribbonCollapsed = false;
     state.activeFlyout = null;
+    setWorkspaceView("model", { mode: "draw", force: true, persist: false });
+    setFileMenuOpen(false);
     ensureActiveLayer();
     ensureEntityLayers();
     const restoredHiddenLayers = ensureVisibleLayersForExistingEntities();
@@ -8730,18 +9026,9 @@
     updateToastAnchor();
     resizeCanvas();
     updateStatus({ x: 0, y: 0 });
-    echoCommand(
-      state.workspaceView === "start"
-        ? "Strona startowa gotowa. Wybierz akcje lub naciśnij F2."
-        : "Gotowe. Użyj przycisków ze wstążki lub skrótów klawiaturowych.",
-      false,
-      { toast: false }
-    );
+    echoCommand("Gotowe. Użyj przycisków ze wstążki lub zakładki Skróty.", false, { toast: false });
     if (restoredHiddenLayers) {
       echoCommand("Przywrócono widoczność warstw z istniejącą geometrią.");
-    }
-    if (!licensedAtBoot) {
-      echoCommand("Aktywuj licencję, aby odblokować pracę w MadCAD 2D.", true, { toast: false });
     }
     queueRender();
   }

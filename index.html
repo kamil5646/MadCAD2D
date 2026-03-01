@@ -15,11 +15,12 @@
 
         <div class="ribbon-tabs">
           <div class="ribbon-tab-track">
-            <button class="ribbon-tab active" data-page="home">Główne</button>
-            <button class="ribbon-tab" data-page="references">Wymiarowanie</button>
-            <button class="ribbon-tab" data-page="design">Stal</button>
-            <button class="ribbon-tab" data-page="layout">Układ</button>
-            <button class="ribbon-tab" data-page="view">Widok</button>
+            <button class="ribbon-tab active has-icon" data-icon="&#127968;" data-page="home">Główne</button>
+            <button class="ribbon-tab has-icon" data-icon="&#128207;" data-page="references">Wymiarowanie</button>
+            <button class="ribbon-tab has-icon" data-icon="&#127959;" data-page="design">Stal</button>
+            <button class="ribbon-tab has-icon" data-icon="&#128209;" data-page="layout">Układ</button>
+            <button class="ribbon-tab has-icon" data-icon="&#128065;" data-page="view">Widok</button>
+            <button class="ribbon-tab has-icon" data-icon="&#9000;" data-page="shortcuts">Skróty</button>
           </div>
           <div class="ribbon-actions">
             <button id="undoBtn" class="ribbon-action-btn has-icon" data-icon="&#8630;" data-pages="home" title="Cofnij">Cofnij</button>
@@ -52,6 +53,15 @@
               Zaznaczenie
             </button>
             <button id="toggleRibbonBtn" class="has-icon" data-icon="&#9660;" data-pages="view">Zwiń wstążkę</button>
+            <button
+              id="licenseCategoryBtn"
+              class="license-summary-chip has-icon"
+              data-icon="&#128274;"
+              type="button"
+              title="Zarządzanie licencją"
+            >
+              Licencja: brak
+            </button>
             <div id="fileMenu" class="file-menu file-tab-menu file-tab-menu-right">
               <button
                 id="fileMenuBtn"
@@ -59,9 +69,9 @@
                 aria-haspopup="true"
                 aria-expanded="false"
                 aria-controls="fileMenuPanel"
-                title="Menu Plik"
+                title="Menu zapisu i druku"
               >
-                Plik
+                Zapisz/Drukuj
               </button>
               <div id="fileMenuPanel" class="file-menu-panel file-tab-panel" role="menu" hidden>
                 <button id="loadJsonBtn" class="quick-btn has-icon" data-icon="&#128194;" role="menuitem">
@@ -284,6 +294,18 @@
             <h2 class="has-icon" data-icon="&#128209;">Warstwy</h2>
           </section>
 
+          <section class="ribbon-group ribbon-group-shortcuts" data-pages="shortcuts" data-modes="draw,steel">
+            <div class="ribbon-panel-body">
+              <ul class="ribbon-shortcuts-list">
+                <li><kbd>L</kbd> Linia, <kbd>P</kbd> Prostokąt, <kbd>O</kbd> Okrąg, <kbd>Y</kbd> Polilinia, <kbd>D</kbd> Wymiar</li>
+                <li><kbd>Ctrl+S</kbd> Zapis JSON, <kbd>Ctrl+P</kbd> Drukuj/PDF, <kbd>Ctrl+Z</kbd> Cofnij, <kbd>Ctrl+Y</kbd> Ponów</li>
+                <li><kbd>F2</kbd> Zakładka Skróty, <kbd>F4</kbd> Zwiń/Rozwiń wstążkę, <kbd>F6</kbd> Pokaż/Ukryj panele, <kbd>F8</kbd> ORTHO</li>
+                <li>Komendy: <code>tab główne</code>, <code>tab wymiarowanie</code>, <code>tab stal</code>, <code>tab układ</code>, <code>tab widok</code>, <code>tab skróty</code></li>
+              </ul>
+            </div>
+            <h2 class="has-icon" data-icon="&#9000;">Szybkie skróty</h2>
+          </section>
+
           <section
             class="ribbon-group ribbon-group-steel"
             data-pages="design"
@@ -447,7 +469,7 @@
             <span id="zoomInfo" class="has-icon" data-icon="&#128269;">Skala: 100%</span>
             <span id="entityCount" class="has-icon" data-icon="&#9638;">Obiekty: 0</span>
             <span id="toolInfo" class="has-icon" data-icon="&#128295;">Narzędzie: Zaznacz</span>
-            <span id="workspaceStateInfo" class="has-icon" data-icon="&#128450;">Tryb: Start</span>
+            <span id="workspaceStateInfo" class="has-icon" data-icon="&#128450;">Tryb: Rysowanie 2D | Układ: Model</span>
           </div>
         </div>
       </header>
@@ -455,78 +477,6 @@
       <main class="workspace">
         <section class="canvas-wrap">
           <canvas id="cadCanvas"></canvas>
-          <section id="startScreen" class="start-screen" aria-hidden="false">
-            <div class="start-hero">
-              <div class="start-hero-copy">
-                <h2 class="has-icon" data-icon="&#128187;">Centrum startowe MadCAD 2D</h2>
-                <p>
-                  Szybki start do projektowania konstrukcji stalowych: bramy, ogrodzenia i balkony.
-                </p>
-              </div>
-              <div class="start-hero-actions">
-                <p class="start-note has-icon" data-icon="&#128161;">
-                  Wszystkie funkcje uruchamiasz bezpośrednio ze wstążki.
-                </p>
-                <p class="start-note has-icon" data-icon="&#10148;">
-                  Aby zacząć, wybierz u góry tryb Rysowanie 2D lub Generator stali.
-                </p>
-              </div>
-            </div>
-
-            <div class="start-grid">
-              <article class="start-card">
-                <h3 class="has-icon" data-icon="&#9881;">Nawigacja interfejsu</h3>
-                <ul class="start-info-list">
-                  <li class="has-icon" data-icon="&#128193;">Plik: Wczytaj, Zapisz, DXF, SVG, Drukuj/PDF</li>
-                  <li class="has-icon" data-icon="&#9998;">Rysuj: Linia, Polilinia, Prostokąt, Okrąg, Wymiar</li>
-                  <li class="has-icon" data-icon="&#128295;">Modyfikuj: Przesuń, Kopiuj, Odsuń, Usuń, Duplikuj</li>
-                  <li class="has-icon" data-icon="&#9881;">Właściwości: kolor, grubość, styl, wypełnienie</li>
-                </ul>
-              </article>
-
-              <article class="start-card">
-                <h3 class="has-icon" data-icon="&#127959;">Konstrukcje stalowe</h3>
-                <ul class="start-info-list">
-                  <li class="has-icon" data-icon="&#128682;">Szablon Brama w panelu Konstrukcje stalowe</li>
-                  <li class="has-icon" data-icon="&#128719;">Szablon Ogrodzenie w panelu Konstrukcje stalowe</li>
-                  <li class="has-icon" data-icon="&#127968;">Szablon Balkon w panelu Konstrukcje stalowe</li>
-                  <li class="has-icon" data-icon="&#128296;">Generowanie i edycja tylko z górnej wstążki</li>
-                </ul>
-              </article>
-
-              <article class="start-card">
-                <h3 class="has-icon" data-icon="&#128202;">Stan projektu</h3>
-                <ul class="start-kpi">
-                  <li>
-                    <span class="kpi-label">Obiekty</span>
-                    <strong id="startEntitiesCount">0</strong>
-                  </li>
-                  <li>
-                    <span class="kpi-label">Warstwy</span>
-                    <strong id="startLayersCount">1</strong>
-                  </li>
-                  <li>
-                    <span class="kpi-label">Narzędzie</span>
-                    <strong id="startToolName">Zaznacz</strong>
-                  </li>
-                  <li>
-                    <span class="kpi-label">Skala</span>
-                    <strong id="startScaleValue">100%</strong>
-                  </li>
-                </ul>
-              </article>
-
-              <article class="start-card start-card-wide">
-                <h3 class="has-icon" data-icon="&#9000;">Szybkie skróty i komendy</h3>
-                <ul class="start-shortcuts">
-                  <li><kbd>L</kbd> Linia, <kbd>P</kbd> Prostokąt, <kbd>O</kbd> Okrąg, <kbd>Y</kbd> Polilinia, <kbd>D</kbd> Wymiar</li>
-                  <li><kbd>F2</kbd> Start/Rysunek, <kbd>F4</kbd> Wstążka, <kbd>F6</kbd> Panele, <kbd>F8</kbd> ORTHO</li>
-                  <li><kbd>Ctrl+S</kbd> Zapis JSON, <kbd>Ctrl+P</kbd> Drukuj/PDF, <kbd>Ctrl+Z</kbd> Cofnij, <kbd>Ctrl+Y</kbd> Ponów</li>
-                  <li>Akcje CAD: PRZESUŃ, KOPIUJ, ODSUŃ, WYMIARUJ, DRUKUJ (z przycisków i skrótów).</li>
-                </ul>
-              </article>
-            </div>
-          </section>
         </section>
       </main>
     </div>
@@ -537,22 +487,25 @@
 
     <div id="licenseOverlay" class="license-overlay" aria-hidden="true" hidden>
       <div class="license-dialog">
-        <h2 class="has-icon" data-icon="&#128274;">Aktywacja licencji MadCAD 2D</h2>
+        <div class="license-header-row">
+          <h2 class="has-icon" data-icon="&#128274;">Informacje o licencji MadCAD 2D</h2>
+          <button id="licenseCloseBtn" class="ribbon-btn has-icon" data-icon="&#10005;" type="button" hidden>Zamknij</button>
+        </div>
         <p class="license-terms">
-          Użytek prywatny jest bezpłatny po wygenerowaniu tokenu. Modyfikacje aplikacji są zabronione.
-          Użytek komercyjny wymaga datku 50 USD za każde urządzenie (1 licencja = 1 urządzenie).
+          Projekt jest udostępniony na licencji MIT. Użycie prywatne i komercyjne oraz modyfikacje są dozwolone.
+          Tokeny w tym panelu są opcjonalne i nie blokują pracy aplikacji.
         </p>
 
         <div class="license-grid">
           <section class="license-card">
-            <h3 class="has-icon" data-icon="&#127968;">Prywatnie (darmowy token)</h3>
+            <h3 class="has-icon" data-icon="&#127968;">Token prywatny (opcjonalny)</h3>
             <label class="control inline">
               <span>ID urządzenia</span>
               <input id="licenseDeviceIdInput" type="text" readonly />
             </label>
             <p class="license-note">
-              Darmowy token prywatny generujesz na stronie GitHub projektu. Skopiuj ID urządzenia, otwórz formularz online,
-              wygeneruj token i wklej go poniżej w tej aplikacji.
+              Jeśli chcesz, możesz wygenerować token prywatny na stronie projektu i podpiąć go do tego urządzenia.
+              To opcjonalna funkcja profilu i nie jest wymagana do korzystania z programu.
             </p>
             <button id="licenseOpenWebFormBtn" class="ribbon-btn has-icon" data-icon="&#127760;">
               Otwórz formularz tokenu na GitHub
@@ -563,9 +516,9 @@
           </section>
 
           <section class="license-card">
-            <h3 class="has-icon" data-icon="&#128188;">Komercyjnie (50 USD / urządzenie)</h3>
+            <h3 class="has-icon" data-icon="&#128188;">Token komercyjny (opcjonalny)</h3>
             <p class="license-note">
-              Wypełnij dane i wygeneruj kod zgłoszenia komercyjnego. Po wpłacie 50 USD otrzymasz token komercyjny.
+              Możesz wygenerować kod zgłoszenia komercyjnego i zapisać dane organizacji. Funkcja jest opcjonalna.
             </p>
             <label class="control inline">
               <span>Firma / osoba</span>
@@ -600,6 +553,7 @@
           </div>
           <p id="licenseStatus" class="license-status" aria-live="polite"></p>
         </section>
+
       </div>
     </div>
 

@@ -1,13 +1,11 @@
 const path = require('path');
-const { app, BrowserWindow, Menu, shell, nativeImage, dialog } = require('electron');
+const fs = require('fs/promises');
+const { app, BrowserWindow, Menu, shell, nativeImage, dialog, ipcMain } = require('electron');
 
 const isMac = process.platform === 'darwin';
 const appIconPng = path.join(__dirname, '..', 'assets', 'icons', 'madcad-512.png');
 
 function createMainWindow() {
-  let allowImmediateClose = false;
-  let closePromptVisible = false;
-
   const win = new BrowserWindow({
     width: 1680,
     height: 980,
@@ -18,8 +16,7 @@ function createMainWindow() {
     icon: appIconPng,
     ...(isMac
       ? {
-          titleBarStyle: 'hidden',
-          trafficLightPosition: { x: 14, y: 12 }
+          titleBarStyle: 'hiddenInset'
         }
       : {}),
     webPreferences: {
@@ -43,51 +40,6 @@ function createMainWindow() {
   if (!app.isPackaged) {
     win.webContents.openDevTools({ mode: 'detach' });
   }
-
-  win.on('close', async (event) => {
-    if (allowImmediateClose || closePromptVisible) {
-      return;
-    }
-
-    event.preventDefault();
-    closePromptVisible = true;
-
-    try {
-      const result = await dialog.showMessageBox(win, {
-        type: 'question',
-        buttons: ['Zapisz i zamknij', 'Zamknij bez zapisu', 'Anuluj'],
-        defaultId: 0,
-        cancelId: 2,
-        noLink: true,
-        title: 'Wyjście z aplikacji',
-        message: 'Czy chcesz zapisać projekt przed zamknięciem?',
-        detail: 'Opcja „Zapisz i zamknij” uruchomi zapis pliku JSON.'
-      });
-
-      if (result.response === 2) {
-        return;
-      }
-
-      if (result.response === 0 && !win.isDestroyed()) {
-        try {
-          await win.webContents.executeJavaScript(
-            "document.getElementById('saveJsonBtn')?.click(); true;",
-            true
-          );
-          await new Promise((resolve) => setTimeout(resolve, 250));
-        } catch (error) {
-          console.error('Nie udało się uruchomić zapisu przed zamknięciem:', error);
-        }
-      }
-
-      allowImmediateClose = true;
-      if (!win.isDestroyed()) {
-        win.close();
-      }
-    } finally {
-      closePromptVisible = false;
-    }
-  });
 
   return win;
 }
@@ -182,6 +134,64 @@ function createMenu() {
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
+
+ipcMain.handle('madcad:save-text-file', async (event, payload) => {
+  try {
+    const senderWindow = BrowserWindow.fromWebContents(event.sender) || null;
+    const defaultName =
+      payload && typeof payload.defaultName === 'string' && payload.defaultName.trim()
+        ? payload.defaultName.trim()
+        : 'rysunek.txt';
+    const text = payload && typeof payload.text === 'string' ? payload.text : '';
+    const filters = Array.isArray(payload && payload.filters) ? payload.filters : [];
+
+    const result = await dialog.showSaveDialog(senderWindow, {
+      title: 'Zapisz plik',
+      defaultPath: defaultName,
+      filters,
+      properties: ['createDirectory', 'showOverwriteConfirmation']
+    });
+
+    if (result.canceled || !result.filePath) {
+      return { ok: false, canceled: true };
+    }
+
+    await fs.writeFile(result.filePath, text, 'utf8');
+    return { ok: true, canceled: false, filePath: result.filePath };
+  } catch (error) {
+    return {
+      ok: false,
+      canceled: false,
+      error: error && error.message ? String(error.message) : 'Nieznany błąd zapisu'
+    };
+  }
+});
+
+function getPrivateLicenseAuditPath() {
+  const userDataDir = app.getPath('userData');
+  return path.join(userDataDir, 'private', 'license-audit.jsonl');
+}
+
+ipcMain.handle('madcad:append-license-audit', async (_event, payload) => {
+  try {
+    const safePayload = payload && typeof payload === 'object' ? payload : {};
+    const entry = {
+      at: new Date().toISOString(),
+      type: String(safePayload.type || 'akcja'),
+      details: String(safePayload.details || ''),
+      meta: safePayload.meta && typeof safePayload.meta === 'object' ? safePayload.meta : {}
+    };
+    const auditPath = getPrivateLicenseAuditPath();
+    await fs.mkdir(path.dirname(auditPath), { recursive: true });
+    await fs.appendFile(auditPath, `${JSON.stringify(entry)}\n`, 'utf8');
+    return { ok: true, path: auditPath };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error && error.message ? String(error.message) : 'Nieznany błąd zapisu audytu'
+    };
+  }
+});
 
 app.whenReady().then(() => {
   // Wymuszamy ikonę w Docku (szczególnie ważne przy uruchamianiu deweloperskim).

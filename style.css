@@ -58,6 +58,7 @@
   --ui-font-xs: 11px;
   --ui-font-sm: 12px;
   --ui-font-md: 13px;
+  --ui-font-family: "SF Pro Text", "Avenir Next", "Segoe UI Variable", "Segoe UI", "Trebuchet MS", sans-serif;
   --ui-control-h: 28px;
   --traffic-space: 0px;
 }
@@ -127,10 +128,13 @@ html,
 body {
   height: 100%;
   margin: 0;
-  font-family: "Segoe UI", "Bahnschrift", "Arial Narrow", sans-serif;
+  font-family: var(--ui-font-family);
   background: var(--shell-bg);
   color: var(--text);
   font-size: var(--ui-font-sm);
+  line-height: 1.35;
+  font-kerning: normal;
+  text-rendering: optimizeLegibility;
 }
 
 button,
@@ -202,14 +206,21 @@ select {
   border-bottom: 1px solid #2d4566;
   background: linear-gradient(180deg, var(--office-top), var(--office-top-deep));
   box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.14);
+  -webkit-app-region: no-drag;
 }
 
 .top-quickbar {
   display: none;
+  min-height: 38px;
+  border-bottom: 1px solid rgba(123, 148, 188, 0.32);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01));
+  -webkit-app-region: drag;
 }
 
 .top-quickbar-empty {
-  display: none;
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .top-quickbar-left {
@@ -314,8 +325,8 @@ select {
 }
 
 .file-menu-panel {
-  position: absolute;
-  top: calc(100% + 4px);
+  position: fixed;
+  top: 0;
   left: 0;
   min-width: 196px;
   display: grid;
@@ -324,11 +335,11 @@ select {
   border: 1px solid #8fa9d0;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent), #294165;
   box-shadow: 0 10px 22px rgba(8, 14, 24, 0.42);
-  z-index: 140;
+  z-index: 100000;
 }
 
 .file-tab-panel {
-  top: calc(100% + 1px);
+  top: 0;
   left: 0;
 }
 
@@ -542,11 +553,13 @@ select {
   padding: 0 6px 0 calc(6px + var(--traffic-space));
   border-bottom: 1px solid rgba(123, 148, 188, 0.45);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0)), #1f3048;
-  min-height: 28px;
+  min-height: 30px;
   min-width: 0;
   overflow-x: hidden;
   overflow-y: visible;
   box-shadow: inset 0 -1px 0 rgba(10, 20, 33, 0.45);
+  position: relative;
+  z-index: 120;
 }
 
 .ribbon-tab-track {
@@ -557,6 +570,7 @@ select {
   overflow: hidden;
   gap: 3px;
   padding-top: 1px;
+  flex: 1 1 auto;
 }
 
 .ribbon-tab-track > .ribbon-tab,
@@ -572,6 +586,8 @@ select {
   padding: 1px 0 1px 8px;
   border-left: 1px solid rgba(123, 148, 188, 0.32);
   min-width: 0;
+  flex: 0 0 auto;
+  overflow: visible;
   box-shadow: none;
 }
 
@@ -579,14 +595,62 @@ select {
   margin-left: 2px;
 }
 
+.license-summary-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  max-width: 280px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #e6efff;
+  border: 1px solid rgba(137, 163, 202, 0.54);
+  background: rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.license-summary-chip.is-free {
+  border-color: rgba(126, 202, 154, 0.68);
+  color: #d6ffe2;
+}
+
+.license-summary-chip.is-commercial {
+  border-color: rgba(250, 194, 111, 0.78);
+  color: #ffe8c5;
+}
+
+.license-summary-chip.is-missing {
+  border-color: rgba(214, 130, 130, 0.7);
+  color: #ffd9d9;
+}
+
 .ribbon-actions button {
   min-height: 22px;
   padding: 2px 7px;
-  font-size: 9px;
+  font-size: 10px;
   color: #d8e5f7;
   border-color: rgba(123, 148, 188, 0.42);
   background: rgba(255, 255, 255, 0.05);
   border-radius: 4px;
+}
+
+.ribbon-actions .license-summary-chip {
+  min-width: 220px;
+  max-width: 320px;
+  justify-content: flex-start;
+  padding: 2px 10px;
+  font-size: 11px;
+  border-color: rgba(137, 163, 202, 0.54);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.ribbon-actions .license-summary-chip:hover {
+  background: rgba(255, 255, 255, 0.16);
 }
 
 .ribbon-action-btn {
@@ -616,15 +680,15 @@ select {
   background: transparent;
   color: #b9c9df;
   text-shadow: none;
-  padding: 4px 9px 3px;
-  font-size: 10px;
+  padding: 4px 10px 3px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.015em;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 54px;
+  min-width: 64px;
   transition:
     background 0.14s ease,
     border-color 0.14s ease,
@@ -648,9 +712,9 @@ select {
 }
 
 .ribbon-actions .ribbon-tab-file {
-  min-width: 42px;
+  min-width: 92px;
   padding: 3px 7px 3px;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .ribbon-tab-file:hover {
@@ -701,6 +765,42 @@ select {
   max-width: 100%;
   box-sizing: border-box;
   position: relative;
+  z-index: 100;
+}
+
+.platform-mac .top-quickbar {
+  display: block;
+  min-height: 20px;
+  border-bottom: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+}
+
+.platform-mac .cad-header {
+  -webkit-app-region: no-drag;
+}
+
+.platform-mac .ribbon-tabs,
+.platform-mac .ribbon,
+.platform-mac .ribbon *,
+.platform-mac .file-menu-panel,
+.platform-mac button,
+.platform-mac input,
+.platform-mac select,
+.platform-mac textarea {
+  -webkit-app-region: no-drag;
+}
+
+.platform-mac .ribbon-tabs {
+  padding-left: calc(8px + var(--traffic-space));
+  min-height: 28px;
+}
+
+.platform-mac #fileMenu,
+.platform-mac #fileMenuBtn,
+.platform-mac #fileMenuPanel {
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
+  z-index: 2600;
 }
 
 .ribbon-group {
@@ -763,6 +863,37 @@ select {
 .ribbon-group-layout {
   min-width: 160px;
   flex: 0.9 1 0;
+}
+
+.ribbon-group-shortcuts {
+  min-width: 540px;
+  flex: 1.6 1 0;
+}
+
+.ribbon-shortcuts-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+}
+
+.ribbon-shortcuts-list li {
+  padding: 3px 6px;
+  border: 1px solid rgba(122, 148, 189, 0.44);
+  background: rgba(17, 34, 57, 0.36);
+  font-size: var(--ui-font-xs);
+  line-height: 1.25;
+}
+
+.ribbon-shortcuts-list code,
+.ribbon-shortcuts-list kbd {
+  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+  font-size: 10px;
+  padding: 0 4px;
+  border: 1px solid rgba(122, 148, 189, 0.52);
+  background: rgba(255, 255, 255, 0.1);
+  color: #e7f1ff;
 }
 
 .ribbon-group-palette {
@@ -1062,7 +1193,7 @@ select {
 
 .ribbon-group h2 {
   margin: 0;
-  font-size: 9px;
+  font-size: 10px;
   color: #b8cae8;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1131,9 +1262,9 @@ select {
   color: #e9f0ff;
   border-color: #6f89b3;
   background: linear-gradient(180deg, rgba(74, 100, 145, 0.52), rgba(45, 67, 103, 0.74)), #38547f;
-  font-size: var(--ui-font-xs);
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: 0.01em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1925,6 +2056,19 @@ button:disabled:hover {
   margin: 0;
   font-size: 20px;
   color: #f2f7ff;
+}
+
+.license-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.license-header-row .ribbon-btn {
+  min-height: 28px;
+  padding: 4px 10px;
+  white-space: nowrap;
 }
 
 .license-dialog h3 {

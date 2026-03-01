@@ -4,7 +4,7 @@ Desktopowa aplikacja CAD 2D (Mac/Windows) MadCAD 2D, z naciskiem na projektowani
 
 ## Najważniejsze funkcje
 
-- Wstążka (Ribbon) z logiką trybów: `Start`, `Rysowanie 2D`, `Generator stali`.
+- Wstążka (Ribbon) z zakładkami: `Główne`, `Wymiarowanie`, `Stal`, `Układ`, `Widok`, `Skróty`.
 - Rysowanie 2D: `Linia`, `Polilinia`, `Prostokąt`, `Okrąg`.
 - Wymiarowanie: `DIM Aligned`, `DIM Linear`, jednostki, precyzja, rozmiar i kolor DIM.
 - SNAP do siatki i obiektów (końce, środki, narożniki, krawędzie).
@@ -72,7 +72,7 @@ Artefakty builda trafiają do katalogu `release/`.
 - `O` - Okrąg
 - `M` - Pomiar
 - `D` - Wymiar
-- `F2` - Start/Model
+- `F2` - zakładka `Skróty`
 - `F4` - zwiń/rozwiń wstążkę
 - `F6` - ukryj/pokaż panele
 - `F8` - ORTHO
@@ -85,7 +85,8 @@ Artefakty builda trafiają do katalogu `release/`.
 
 ## Komendy (skrótowe)
 
-- `mode start|draw|steel`
+- `mode draw|steel`
+- `tab główne|wymiarowanie|stal|układ|widok|skróty`
 - `layout model|sheet1`
 - `dimstyle [mm|cm|m] [prec] [text] [aligned|linear] [#RRGGBB]`
 - `dimcolor #RRGGBB`
@@ -100,23 +101,9 @@ Artefakty builda trafiają do katalogu `release/`.
 - `HTML/CSS/JS` (renderer CAD)
 - `electron-builder` (pakowanie instalatorów)
 
-## Licencja i aktywacja
+## Licencja
 
-Projekt jest objęty licencją niestandardową: [`LICENSE.md`](./LICENSE.md).
+Projekt jest udostępniony na licencji MIT:
 
-Najważniejsze zasady:
-
-- Użytek prywatny: dozwolony, bezpłatny, po aktywacji tokenem prywatnym.
-- Modyfikacje aplikacji: niedozwolone.
-- Użytek komercyjny: wymaga datku 50 USD za każde urządzenie (1 licencja = 1 urządzenie).
-
-### Token prywatny (darmowy)
-
-Po uruchomieniu aplikacji pojawia się ekran aktywacji:
-
-1. Skopiuj `ID urządzenia` z okna aktywacji.
-2. Otwórz formularz na stronie GitHub Pages: `https://kamil5646.github.io/MadCAD2D/#token-prywatny`.
-3. Wygeneruj token prywatny na stronie.
-4. Wklej token w aplikacji i kliknij `Aktywuj token`.
-
-Token jest przypisany do ID urządzenia i zapisywany lokalnie.
+- [`LICENSE`](./LICENSE)
+- [`LICENSE.md`](./LICENSE.md)

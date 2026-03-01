@@ -1,6 +1,6 @@
 const os = require('os');
 const crypto = require('crypto');
-const { contextBridge } = require('electron');
+const { contextBridge, ipcRenderer } = require('electron');
 
 function resolveDeviceId() {
   try {
@@ -20,5 +20,7 @@ function resolveDeviceId() {
 contextBridge.exposeInMainWorld('desktopApp', {
   platform: process.platform,
   isDesktop: true,
-  deviceId: resolveDeviceId()
+  deviceId: resolveDeviceId(),
+  saveTextFile: (payload) => ipcRenderer.invoke('madcad:save-text-file', payload),
+  appendLicenseAudit: (payload) => ipcRenderer.invoke('madcad:append-license-audit', payload)
 });
