@@ -7,7 +7,7 @@ Desktopowa aplikacja CAD 2D (Mac/Windows) MadCAD 2D, z naciskiem na projektowani
 Aktualne pliki instalacyjne znajdziesz w release `2.0`:
 
 - Windows: https://github.com/kamil5646/MadCAD2D/releases/download/2.0/MadCAD.2D-2.0.0-win-x64.exe
-- macOS: https://github.com/kamil5646/MadCAD2D/releases/download/2.0/MadCAD.2D-2.0.0-mac-x64.zip
+- macOS: https://github.com/kamil5646/MadCAD2D/releases/download/2.0/MadCAD.2D-2.0.0-mac-arm64.zip
 - Strona release: https://github.com/kamil5646/MadCAD2D/releases/tag/2.0
 
 ## Struktura repo
