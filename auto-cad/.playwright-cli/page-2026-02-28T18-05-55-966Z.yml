@@ -1,0 +1,219 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - button "Home" [ref=e5] [cursor=pointer]
+        - button "Wstaw" [disabled] [ref=e6]
+        - button "Adnotacje" [disabled] [ref=e7]
+        - button "Widok" [disabled] [ref=e8]
+        - button "Zarządzaj" [disabled] [ref=e9]
+        - button "Output" [disabled] [ref=e10]
+        - generic [ref=e11]:
+          - button "📑 Warstwy" [ref=e12] [cursor=pointer]
+          - button "🏗 Stal" [ref=e13] [cursor=pointer]
+          - button "🎯 Zaznaczenie" [ref=e14] [cursor=pointer]
+          - button "💡 Pomoc" [ref=e15] [cursor=pointer]
+          - button "▼ Zwiń wstążkę" [ref=e16] [cursor=pointer]
+          - button "📁 Ukryj palety" [ref=e17] [cursor=pointer]
+      - generic [ref=e18]:
+        - generic [ref=e19]:
+          - generic [ref=e20]:
+            - button "⭙ Zaznacz" [ref=e21] [cursor=pointer]
+            - generic [ref=e22]:
+              - button "📏 Linia" [ref=e23] [cursor=pointer]
+              - button "🖋 Polilinia" [ref=e24] [cursor=pointer]
+              - button "▭ Prostokąt" [ref=e25] [cursor=pointer]
+              - button "◯ Okrąg" [ref=e26] [cursor=pointer]
+              - button "📐 Pomiar" [ref=e27] [cursor=pointer]
+              - button "📏 Wymiar" [ref=e28] [cursor=pointer]
+              - button "✋ Pan widoku" [ref=e29] [cursor=pointer]
+          - heading "✎ Rysuj" [level=2] [ref=e30]
+        - generic [ref=e31]:
+          - generic [ref=e32]:
+            - button "➜ Przesuń (MOVE)" [disabled] [ref=e33]
+            - button "📋 Kopiuj (COPY)" [disabled] [ref=e34]
+            - button "⇄ Offset" [ref=e35] [cursor=pointer]
+            - button "📑 Duplikuj" [disabled] [ref=e36]
+            - button "🗑 Usuń" [disabled] [ref=e37]
+            - button "⬆ Na wierzch" [disabled] [ref=e38]
+            - button "⬇ Na spod" [disabled] [ref=e39]
+            - button "🔍 Dopasuj" [disabled] [ref=e40]
+            - button "❌ Wyczyść" [disabled] [ref=e41]
+          - heading "🔧 Modyfikuj" [level=2] [ref=e42]
+        - text: 📏 📏 📏 📏 ↔ ⇆ 📏
+        - generic [ref=e43]:
+          - generic [ref=e44]:
+            - generic [ref=e45]:
+              - generic [ref=e46]: ⚙ Kolor
+              - textbox "⚙ Kolor" [ref=e47]: "#d9e7ff"
+            - generic [ref=e48]:
+              - generic [ref=e49]: ⚙ Grubość
+              - spinbutton "⚙ Grubość" [ref=e50]: "2"
+            - generic [ref=e51]:
+              - generic [ref=e52]: ⚙ Styl
+              - combobox "⚙ Styl" [ref=e53]:
+                - option "Ciągła" [selected]
+                - option "Kreskowana"
+                - option "Kropkowana"
+            - generic [ref=e54]:
+              - generic [ref=e55]: ⚙ Wypełnienie
+              - checkbox "⚙ Wypełnienie" [ref=e56]
+            - generic [ref=e57]:
+              - generic [ref=e58]: ⚙ Kolor wyp.
+              - textbox "⚙ Kolor wyp." [ref=e59]: "#00a9e0"
+            - generic [ref=e60]:
+              - generic [ref=e61]: ⚙ Krycie
+              - slider "⚙ Krycie" [ref=e62]: "20"
+          - heading "⚙ Właściwości" [level=2] [ref=e63]
+        - generic [ref=e64]:
+          - generic [ref=e65]:
+            - button "📤 Wczytaj DXF" [ref=e66] [cursor=pointer]
+            - button "📥 Eksport DXF" [ref=e67] [cursor=pointer]
+            - button "📄 Eksport SVG" [ref=e68] [cursor=pointer]
+            - button "🖶 Drukuj/PDF" [ref=e69] [cursor=pointer]
+          - heading "📁 Plik" [level=2] [ref=e70]
+        - generic [ref=e71]:
+          - generic [ref=e72]:
+            - button "📂 Wczytaj" [ref=e73] [cursor=pointer]
+            - button "💾 Zapisz" [ref=e74] [cursor=pointer]
+            - button "↶ Cofnij" [disabled] [ref=e75]
+            - button "↷ Ponów" [disabled] [ref=e76]
+            - 'button "🌙 Motyw: Ciemny" [ref=e77] [cursor=pointer]'
+            - button "➕ Nowy" [ref=e78] [cursor=pointer]
+          - heading "⚙ Szybki dostęp" [level=2] [ref=e79]
+        - generic [ref=e80]:
+          - generic [ref=e81]:
+            - button "⌂ Start Hub" [ref=e82] [cursor=pointer]
+            - button "📐 Rysunek" [ref=e83] [cursor=pointer]
+            - button "🏗 Stal" [ref=e84] [cursor=pointer]
+            - button "▢ Model" [ref=e85] [cursor=pointer]
+            - button "📄 Arkusz1" [ref=e86] [cursor=pointer]
+          - heading "📑 Przestrzeń" [level=2] [ref=e87]
+        - generic [ref=e88]:
+          - generic [ref=e89]:
+            - button "📌 SNAP" [pressed] [ref=e90] [cursor=pointer]
+            - button "⊞ GRID" [pressed] [ref=e91] [cursor=pointer]
+            - button "∣ ORTHO" [ref=e92] [cursor=pointer]
+          - heading "⚔ Tryby" [level=2] [ref=e93]
+        - generic [ref=e94]:
+          - textbox "Wpisz komendę lub frazę i Enter" [ref=e96]
+          - heading "🔍 Komenda" [level=2] [ref=e97]
+        - generic [ref=e98]:
+          - generic [ref=e99]:
+            - generic [ref=e100]:
+              - generic [ref=e101]: 🗂 Aktywna
+              - combobox "🗂 Aktywna" [ref=e102]:
+                - option "Warstwa 0" [selected]
+            - generic [ref=e103]:
+              - generic [ref=e104]: 🗂 Siatka
+              - spinbutton "🗂 Siatka" [ref=e105]: "10"
+            - generic [ref=e106]:
+              - textbox "Nowa warstwa" [ref=e107]
+              - button "➕ Dodaj" [ref=e108] [cursor=pointer]
+            - generic [ref=e110]:
+              - generic [ref=e111]:
+                - generic [ref=e112]: Warstwa 0
+                - generic [ref=e113]: 0 ob.
+              - generic [ref=e114]:
+                - generic [ref=e115]:
+                  - checkbox "widoczna" [checked] [ref=e116]
+                  - text: widoczna
+                - generic [ref=e117]:
+                  - checkbox "zablokowana" [ref=e118]
+                  - text: zablokowana
+              - generic [ref=e119]:
+                - button "✅ Aktywna" [ref=e120] [cursor=pointer]
+                - button "🗑 Usuń" [disabled] [ref=e121]
+          - heading "📑 Warstwy" [level=2] [ref=e122]
+        - text: 🛠 🛠 🛠 🛠 🛠 🛠 🛠 🛠 🛠 🛠 🛠 🛠 🛠 🛠 🛠 🔨 🏗 🎯 💡
+      - generic [ref=e124]:
+        - generic [ref=e125]: "📍 X: 0.00 Y: 0.00"
+        - generic [ref=e126]: "🔍 Skala: 100%"
+        - generic [ref=e127]: "▦ Obiekty: 0"
+        - generic [ref=e128]: "◉ Narzędzie: Zaznacz"
+        - generic [ref=e129]: "📌 SNAP: ON"
+        - generic [ref=e130]: "⊞ GRID: ON"
+        - generic [ref=e131]: "∣ ORTHO: OFF"
+    - main [ref=e132]:
+      - generic [ref=e134]:
+        - generic [ref=e135]:
+          - generic [ref=e136]:
+            - heading "💻 Centrum startowe AutoCAD 2D Lite PL" [level=2] [ref=e137]
+            - paragraph [ref=e138]: "Szybki start do projektowania konstrukcji stalowych: bramy, ogrodzenia i balkony."
+          - generic [ref=e139]:
+            - paragraph [ref=e140]: 💡 Wszystkie funkcje uruchamiasz bezpośrednio ze wstążki.
+            - paragraph [ref=e141]: ➤ Aby zacząć, wybierz zakładkę Rysunek u góry.
+        - generic [ref=e142]:
+          - article [ref=e143]:
+            - heading "⚙ Nawigacja interfejsu" [level=3] [ref=e144]
+            - list [ref=e145]:
+              - listitem [ref=e146]: "📁 Plik: Wczytaj, Zapisz, DXF, SVG, Drukuj/PDF"
+              - listitem [ref=e147]: "✎ Rysuj: Linia, Polilinia, Prostokąt, Okrąg, Wymiar"
+              - listitem [ref=e148]: "🔧 Modyfikuj: Move, Copy, Offset, Usuń, Duplikuj"
+              - listitem [ref=e149]: "⚙ Właściwości: kolor, grubość, styl, wypełnienie"
+          - article [ref=e150]:
+            - heading "🏗 Konstrukcje stalowe" [level=3] [ref=e151]
+            - list [ref=e152]:
+              - listitem [ref=e153]: 🚪 Szablon Brama w panelu Konstrukcje stalowe
+              - listitem [ref=e154]: 🛏 Szablon Ogrodzenie w panelu Konstrukcje stalowe
+              - listitem [ref=e155]: 🏠 Szablon Balkon w panelu Konstrukcje stalowe
+              - listitem [ref=e156]: 🔨 Generowanie i edycja tylko z górnej wstążki
+          - article [ref=e157]:
+            - heading "📊 Stan projektu" [level=3] [ref=e158]
+            - list [ref=e159]:
+              - listitem [ref=e160]:
+                - generic [ref=e161]: Obiekty
+                - strong [ref=e162]: "0"
+              - listitem [ref=e163]:
+                - generic [ref=e164]: Warstwy
+                - strong [ref=e165]: "1"
+              - listitem [ref=e166]:
+                - generic [ref=e167]: Narzędzie
+                - strong [ref=e168]: Zaznacz
+              - listitem [ref=e169]:
+                - generic [ref=e170]: Skala
+                - strong [ref=e171]: 100%
+          - article [ref=e172]:
+            - heading "⌨ Szybkie skróty i komendy" [level=3] [ref=e173]
+            - list [ref=e174]:
+              - listitem [ref=e175]:
+                - generic [ref=e176]: L
+                - text: Linia,
+                - generic [ref=e177]: P
+                - text: Prostokąt,
+                - generic [ref=e178]: O
+                - text: Okrąg,
+                - generic [ref=e179]: "Y"
+                - text: Polilinia,
+                - generic [ref=e180]: D
+                - text: Wymiar
+              - listitem [ref=e181]:
+                - generic [ref=e182]: F2
+                - text: Start/Model,
+                - generic [ref=e183]: F4
+                - text: Wstążka,
+                - generic [ref=e184]: F6
+                - text: Palety,
+                - generic [ref=e185]: F8
+                - text: ORTHO
+              - listitem [ref=e186]:
+                - generic [ref=e187]: Ctrl+S
+                - text: Zapis JSON,
+                - generic [ref=e188]: Ctrl+P
+                - text: Drukuj/PDF,
+                - generic [ref=e189]: Ctrl+Z
+                - text: Cofnij,
+                - generic [ref=e190]: Ctrl+Y
+                - text: Ponów
+              - listitem [ref=e191]:
+                - text: "Komendy:"
+                - code [ref=e192]: move
+                - text: ","
+                - code [ref=e193]: copy
+                - text: ","
+                - code [ref=e194]: offset 50
+                - text: ","
+                - code [ref=e195]: dim linear
+                - text: ","
+                - code [ref=e196]: drukuj
+  - generic: ✓
