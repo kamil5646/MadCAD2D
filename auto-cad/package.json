@@ -4,7 +4,7 @@
   "description": "Desktopowa aplikacja CAD 2D MadCAD 2D, dla konstrukcji stalowych.",
   "main": "electron/main.js",
   "author": "Kamil Kasprzak",
-  "license": "SEE LICENSE IN LICENSE.md",
+  "license": "SEE LICENSE IN LICENSE",
   "scripts": {
     "dev": "electron .",
     "start": "electron .",
@@ -27,7 +27,7 @@
       "style.css",
       "app.js",
       "LICENSE",
-      "LICENSE.md",
+      "LICENSE",
       "electron/**/*",
       "README.md",
       "package.json"
