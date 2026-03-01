@@ -23,17 +23,9 @@
   const printDrawingBtn = document.getElementById("printDrawingBtn");
   const importDxfBtn = document.getElementById("importDxfBtn");
   const toggleRibbonBtn = document.getElementById("toggleRibbonBtn");
-  const togglePaletteBtn = document.getElementById("togglePaletteBtn");
   const fileMenu = document.getElementById("fileMenu");
   const fileMenuBtn = document.getElementById("fileMenuBtn");
   const fileMenuPanel = document.getElementById("fileMenuPanel");
-  const categoryMenu = document.getElementById("categoryMenu");
-  const categoryMenuBtn = document.getElementById("categoryMenuBtn");
-  const categoryMenuPanel = document.getElementById("categoryMenuPanel");
-  const qaSaveBtn = document.getElementById("qaSaveBtn");
-  const qaUndoBtn = document.getElementById("qaUndoBtn");
-  const qaRedoBtn = document.getElementById("qaRedoBtn");
-  const paletteSplitter = document.getElementById("paletteSplitter");
   const fitViewBtn = document.getElementById("fitViewBtn");
   const clearBtn = document.getElementById("clearBtn");
   const steelGenerateQuickBtn = document.getElementById("steelGenerateQuickBtn");
@@ -101,7 +93,6 @@
   const entityCountLabel = document.getElementById("entityCount");
   const toolInfoLabel = document.getElementById("toolInfo");
   const workspaceStateInfo = document.getElementById("workspaceStateInfo");
-  const activityFeed = document.getElementById("activityFeed");
   const toastMessage = document.getElementById("toastMessage");
   const startScreen = document.getElementById("startScreen");
   const startEntitiesCount = document.getElementById("startEntitiesCount");
@@ -295,6 +286,10 @@
 
   let renderQueued = false;
   let toastHideTimer = null;
+  let canvasResizeRetryFrame = 0;
+  let layoutResizeObserver = null;
+  let lastCanvasClientWidth = 0;
+  let lastCanvasClientHeight = 0;
   const POINTER_DRAG_THRESHOLD_PX = 5;
   const OBJECT_SNAP_THRESHOLD_PX = 14;
 
@@ -557,15 +552,9 @@
       toggleRibbonBtn.dataset.icon = state.ribbonCollapsed ? "\u25B6" : "\u25BC";
     }
 
-    if (togglePaletteBtn) {
-      togglePaletteBtn.textContent = state.paletteHidden ? "Pokaż panele" : "Ukryj panele";
-      togglePaletteBtn.dataset.icon = state.paletteHidden ? "\uD83D\uDCC2" : "\uD83D\uDCC1";
-    }
-
     if (state.paletteHidden || state.ribbonCollapsed) {
       state.activeFlyout = null;
       setFileMenuOpen(false);
-      setCategoryMenuOpen(false);
     }
     syncPaletteFlyouts();
     updateToastAnchor();
@@ -583,33 +572,6 @@
     fileMenu.classList.toggle("open", open);
     fileMenuBtn.setAttribute("aria-expanded", open ? "true" : "false");
     fileMenuPanel.hidden = !open;
-  }
-
-  function isCategoryMenuOpen() {
-    return Boolean(categoryMenu && categoryMenu.classList.contains("open"));
-  }
-
-  function setCategoryMenuOpen(value) {
-    const open = Boolean(value);
-    if (!categoryMenu || !categoryMenuBtn || !categoryMenuPanel) {
-      return;
-    }
-    categoryMenu.classList.toggle("open", open);
-    categoryMenuBtn.setAttribute("aria-expanded", open ? "true" : "false");
-    categoryMenuPanel.hidden = !open;
-  }
-
-  function triggerMenuAction(targetSelector) {
-    const selector = String(targetSelector || "").trim();
-    if (!selector) {
-      return false;
-    }
-    const target = document.querySelector(selector);
-    if (!(target instanceof HTMLElement)) {
-      return false;
-    }
-    target.click();
-    return true;
   }
 
   function updateToastAnchor() {
@@ -710,6 +672,26 @@
       return "home";
     }
     return undefined;
+  }
+
+  function ribbonPageLabel(page) {
+    const normalized = normalizeRibbonPage(page);
+    if (normalized === "start") {
+      return "Start";
+    }
+    if (normalized === "references") {
+      return "Wymiarowanie";
+    }
+    if (normalized === "design") {
+      return "Stal";
+    }
+    if (normalized === "layout") {
+      return "Układ";
+    }
+    if (normalized === "view") {
+      return "Widok";
+    }
+    return "Główne";
   }
 
   function syncStartSummary() {
@@ -839,11 +821,6 @@
 
     paletteLaunchButtons.forEach((button) => {
       const target = String(button.dataset.flyoutTarget || "").trim().toLowerCase();
-      if (target === "steel") {
-        button.disabled = ribbonCollapsed;
-        button.classList.toggle("active", state.ribbonPage === "design" && !button.disabled);
-        return;
-      }
       const flyout = paletteFlyouts.find(
         (entry) => String(entry.dataset.flyout || "").trim().toLowerCase() === target
       );
@@ -1599,38 +1576,9 @@
   }
 
   function pushActivityMessage(message, isError) {
-    if (!activityFeed) {
-      return;
-    }
-    const text = String(message || "").trim();
-    if (!text) {
-      return;
-    }
-    const first = activityFeed.firstElementChild;
-    if (first && first instanceof HTMLElement && first.dataset.message === text) {
-      const firstIsError = first.classList.contains("error");
-      if (firstIsError === Boolean(isError)) {
-        return;
-      }
-    }
-    const duplicateItem = Array.from(activityFeed.children).find((node) => {
-      if (!(node instanceof HTMLElement)) {
-        return false;
-      }
-      return node.dataset.message === text && node.classList.contains("error") === Boolean(isError);
-    });
-    if (duplicateItem) {
-      activityFeed.removeChild(duplicateItem);
-    }
-    const item = document.createElement("span");
-    item.className = `activity-item has-icon${isError ? " error" : ""}`;
-    item.dataset.icon = isError ? "\u26A0" : "\u2713";
-    item.dataset.message = text;
-    item.textContent = text;
-    activityFeed.prepend(item);
-    while (activityFeed.children.length > 8) {
-      activityFeed.removeChild(activityFeed.lastElementChild);
-    }
+    // Historia w pasku aktywności została usunięta - zostawiamy tylko komunikaty toast.
+    void message;
+    void isError;
   }
 
   function showToastMessage(message, isError) {
@@ -2164,7 +2112,11 @@
       const page = resolveRibbonPageAlias(args[0]);
       const availablePages = getAvailableRibbonPages();
       if (page === null) {
-        echoCommand(`Zakładka: ${state.ribbonPage}. Dostępne: ${availablePages.join(", ")}`);
+        echoCommand(
+          `Zakładka: ${ribbonPageLabel(state.ribbonPage)}. Dostępne: ${availablePages
+            .map((item) => ribbonPageLabel(item))
+            .join(", ")}`
+        );
         return;
       }
       if (page === undefined) {
@@ -2189,7 +2141,7 @@
         return;
       }
       setRibbonPage(page);
-      echoCommand(`Zakładka: ${page}`);
+      echoCommand(`Zakładka: ${ribbonPageLabel(page)}.`);
       return;
     }
     if (command === "layout" || command === "arkusz") {
@@ -2747,21 +2699,63 @@
     selectionInfo.textContent = "Nieznany obiekt";
   }
 
-  function resizeCanvas() {
+  function resizeCanvas(options) {
     const ratio = Math.max(1, window.devicePixelRatio || 1);
-    const width = canvas.clientWidth;
-    const height = canvas.clientHeight;
-    canvas.width = Math.floor(width * ratio);
-    canvas.height = Math.floor(height * ratio);
+    const allowRetry = !options || options.allowRetry !== false;
+    let width = Math.floor(canvas.clientWidth);
+    let height = Math.floor(canvas.clientHeight);
+
+    if (width < 2 || height < 2) {
+      if (lastCanvasClientWidth >= 2 && lastCanvasClientHeight >= 2) {
+        width = lastCanvasClientWidth;
+        height = lastCanvasClientHeight;
+      } else {
+        if (allowRetry && !canvasResizeRetryFrame) {
+          canvasResizeRetryFrame = requestAnimationFrame(() => {
+            canvasResizeRetryFrame = 0;
+            resizeCanvas({ allowRetry: false });
+          });
+        }
+        return;
+      }
+    } else {
+      lastCanvasClientWidth = width;
+      lastCanvasClientHeight = height;
+    }
+
+    const targetWidth = Math.max(2, Math.floor(width * ratio));
+    const targetHeight = Math.max(2, Math.floor(height * ratio));
+    if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+    }
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
     queueRender();
   }
 
   function getCanvasSize() {
     return {
-      width: canvas.clientWidth,
-      height: canvas.clientHeight
+      width: Math.max(2, Math.floor(canvas.clientWidth || lastCanvasClientWidth || 0)),
+      height: Math.max(2, Math.floor(canvas.clientHeight || lastCanvasClientHeight || 0))
     };
+  }
+
+  function initializeLayoutObservers() {
+    if (typeof ResizeObserver !== "function") {
+      return;
+    }
+    if (layoutResizeObserver) {
+      layoutResizeObserver.disconnect();
+    }
+    layoutResizeObserver = new ResizeObserver(() => {
+      resizeCanvas();
+      updateToastAnchor();
+    });
+    [workspaceEl, canvasWrap, cadHeader].forEach((element) => {
+      if (element) {
+        layoutResizeObserver.observe(element);
+      }
+    });
   }
 
   function drawGrid() {
@@ -5969,11 +5963,9 @@
       dimAlignedBtn: "Włącza wymiar wyrównany do mierzonego odcinka.",
       dimLinearBtn: "Włącza wymiar liniowy (poziomy/pionowy).",
       flyoutLayersBtn: "Otwiera panel warstw i ustawień siatki.",
-      flyoutSteelBtn: "Otwiera panel generatora konstrukcji stalowych.",
       steelGenerateQuickBtn: "Szybko generuje konstrukcję stalową z aktualnych parametrów.",
       flyoutSelectionBtn: "Otwiera panel właściwości zaznaczenia.",
       toggleRibbonBtn: "Zwija lub rozwija wstążkę narzędzi.",
-      togglePaletteBtn: "Ukrywa lub pokazuje panele boczne.",
       layoutTabModel: "Przełącza na układ modelu roboczego.",
       layoutTabSheet1: "Przełącza na układ arkusza wydruku.",
       snapToggle: "Przyciąga kursor do siatki i punktów charakterystycznych.",
@@ -6236,10 +6228,6 @@
     }
 
     if (key === "escape") {
-      if (isCategoryMenuOpen()) {
-        setCategoryMenuOpen(false);
-        return;
-      }
       if (isFileMenuOpen()) {
         setFileMenuOpen(false);
         return;
@@ -6316,9 +6304,6 @@
       fileMenuBtn.addEventListener("click", (event) => {
         event.preventDefault();
         event.stopPropagation();
-        if (isCategoryMenuOpen()) {
-          setCategoryMenuOpen(false);
-        }
         setFileMenuOpen(!isFileMenuOpen());
       });
 
@@ -6333,55 +6318,9 @@
       });
     }
 
-    if (categoryMenuBtn && categoryMenuPanel) {
-      categoryMenuBtn.addEventListener("click", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        if (isFileMenuOpen()) {
-          setFileMenuOpen(false);
-        }
-        setCategoryMenuOpen(!isCategoryMenuOpen());
-      });
-
-      categoryMenuPanel.addEventListener("click", (event) => {
-        const target = event.target;
-        if (!(target instanceof HTMLElement)) {
-          return;
-        }
-        const button = target.closest("button");
-        if (!(button instanceof HTMLButtonElement)) {
-          return;
-        }
-        const selector = button.dataset.target;
-        if (selector) {
-          triggerMenuAction(selector);
-        }
-        setCategoryMenuOpen(false);
-      });
-    }
-
-    if (qaSaveBtn && saveJsonBtn) {
-      qaSaveBtn.addEventListener("click", () => {
-        saveJsonBtn.click();
-      });
-    }
-
-    if (qaUndoBtn && undoBtn) {
-      qaUndoBtn.addEventListener("click", () => {
-        undoBtn.click();
-      });
-    }
-
-    if (qaRedoBtn && redoBtn) {
-      qaRedoBtn.addEventListener("click", () => {
-        redoBtn.click();
-      });
-    }
-
     ribbonTabs.forEach((tab) => {
       tab.addEventListener("click", () => {
         setFileMenuOpen(false);
-        setCategoryMenuOpen(false);
         const page = normalizeRibbonPage(tab.dataset.page);
         if (page === "start") {
           setWorkspaceView("start");
@@ -6401,7 +6340,7 @@
           return;
         }
         setRibbonPage(page);
-        echoCommand(`Zakładka: ${page}.`);
+        echoCommand(`Zakładka: ${ribbonPageLabel(page)}.`);
       });
     });
 
@@ -6409,10 +6348,6 @@
       button.addEventListener("click", () => {
         const target = String(button.dataset.flyoutTarget || "").trim().toLowerCase();
         if (!target) {
-          return;
-        }
-        if (target === "steel") {
-          openCustomSteelSetup();
           return;
         }
         if (state.paletteHidden) {
@@ -6530,31 +6465,6 @@
       toggleRibbonBtn.addEventListener("click", () => {
         setRibbonCollapsed(!state.ribbonCollapsed);
         echoCommand(`Wstążka: ${state.ribbonCollapsed ? "zwinięta" : "rozwinięta"}.`);
-      });
-    }
-    if (togglePaletteBtn) {
-      togglePaletteBtn.addEventListener("click", () => {
-        if (state.paletteHidden) {
-          setPaletteHidden(false);
-          echoCommand("Panele: widoczne.");
-        } else {
-          setPaletteHidden(true);
-          echoCommand("Panele: ukryte.");
-        }
-      });
-    }
-    if (paletteSplitter) {
-      paletteSplitter.addEventListener("mousedown", (event) => {
-        if (state.paletteHidden) {
-          return;
-        }
-        event.preventDefault();
-        state.splitterDragging = true;
-        syncLayoutChrome();
-      });
-      paletteSplitter.addEventListener("dblclick", () => {
-        setPaletteWidth(300);
-        echoCommand("Szerokość palet: domyślna.");
       });
     }
 
@@ -7028,17 +6938,13 @@
       if (isFileMenuOpen() && !target.closest("#fileMenu")) {
         setFileMenuOpen(false);
       }
-      if (isCategoryMenuOpen() && !target.closest("#categoryMenu")) {
-        setCategoryMenuOpen(false);
-      }
 
       if (!state.activeFlyout) {
         return;
       }
       if (
         target.closest(".ribbon-group-palette.flyout-visible") ||
-        target.closest(".palette-launch-btn") ||
-        target.closest("#togglePaletteBtn")
+        target.closest(".palette-launch-btn")
       ) {
         return;
       }
@@ -7048,7 +6954,6 @@
     window.addEventListener("resize", updateToastAnchor);
     window.addEventListener("blur", () => {
       setFileMenuOpen(false);
-      setCategoryMenuOpen(false);
     });
   }
 
@@ -7057,7 +6962,6 @@
 
     restoreSession();
     setFileMenuOpen(false);
-    setCategoryMenuOpen(false);
     state.activeFlyout = null;
     ensureActiveLayer();
     ensureEntityLayers();
@@ -7069,6 +6973,7 @@
     syncDocumentControls();
     applyHoverHelpTooltips();
     initializeEvents();
+    initializeLayoutObservers();
     updateToastAnchor();
     resizeCanvas();
     updateStatus({ x: 0, y: 0 });

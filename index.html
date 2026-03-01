@@ -14,45 +14,47 @@
         </div>
 
         <div class="ribbon-tabs">
-          <div id="fileMenu" class="file-menu file-tab-menu">
-            <button
-              id="fileMenuBtn"
-              class="ribbon-tab ribbon-tab-file"
-              aria-haspopup="true"
-              aria-expanded="false"
-              aria-controls="fileMenuPanel"
-              title="Menu Plik"
-            >
-              Plik
-            </button>
-            <div id="fileMenuPanel" class="file-menu-panel file-tab-panel" role="menu" hidden>
-              <button id="loadJsonBtn" class="quick-btn has-icon" data-icon="&#128194;" role="menuitem">
-                Wczytaj JSON
+          <div class="ribbon-tab-track">
+            <div id="fileMenu" class="file-menu file-tab-menu">
+              <button
+                id="fileMenuBtn"
+                class="ribbon-tab ribbon-tab-file"
+                aria-haspopup="true"
+                aria-expanded="false"
+                aria-controls="fileMenuPanel"
+                title="Menu Plik"
+              >
+                Plik
               </button>
-              <button id="saveJsonBtn" class="quick-btn has-icon" data-icon="&#128190;" role="menuitem">
-                Zapisz JSON
-              </button>
-              <button id="importDxfBtn" class="quick-btn has-icon" data-icon="&#128228;" role="menuitem">
-                Wczytaj DXF
-              </button>
-              <button id="exportDxfBtn" class="quick-btn has-icon" data-icon="&#128229;" role="menuitem">
-                Eksport DXF
-              </button>
-              <button id="exportSvgBtn" class="quick-btn has-icon" data-icon="&#128196;" role="menuitem">
-                Eksport SVG
-              </button>
-              <button id="printDrawingBtn" class="quick-btn has-icon" data-icon="&#128438;" role="menuitem">
-                Drukuj/PDF
-              </button>
+              <div id="fileMenuPanel" class="file-menu-panel file-tab-panel" role="menu" hidden>
+                <button id="loadJsonBtn" class="quick-btn has-icon" data-icon="&#128194;" role="menuitem">
+                  Wczytaj JSON
+                </button>
+                <button id="saveJsonBtn" class="quick-btn has-icon" data-icon="&#128190;" role="menuitem">
+                  Zapisz JSON
+                </button>
+                <button id="importDxfBtn" class="quick-btn has-icon" data-icon="&#128228;" role="menuitem">
+                  Wczytaj DXF
+                </button>
+                <button id="exportDxfBtn" class="quick-btn has-icon" data-icon="&#128229;" role="menuitem">
+                  Eksport DXF
+                </button>
+                <button id="exportSvgBtn" class="quick-btn has-icon" data-icon="&#128196;" role="menuitem">
+                  Eksport SVG
+                </button>
+                <button id="printDrawingBtn" class="quick-btn has-icon" data-icon="&#128438;" role="menuitem">
+                  Drukuj/PDF
+                </button>
+              </div>
             </div>
-          </div>
 
-          <button class="ribbon-tab active" data-page="start">Start</button>
-          <button class="ribbon-tab" data-page="home">Główne</button>
-          <button class="ribbon-tab" data-page="references">Wymiarowanie</button>
-          <button class="ribbon-tab" data-page="design">Stal</button>
-          <button class="ribbon-tab" data-page="layout">Układ</button>
-          <button class="ribbon-tab" data-page="view">Widok</button>
+            <button class="ribbon-tab active" data-page="start">Start</button>
+            <button class="ribbon-tab" data-page="home">Główne</button>
+            <button class="ribbon-tab" data-page="references">Wymiarowanie</button>
+            <button class="ribbon-tab" data-page="design">Stal</button>
+            <button class="ribbon-tab" data-page="layout">Układ</button>
+            <button class="ribbon-tab" data-page="view">Widok</button>
+          </div>
           <div class="ribbon-actions">
             <button id="undoBtn" class="ribbon-action-btn has-icon" data-icon="&#8630;" data-pages="home" title="Cofnij">Cofnij</button>
             <button id="redoBtn" class="ribbon-action-btn has-icon" data-icon="&#8631;" data-pages="home" title="Ponów">Ponów</button>
@@ -64,16 +66,6 @@
               data-pages="view"
             >
               Warstwy
-            </button>
-            <button
-              id="flyoutSteelBtn"
-              class="has-icon palette-launch-btn"
-              data-icon="&#127959;"
-              data-flyout-target="steel"
-              data-pages="design"
-              title="Otwiera panel konfiguracji konstrukcji stalowych."
-            >
-              Stal
             </button>
             <button
               id="steelGenerateQuickBtn"
@@ -94,9 +86,6 @@
               Zaznaczenie
             </button>
             <button id="toggleRibbonBtn" class="has-icon" data-icon="&#9660;" data-pages="view">Zwiń wstążkę</button>
-            <button id="togglePaletteBtn" class="has-icon" data-icon="&#128448;" data-pages="view">
-              Ukryj panele
-            </button>
           </div>
         </div>
 

@@ -536,21 +536,32 @@ select {
 }
 
 .ribbon-tabs {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: stretch;
-  flex-wrap: nowrap;
-  gap: 0;
-  row-gap: 0;
-  padding: 0 8px;
+  gap: 8px;
+  padding: 0 8px 0 8px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent), var(--office-tab);
   min-height: 36px;
   min-width: 0;
-  overflow: visible;
+  overflow: hidden;
+}
+
+.ribbon-tab-track {
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.ribbon-tab-track > .ribbon-tab,
+.ribbon-tab-track > .file-tab-menu {
+  flex: 0 0 auto;
 }
 
 .ribbon-actions {
-  margin-left: auto;
   display: flex;
   align-items: center;
   flex-wrap: nowrap;
@@ -558,6 +569,7 @@ select {
   padding: 3px 0;
   border-left: 1px solid rgba(255, 255, 255, 0.22);
   padding-left: 8px;
+  min-width: 0;
 }
 
 .ribbon-actions button {
@@ -593,15 +605,15 @@ select {
   border-radius: var(--ui-radius);
   background: transparent;
   color: var(--office-tab-text);
-  padding: 8px 10px 7px;
-  font-size: 12px;
+  padding: 8px 8px 7px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.01em;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 76px;
+  min-width: 66px;
 }
 
 .ribbon-tab-file {
@@ -698,7 +710,7 @@ select {
 }
 
 .ribbon-group-steel {
-  min-width: 560px;
+  min-width: 480px;
   max-width: min(900px, calc(100vw - 28px));
   flex: 1.7 1 0;
 }
@@ -785,14 +797,14 @@ select {
 
 .ribbon-panel-body-steel {
   gap: 8px;
-  max-height: min(56vh, 460px);
+  max-height: min(44vh, 300px);
   overflow: auto;
   padding-right: 8px;
 }
 
 .app[data-ribbon-page="design"] .ribbon {
-  min-height: clamp(420px, 62vh, 680px);
-  max-height: none;
+  min-height: 188px;
+  max-height: 238px;
   align-items: stretch;
 }
 
@@ -805,8 +817,12 @@ select {
 }
 
 .app[data-ribbon-page="design"] .ribbon-group-steel .ribbon-panel-body-steel {
-  max-height: none;
-  overflow: visible;
+  max-height: min(44vh, 300px);
+  overflow: auto;
+}
+
+.app[data-ribbon-page="design"] .ribbon-group-steel .steel-help {
+  display: none;
 }
 
 .steel-template-meta {
@@ -1806,7 +1822,7 @@ button:disabled:hover {
   }
 
   .ribbon-group-steel {
-    min-width: min(760px, calc(100vw - 24px));
+    min-width: min(560px, calc(100vw - 24px));
     max-width: min(900px, calc(100vw - 24px));
   }
 
