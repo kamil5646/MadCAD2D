@@ -3,82 +3,183 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MadCAD 2D - Pobierz aplikację</title>
+    <title>MadCAD 2D - Aplikacja CAD 2D</title>
     <meta
       name="description"
-      content="MadCAD 2D - desktopowa aplikacja CAD 2D do konstrukcji stalowych: bramy, ogrodzenia i balkony."
+      content="MadCAD 2D - desktopowa aplikacja CAD 2D do projektowania konstrukcji stalowych: bramy, ogrodzenia, balkony."
     />
     <style>
       :root {
-        --bg: #0c1422;
-        --panel: #16263d;
-        --panel-2: #1f3657;
-        --line: #35537f;
-        --text: #e6f0ff;
-        --muted: #9db4d8;
-        --accent: #56a3ff;
-        --accent-2: #7ad4ff;
+        --bg: #0a1322;
+        --bg-2: #0f1e35;
+        --panel: #162843;
+        --panel-2: #1e3558;
+        --line: #355986;
+        --line-soft: rgba(129, 164, 211, 0.28);
+        --text: #e8f1ff;
+        --muted: #a9bfdc;
+        --accent: #5da9ff;
+        --accent-2: #79d7ff;
+        --ok: #9ceaa0;
+        --warn: #ffd88c;
       }
 
       * {
         box-sizing: border-box;
       }
 
+      html,
       body {
         margin: 0;
-        min-height: 100vh;
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        min-height: 100%;
+      }
+
+      body {
+        font-family: "Segoe UI", "Bahnschrift", Arial, sans-serif;
         color: var(--text);
         background:
-          radial-gradient(circle at 20% -10%, rgba(86, 163, 255, 0.25), transparent 45%),
-          radial-gradient(circle at 90% 10%, rgba(122, 212, 255, 0.16), transparent 40%),
-          linear-gradient(180deg, #12213a 0%, var(--bg) 55%);
+          radial-gradient(circle at 8% -10%, rgba(93, 169, 255, 0.3), transparent 42%),
+          radial-gradient(circle at 95% 5%, rgba(121, 215, 255, 0.16), transparent 36%),
+          linear-gradient(180deg, var(--bg-2) 0%, var(--bg) 60%);
+      }
+
+      a {
+        color: var(--accent-2);
       }
 
       .wrap {
-        width: min(980px, calc(100% - 32px));
-        margin: 24px auto;
+        width: min(1160px, calc(100% - 34px));
+        margin: 20px auto 30px;
+      }
+
+      .topbar {
+        position: sticky;
+        top: 10px;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 12px;
+        border: 1px solid var(--line-soft);
+        border-radius: 12px;
+        background: rgba(14, 28, 48, 0.82);
+        backdrop-filter: blur(8px);
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .brand img {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        border: 1px solid rgba(170, 199, 240, 0.45);
+        background: rgba(255, 255, 255, 0.05);
+        padding: 2px;
+      }
+
+      .brand strong {
+        font-size: 15px;
+        letter-spacing: 0.02em;
+      }
+
+      .brand span {
+        display: block;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .nav {
+        display: inline-flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .nav a {
+        text-decoration: none;
+        border: 1px solid rgba(127, 160, 204, 0.35);
+        border-radius: 9px;
+        color: #d7e8ff;
+        padding: 5px 9px;
+        font-size: 12px;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .nav a:hover {
+        border-color: rgba(167, 198, 241, 0.7);
+        background: rgba(255, 255, 255, 0.09);
       }
 
       .hero {
-        display: grid;
-        grid-template-columns: 120px 1fr;
-        gap: 18px;
-        align-items: center;
-        padding: 22px;
+        margin-top: 14px;
+        padding: 24px;
         border: 1px solid var(--line);
-        border-radius: 16px;
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent), var(--panel);
-        box-shadow: 0 18px 36px rgba(3, 7, 14, 0.32);
+        border-radius: 18px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent),
+          linear-gradient(120deg, rgba(68, 122, 190, 0.36), rgba(41, 70, 111, 0.34));
+        box-shadow: 0 22px 38px rgba(3, 8, 17, 0.34);
       }
 
-      .logo {
-        width: 110px;
-        height: 110px;
+      .hero-grid {
+        display: grid;
+        grid-template-columns: 138px 1fr;
+        gap: 20px;
+        align-items: center;
+      }
+
+      .hero-logo {
+        width: 128px;
+        height: 128px;
         object-fit: contain;
-        border-radius: 18px;
-        border: 1px solid rgba(166, 197, 240, 0.4);
+        border-radius: 20px;
+        border: 1px solid rgba(161, 196, 241, 0.45);
         background: rgba(255, 255, 255, 0.04);
         padding: 8px;
       }
 
       h1 {
-        margin: 0 0 8px;
-        font-size: clamp(28px, 4vw, 40px);
-        line-height: 1.05;
+        margin: 0 0 10px;
+        font-size: clamp(30px, 5vw, 48px);
+        line-height: 1.02;
       }
 
       .subtitle {
         margin: 0;
         color: var(--muted);
         font-size: 16px;
+        line-height: 1.5;
       }
 
-      .buttons {
+      .pill-row {
+        margin-top: 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid rgba(134, 170, 218, 0.43);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 5px 10px;
+        font-size: 12px;
+        color: #d5e6ff;
+      }
+
+      .cta {
+        margin-top: 18px;
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
-        margin-top: 16px;
       }
 
       .btn {
@@ -86,73 +187,219 @@
         align-items: center;
         justify-content: center;
         gap: 8px;
-        min-height: 42px;
-        padding: 0 14px;
+        min-height: 44px;
+        padding: 0 16px;
         border-radius: 10px;
-        border: 1px solid rgba(132, 180, 240, 0.5);
-        background: linear-gradient(180deg, rgba(86, 163, 255, 0.25), rgba(86, 163, 255, 0.14));
-        color: var(--text);
+        border: 1px solid rgba(132, 180, 240, 0.56);
         text-decoration: none;
-        font-weight: 600;
+        color: var(--text);
+        font-weight: 700;
+        font-size: 14px;
+        background: linear-gradient(180deg, rgba(92, 167, 255, 0.32), rgba(92, 167, 255, 0.16));
       }
 
       .btn:hover {
-        border-color: rgba(151, 197, 255, 0.85);
-        background: linear-gradient(180deg, rgba(93, 172, 255, 0.35), rgba(93, 172, 255, 0.2));
+        border-color: rgba(165, 202, 250, 0.9);
+        background: linear-gradient(180deg, rgba(96, 176, 255, 0.4), rgba(96, 176, 255, 0.22));
       }
 
       .btn.secondary {
-        background: rgba(255, 255, 255, 0.04);
+        background: rgba(255, 255, 255, 0.05);
       }
 
-      .grid {
-        margin-top: 18px;
+      .section {
+        margin-top: 14px;
+        border: 1px solid var(--line-soft);
+        border-radius: 14px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent), var(--panel);
+        padding: 16px;
+      }
+
+      .section h2 {
+        margin: 0 0 12px;
+        font-size: 20px;
+      }
+
+      .section p.lead {
+        margin: 0 0 12px;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      .features {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 12px;
+        gap: 10px;
       }
 
       .card {
-        border: 1px solid var(--line);
-        border-radius: 12px;
+        border: 1px solid rgba(128, 165, 215, 0.35);
+        border-radius: 11px;
         background: var(--panel-2);
-        padding: 14px;
+        padding: 12px;
       }
 
-      .card h2 {
+      .card h3 {
         margin: 0 0 8px;
-        font-size: 16px;
+        font-size: 15px;
       }
 
       .card p {
         margin: 0;
         color: var(--muted);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .steps {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .step {
+        border: 1px solid rgba(132, 167, 214, 0.36);
+        border-radius: 11px;
+        background: rgba(255, 255, 255, 0.03);
+        padding: 10px;
+      }
+
+      .step strong {
+        display: block;
+        margin-bottom: 6px;
         font-size: 14px;
+      }
+
+      .step p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 13px;
         line-height: 1.45;
       }
 
-      footer {
-        margin-top: 16px;
+      .release {
+        display: grid;
+        grid-template-columns: 1.3fr 1fr;
+        gap: 10px;
+      }
+
+      .box {
+        border: 1px solid rgba(140, 175, 220, 0.38);
+        border-radius: 11px;
+        background: rgba(255, 255, 255, 0.03);
+        padding: 12px;
+      }
+
+      .box h3 {
+        margin: 0 0 8px;
+        font-size: 15px;
+      }
+
+      .box ul {
+        margin: 0;
+        padding-left: 18px;
         color: var(--muted);
         font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .box code {
+        color: #d8ecff;
+        background: rgba(8, 20, 36, 0.56);
+        border: 1px solid rgba(116, 155, 207, 0.3);
+        border-radius: 6px;
+        padding: 1px 5px;
+      }
+
+      .faq {
+        display: grid;
+        gap: 8px;
+      }
+
+      details {
+        border: 1px solid rgba(137, 170, 213, 0.36);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.03);
+        padding: 10px 12px;
+      }
+
+      details summary {
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      details p {
+        margin: 9px 0 0;
+        color: var(--muted);
+        line-height: 1.5;
+        font-size: 13px;
+      }
+
+      .status {
+        margin-top: 10px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: #d8e7ff;
+      }
+
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+      }
+
+      .dot.ok {
+        background: var(--ok);
+      }
+
+      .dot.warn {
+        background: var(--warn);
+      }
+
+      footer {
+        margin-top: 12px;
         text-align: center;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      @media (max-width: 980px) {
+        .features {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .steps {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .release {
+          grid-template-columns: 1fr;
+        }
       }
 
       @media (max-width: 760px) {
-        .hero {
+        .topbar {
+          position: static;
+        }
+
+        .hero-grid {
           grid-template-columns: 1fr;
           text-align: center;
         }
 
-        .logo {
-          margin-inline: auto;
+        .hero-logo {
+          margin: 0 auto;
         }
 
-        .buttons {
+        .pill-row,
+        .cta {
           justify-content: center;
         }
 
-        .grid {
+        .features,
+        .steps {
           grid-template-columns: 1fr;
         }
       }
@@ -160,39 +407,171 @@
   </head>
   <body>
     <main class="wrap">
-      <section class="hero">
-        <img class="logo" src="./madcad-512.png" alt="Logo MadCAD 2D" />
-        <div>
-          <h1>MadCAD 2D</h1>
-          <p class="subtitle">
-            Prosta aplikacja CAD 2D na Windows i macOS do projektowania konstrukcji stalowych: bramy,
-            ogrodzenia, balkony.
-          </p>
-          <div class="buttons">
-            <a class="btn" href="https://github.com/kamil5646/MadCAD2D/releases/download/1.0/MadCAD.2D-1.0.0-win-x64.exe">Pobierz Windows (.exe)</a>
-            <a class="btn" href="https://github.com/kamil5646/MadCAD2D/releases/download/1.0/MadCAD.2D-1.0.0-mac-x64.zip">Pobierz macOS (.zip)</a>
-            <a class="btn secondary" href="https://github.com/kamil5646/MadCAD2D/releases/tag/1.0">Release 1.0</a>
+      <nav class="topbar">
+        <div class="brand">
+          <img src="./madcad-512.png" alt="MadCAD 2D" />
+          <div>
+            <strong>MadCAD 2D</strong>
+            <span>Desktop CAD 2D - konstrukcje stalowe</span>
+          </div>
+        </div>
+        <div class="nav">
+          <a href="#funkcje">Funkcje</a>
+          <a href="#jak-dziala">Jak działa</a>
+          <a href="#pobierz">Pobierz</a>
+          <a href="#faq">FAQ</a>
+        </div>
+      </nav>
+
+      <section class="hero" id="start">
+        <div class="hero-grid">
+          <img class="hero-logo" src="./madcad-512.png" alt="Logo MadCAD 2D" />
+          <div>
+            <h1>MadCAD 2D</h1>
+            <p class="subtitle">
+              Aplikacja CAD 2D na Windows i macOS do szybkiego projektowania bram, ogrodzeń i balkonów.
+              Lekki interfejs, generator stali i wymiarowanie w jednym miejscu.
+            </p>
+            <div class="pill-row">
+              <span class="pill">Wersja 1.0</span>
+              <span class="pill">Windows + macOS</span>
+              <span class="pill">Wymiarowanie kątowe</span>
+              <span class="pill">Generator konstrukcji stalowych</span>
+            </div>
+            <div class="cta" id="pobierz">
+              <a class="btn" href="https://github.com/kamil5646/MadCAD2D/releases/download/1.0/MadCAD.2D-1.0.0-win-x64.exe">Pobierz Windows (.exe)</a>
+              <a class="btn" href="https://github.com/kamil5646/MadCAD2D/releases/download/1.0/MadCAD.2D-1.0.0-mac-x64.zip">Pobierz macOS (.zip)</a>
+              <a class="btn secondary" href="https://github.com/kamil5646/MadCAD2D/releases/tag/1.0">Release 1.0</a>
+              <a class="btn secondary" href="https://github.com/kamil5646/MadCAD2D">Kod źródłowy</a>
+            </div>
+            <div class="status">
+              <span class="dot ok" aria-hidden="true"></span>
+              <span>Status projektu: aktywnie rozwijany</span>
+            </div>
           </div>
         </div>
       </section>
 
-      <section class="grid">
-        <article class="card">
-          <h2>Rysowanie 2D</h2>
-          <p>Linia, polilinia, prostokąt, okrąg, zaznaczanie, kopiowanie, przesuwanie i offset.</p>
-        </article>
-        <article class="card">
-          <h2>Wymiarowanie</h2>
-          <p>Wymiary wyrównane, liniowe, obrócone i kątowe z konfiguracją stylu.</p>
-        </article>
-        <article class="card">
-          <h2>Generator stali</h2>
-          <p>Szablony: brama, ogrodzenie, balkon. Automatyczne rozstawy paneli i profile.</p>
-        </article>
+      <section class="section" id="funkcje">
+        <h2>Najważniejsze funkcje</h2>
+        <p class="lead">
+          Interfejs jest przygotowany pod codzienną pracę warsztatową: szybkie rysowanie, poprawki,
+          wymiarowanie oraz generowanie podstawowych układów stalowych.
+        </p>
+        <div class="features">
+          <article class="card">
+            <h3>Rysowanie 2D</h3>
+            <p>Linia, polilinia, prostokąt, okrąg, pan/zoom oraz przyciąganie do siatki i punktów.</p>
+          </article>
+          <article class="card">
+            <h3>Wymiarowanie CAD</h3>
+            <p>Tryby: wyrównany, liniowy, obrócony i kątowy. Ustawisz kolor, tekst, precyzję i jednostki.</p>
+          </article>
+          <article class="card">
+            <h3>Generator stali</h3>
+            <p>Szablony: brama, ogrodzenie, balkon. Automatyczne dopasowanie przerw i paneli.</p>
+          </article>
+          <article class="card">
+            <h3>Modyfikacje</h3>
+            <p>MOVE, COPY, OFFSET, duplikowanie, usuwanie, zmiana kolejności obiektów.</p>
+          </article>
+          <article class="card">
+            <h3>Warstwy</h3>
+            <p>Widoczność, blokady i aktywna warstwa robocza do porządkowania projektu.</p>
+          </article>
+          <article class="card">
+            <h3>Import / eksport</h3>
+            <p>JSON, DXF, SVG oraz druk/PDF. Wygodne przekazywanie projektu do klienta i produkcji.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="jak-dziala">
+        <h2>Jak wygląda praca w MadCAD 2D</h2>
+        <div class="steps">
+          <article class="step">
+            <strong>1. Wybierz szablon</strong>
+            <p>Uruchom aplikację i przejdź do zakładki Stal, a następnie wybierz bramę, ogrodzenie lub balkon.</p>
+          </article>
+          <article class="step">
+            <strong>2. Ustaw parametry</strong>
+            <p>Podaj szerokość, wysokość, profile, panele i odstępy. Generator przelicza układ automatycznie.</p>
+          </article>
+          <article class="step">
+            <strong>3. Dorysuj detale</strong>
+            <p>Użyj narzędzi 2D, aby dodać dodatkowe elementy, opisy i poprawki geometrii.</p>
+          </article>
+          <article class="step">
+            <strong>4. Zwymiaruj i wyeksportuj</strong>
+            <p>Dodaj wymiary (także kąty), potem zapisz DXF/SVG lub wydrukuj dokument PDF.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="release">
+        <h2>Wydanie 1.0</h2>
+        <div class="release">
+          <article class="box">
+            <h3>Co zawiera wersja 1.0</h3>
+            <ul>
+              <li>pełna aplikacja desktopowa z instalatorem Windows i paczką macOS,</li>
+              <li>nowy interfejs wstążki z polskimi nazwami narzędzi,</li>
+              <li>wymiarowanie kątowe i lepsze przyciąganie podczas rysowania,</li>
+              <li>generator stali z poprawioną logiką paneli i słupków.</li>
+            </ul>
+          </article>
+          <article class="box">
+            <h3>Linki bezpośrednie</h3>
+            <ul>
+              <li>
+                Windows: <a href="https://github.com/kamil5646/MadCAD2D/releases/download/1.0/MadCAD.2D-1.0.0-win-x64.exe">MadCAD.2D-1.0.0-win-x64.exe</a>
+              </li>
+              <li>
+                macOS: <a href="https://github.com/kamil5646/MadCAD2D/releases/download/1.0/MadCAD.2D-1.0.0-mac-x64.zip">MadCAD.2D-1.0.0-mac-x64.zip</a>
+              </li>
+              <li>
+                Repo: <a href="https://github.com/kamil5646/MadCAD2D">github.com/kamil5646/MadCAD2D</a>
+              </li>
+            </ul>
+            <p style="margin: 10px 0 0; color: var(--muted); font-size: 13px;">
+              Po pobraniu uruchom instalator. W aplikacji użyj menu <code>Zapisz/Drukuj</code>, aby szybko zapisać projekt.
+            </p>
+          </article>
+        </div>
+        <div class="status">
+          <span class="dot warn" aria-hidden="true"></span>
+          <span>Uwaga: buildy macOS są bez podpisu Apple Developer ID.</span>
+        </div>
+      </section>
+
+      <section class="section" id="faq">
+        <h2>FAQ</h2>
+        <div class="faq">
+          <details>
+            <summary>Czy aplikacja działa offline?</summary>
+            <p>Tak. Po instalacji MadCAD 2D działa lokalnie na komputerze bez stałego internetu.</p>
+          </details>
+          <details>
+            <summary>Czy mogę wyeksportować rysunek do DXF?</summary>
+            <p>Tak. W menu <strong>Zapisz/Drukuj</strong> dostępny jest eksport DXF oraz SVG i wydruk/PDF.</p>
+          </details>
+          <details>
+            <summary>Czy jest wymiarowanie kątów?</summary>
+            <p>Tak. W zakładce <strong>Wymiarowanie</strong> masz tryb <strong>Wymiar kątowy</strong>.</p>
+          </details>
+          <details>
+            <summary>Czy mogę używać tego do bram i ogrodzeń na co dzień?</summary>
+            <p>
+              Tak, to główny kierunek aplikacji. Generator stali pozwala szybko przygotować bazowy układ,
+              który dalej edytujesz ręcznie narzędziami 2D.
+            </p>
+          </details>
+        </div>
       </section>
 
       <footer>
-        GitHub: <a href="https://github.com/kamil5646/MadCAD2D" style="color: var(--accent-2)">@kamil5646/MadCAD2D</a>
+        MadCAD 2D · 2026 ·
+        <a href="https://github.com/kamil5646/MadCAD2D">GitHub</a>
       </footer>
     </main>
   </body>
