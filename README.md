@@ -2,11 +2,22 @@
 
 Desktopowa aplikacja CAD 2D (Mac/Windows) MadCAD 2D, z naciskiem na projektowanie konstrukcji stalowych: bramy, ogrodzenia, balkony.
 
+## About
+
+MadCAD 2D to lekka aplikacja desktopowa CAD 2D dla warsztatów i projektantów konstrukcji stalowych.
+Projekt skupia się na szybkim rysowaniu, wymiarowaniu i generowaniu elementów takich jak bramy, ogrodzenia i balkony.
+
+Aktualne wydanie `1.0`:
+
+- Windows installer: `MadCAD.2D-1.0.0-win-x64.exe`
+- macOS package: `MadCAD.2D-1.0.0-mac-x64.zip`
+- Release: `https://github.com/kamil5646/MadCAD2D/releases/tag/1.0`
+
 ## Najważniejsze funkcje
 
 - Wstążka (Ribbon) z logiką trybów: `Start`, `Rysowanie 2D`, `Generator stali`.
 - Rysowanie 2D: `Linia`, `Polilinia`, `Prostokąt`, `Okrąg`.
-- Wymiarowanie: `DIM Aligned`, `DIM Linear`, jednostki, precyzja, rozmiar i kolor DIM.
+- Wymiarowanie: `DIM Aligned`, `DIM Linear`, `DIM Rotated`, `DIM Angular` (kątowy), jednostki, precyzja, rozmiar i kolor DIM.
 - SNAP do siatki i obiektów (końce, środki, narożniki, krawędzie).
 - Modyfikacje: `MOVE`, `COPY`, `OFFSET`, duplikacja, usuwanie, kolejność.
 - Warstwy: aktywna warstwa, widoczność, blokady, tworzenie/usuwanie.
@@ -18,7 +29,7 @@ Desktopowa aplikacja CAD 2D (Mac/Windows) MadCAD 2D, z naciskiem na projektowani
 1. Wejdź do katalogu projektu:
 
 ```bash
-cd /Users/kamilkasprzak/Documents/inne/auto-cad
+cd /Users/kamilkasprzak/Documents/inne
 ```
 
 2. Zainstaluj zależności:
@@ -87,7 +98,9 @@ Artefakty builda trafiają do katalogu `release/`.
 
 - `mode start|draw|steel`
 - `layout model|sheet1`
-- `dimstyle [mm|cm|m] [prec] [text] [aligned|linear] [#RRGGBB]`
+- `dimstyle [mm|cm|m] [prec] [text] [aligned|linear|rotated|angular] [#RRGGBB]`
+- `dimension angular`
+- `dimangular`
 - `dimcolor #RRGGBB`
 - `snap on|off|toggle`
 - `grid on|off|toggle`
