@@ -1,78 +1,57 @@
-# MadCAD 2D Desktop
+# MadCAD 2D
 
-Desktopowa aplikacja CAD 2D (Mac/Windows) MadCAD 2D, z naciskiem na projektowanie konstrukcji stalowych: bramy, ogrodzenia, balkony.
+Desktopowa aplikacja CAD 2D (Windows/macOS) do projektowania konstrukcji stalowych: bramy, ogrodzenia, balkony.
 
-## About
+## Linki
 
-MadCAD 2D to lekka aplikacja desktopowa CAD 2D dla warsztatów i projektantów konstrukcji stalowych.
-Projekt skupia się na szybkim rysowaniu, wymiarowaniu i generowaniu elementów takich jak bramy, ogrodzenia i balkony.
+- Strona projektu (GitHub Pages): https://kamil5646.github.io/MadCAD2D/
+- Repozytorium: https://github.com/kamil5646/MadCAD2D
+- Release 1.0: https://github.com/kamil5646/MadCAD2D/releases/tag/1.0
 
-Aktualne wydanie `1.0`:
+## Pobieranie (Release 1.0)
 
-- Windows installer: `MadCAD.2D-1.0.0-win-x64.exe`
-- macOS package: `MadCAD.2D-1.0.0-mac-x64.zip`
-- Release: `https://github.com/kamil5646/MadCAD2D/releases/tag/1.0`
+- Windows: `MadCAD.2D-1.0.0-win-x64.exe`
+- macOS: `MadCAD.2D-1.0.0-mac-x64.zip`
+
+Pliki są dostępne w sekcji release:  
+https://github.com/kamil5646/MadCAD2D/releases/tag/1.0
 
 ## Najważniejsze funkcje
 
-- Wstążka (Ribbon) z logiką trybów: `Start`, `Rysowanie 2D`, `Generator stali`.
-- Rysowanie 2D: `Linia`, `Polilinia`, `Prostokąt`, `Okrąg`.
-- Wymiarowanie: `DIM Aligned`, `DIM Linear`, `DIM Rotated`, `DIM Angular` (kątowy), jednostki, precyzja, rozmiar i kolor DIM.
-- SNAP do siatki i obiektów (końce, środki, narożniki, krawędzie).
-- Modyfikacje: `MOVE`, `COPY`, `OFFSET`, duplikacja, usuwanie, kolejność.
-- Warstwy: aktywna warstwa, widoczność, blokady, tworzenie/usuwanie.
-- Generator stali: brama / ogrodzenie / balkon z parametrami w mm.
-- Import/eksport: JSON, DXF, SVG oraz druk/PDF.
+- Wstążka narzędzi i polski interfejs.
+- Narzędzia 2D: `Linia`, `Polilinia`, `Prostokąt`, `Okrąg`, `Pomiar`, `Wymiar`.
+- Wymiarowanie: `Aligned`, `Linear`, `Rotated`, `Angular` (kątowe).
+- SNAP i ORTHO, przyciąganie do punktów charakterystycznych.
+- Edycja: `MOVE`, `COPY`, `OFFSET`, duplikacja, usuwanie, kolejność.
+- Warstwy: aktywna warstwa, widoczność, blokady.
+- Generator stali: szablony `Brama`, `Ogrodzenie`, `Balkon`.
+- Import/eksport: `JSON`, `DXF`, `SVG`, oraz `Druk/PDF`.
+- Menu `Zapisz/Drukuj` bezpośrednio w górnym pasku.
 
-## Uruchomienie desktop (dev)
-
-1. Wejdź do katalogu projektu:
-
-```bash
-cd /Users/kamilkasprzak/Documents/inne
-```
-
-2. Zainstaluj zależności:
+## Uruchomienie lokalne (dev)
 
 ```bash
-npm install
-```
-
-3. Uruchom aplikację desktop:
-
-```bash
+npm ci
 npm run dev
 ```
 
 ## Build aplikacji
 
-### macOS
-
 ```bash
+# paczka katalogowa (lokalny test app)
+npm run dist:dir
+
+# macOS (dir)
 npm run dist:mac
-```
 
-Wynik:
-
-- gotowa aplikacja `.app` w katalogu `release/mac-*/MadCAD 2D.app`
-
-### Windows
-
-```bash
+# Windows (instalator NSIS x64)
 npm run dist:win
-```
 
-Wynik:
-
-- instalator `.exe` (NSIS) w katalogu `release/`
-
-### Jednocześnie (Mac/Windows/Linux)
-
-```bash
+# oba targety jednocześnie
 npm run dist
 ```
 
-Artefakty builda trafiają do katalogu `release/`.
+Artefakty trafiają do katalogu `release/`.
 
 ## Skróty klawiszowe
 
@@ -87,14 +66,14 @@ Artefakty builda trafiają do katalogu `release/`.
 - `F4` - zwiń/rozwiń wstążkę
 - `F6` - ukryj/pokaż panele
 - `F8` - ORTHO
-- `G` - GRID
+- `G` - Siatka
 - `Ctrl+Z` - Cofnij
 - `Ctrl+Y` - Ponów
 - `Ctrl+C` / `Ctrl+V` - kopiuj/wklej
-- `Ctrl+S` - zapisz JSON
-- `Ctrl+P` - druk/PDF
+- `Ctrl+S` - Zapisz JSON
+- `Ctrl+P` - Druk/PDF
 
-## Komendy (skrótowe)
+## Komendy CAD (przykłady)
 
 - `mode start|draw|steel`
 - `layout model|sheet1`
@@ -109,6 +88,6 @@ Artefakty builda trafiają do katalogu `release/`.
 
 ## Stack techniczny
 
-- `Electron` (shell desktop na Mac/Windows)
-- `HTML/CSS/JS` (renderer CAD)
-- `electron-builder` (pakowanie instalatorów)
+- `Electron`
+- `HTML/CSS/JavaScript`
+- `electron-builder`
