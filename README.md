@@ -103,7 +103,7 @@ Artefakty builda trafiają do katalogu `release/`.
 
 ## Licencja
 
-Projekt jest udostępniony na licencji MIT:
+Projekt jest objęty licencją niestandardową (używanie dozwolone, modyfikacje zabronione):
 
 - [`LICENSE`](./LICENSE)
 - [`LICENSE.md`](./LICENSE.md)

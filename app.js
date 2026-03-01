@@ -7824,7 +7824,7 @@
   function applyHoverHelpTooltips() {
     const tooltipById = {
       fileMenuBtn: "Menu zapisu i druku: otwieranie, zapis, import i eksport rysunków.",
-      licenseCategoryBtn: "Otwiera panel informacji o licencji MIT i opcjonalnych tokenach.",
+      licenseCategoryBtn: "Otwiera panel informacji o licencji i aktywacji tokenu.",
       loadJsonBtn: "Wczytuje projekt z pliku JSON.",
       saveJsonBtn: "Zapisuje projekt do pliku JSON.",
       importDxfBtn: "Importuje geometrię z pliku DXF.",
