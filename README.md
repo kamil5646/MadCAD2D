@@ -91,3 +91,10 @@ Artefakty trafiają do katalogu `release/`.
 - `Electron`
 - `HTML/CSS/JavaScript`
 - `electron-builder`
+
+## Prawa i licencja
+
+- Licencja kodu źródłowego: [MIT](./LICENSE)
+- Prawa autorskie i branding: [COPYRIGHT.md](./COPYRIGHT.md)
+- Warunki binarnych wydań aplikacji: [EULA.md](./EULA.md)
+- Polityka prywatności: [PRIVACY.md](./PRIVACY.md)
