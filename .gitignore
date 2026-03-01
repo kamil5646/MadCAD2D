@@ -8,3 +8,5 @@ dist/
 output/
 auto-cad/.playwright-cli/
 auto-cad/test-results/
+.venv-logo/
+auto-cad/.venv-icon/

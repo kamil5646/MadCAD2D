@@ -3,3 +3,8 @@ release/
 dist/
 .DS_Store
 *.log
+
+# Generated assets and local artifacts
+output/
+auto-cad/.playwright-cli/
+auto-cad/test-results/

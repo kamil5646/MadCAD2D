@@ -2,6 +2,12 @@ const os = require('os');
 const crypto = require('crypto');
 const { contextBridge, ipcRenderer } = require('electron');
 
+const LICENSE_PUBLIC_KEY_PEM = [
+  '-----BEGIN PUBLIC KEY-----',
+  'MCowBQYDK2VwAyEA5vwZA4c41mXP0grMhjY1Uwmg0tZH+L02qFi3GZC9CXY=',
+  '-----END PUBLIC KEY-----'
+].join('\n');
+
 function resolveDeviceId() {
   try {
     const username = os.userInfo().username || 'unknown-user';
@@ -17,10 +23,29 @@ function resolveDeviceId() {
   }
 }
 
+function base64UrlToBuffer(value) {
+  const raw = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
+  const pad = (4 - (raw.length % 4)) % 4;
+  return Buffer.from(raw + '='.repeat(pad), 'base64');
+}
+
+function verifyLicenseSignature(payloadJson, signatureBase64Url) {
+  try {
+    const publicKey = crypto.createPublicKey(LICENSE_PUBLIC_KEY_PEM);
+    const payload = Buffer.from(String(payloadJson || ''), 'utf8');
+    const signature = base64UrlToBuffer(signatureBase64Url);
+    return crypto.verify(null, payload, publicKey, signature);
+  } catch {
+    return false;
+  }
+}
+
 contextBridge.exposeInMainWorld('desktopApp', {
   platform: process.platform,
   isDesktop: true,
   deviceId: resolveDeviceId(),
+  verifyLicenseSignature: (payloadJson, signatureBase64Url) =>
+    verifyLicenseSignature(payloadJson, signatureBase64Url),
   saveTextFile: (payload) => ipcRenderer.invoke('madcad:save-text-file', payload),
   appendLicenseAudit: (payload) => ipcRenderer.invoke('madcad:append-license-audit', payload)
 });

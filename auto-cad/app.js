@@ -127,7 +127,6 @@
   const LICENSE_STORAGE_KEY = "madcad-license-v1";
   const LICENSE_SIGNATURE_SALT = "MadCAD2D-Private-NoMods-SingleDevice-2026";
   const LICENSE_TOKEN_PREFIX = "M2D1";
-  const LICENSE_COMMERCIAL_DONATION_USD = 30;
   const LICENSE_PRIVATE_FORM_URL = "https://kamil5646.github.io/MadCAD2D/#token-prywatny";
   const licenseSession = {
     active: false,
@@ -1209,23 +1208,8 @@
       return { ok: false, error: "Token nie jest przypisany do tego urządzenia." };
     }
     if (scope === "private") {
-      if (
-        !String(parsed.payload.ownerName || "").trim() ||
-        !normalizeLicenseEmail(parsed.payload.email) ||
-        !String(parsed.payload.purpose || "").trim()
-      ) {
+      if (!String(parsed.payload.ownerName || "").trim()) {
         return { ok: false, error: "Token prywatny ma niepełne dane formularza." };
-      }
-      if (parsed.payload.noModifications !== true || parsed.payload.commercialUse !== false) {
-        return { ok: false, error: "Token prywatny ma błędne uprawnienia." };
-      }
-    }
-    if (scope === "commercial") {
-      if (Number(parsed.payload.donationUsd) !== LICENSE_COMMERCIAL_DONATION_USD || Number(parsed.payload.seats) !== 1) {
-        return {
-          ok: false,
-          error: `Token komercyjny nie spełnia warunku ${LICENSE_COMMERCIAL_DONATION_USD} USD / 1 urządzenie.`
-        };
       }
     }
     return {
@@ -1382,8 +1366,8 @@
       persistLicenseRecord(verified.token, verified.payload);
     }
     setLicenseLocked(false);
-    const scopeLabel = verified.scope === "commercial" ? "komercyjna" : "prywatna";
-    setLicenseStatus(`Licencja ${scopeLabel} aktywna na tym urządzeniu.`, "ok");
+    const scopeLabel = verified.scope === "commercial" ? "komercyjny" : "prywatny";
+    setLicenseStatus(`Token ${scopeLabel} został aktywowany na tym urządzeniu.`, "ok");
     if (!options || options.silent !== true) {
       const owner = normalizeLicenseOwner(verified.payload) || "bez nazwy";
       appendPrivateLicenseAudit("Aktywacja tokenu", `${scopeLabel} | ${owner}`, {
@@ -1412,7 +1396,6 @@
       ownerName,
       email,
       deviceId: getLicenseDeviceId(),
-      donationUsd: LICENSE_COMMERCIAL_DONATION_USD,
       seats: 1,
       donationRef: donationRef || null,
       requestedAt: new Date().toISOString()
@@ -1421,14 +1404,10 @@
     if (licenseCommercialRequestOutput) {
       licenseCommercialRequestOutput.value = requestCode;
     }
-    setLicenseStatus(
-      `Wygenerowano kod zgłoszenia komercyjnego. Po potwierdzeniu wpłaty ${LICENSE_COMMERCIAL_DONATION_USD} USD otrzymasz token.`,
-      "ok"
-    );
+    setLicenseStatus("Wygenerowano kod zgłoszenia komercyjnego.", "ok");
     appendPrivateLicenseAudit("Formularz komercyjny", `${ownerName} | ${email} | kod: ${requestCode.slice(0, 42)}...`, {
       ownerName,
-      email,
-      donationUsd: LICENSE_COMMERCIAL_DONATION_USD
+      email
     });
     return requestCode;
   }
@@ -1487,7 +1466,7 @@
         const token = licenseTokenInput ? licenseTokenInput.value : "";
         const result = activateLicenseToken(token);
         if (result.ok) {
-          echoCommand("Licencja aktywna. Możesz korzystać z aplikacji.");
+          echoCommand("Token aktywny.");
         }
       });
     }
@@ -1534,7 +1513,7 @@
     }
 
     setLicenseLocked(true);
-    setLicenseStatus("Wymagana aktywacja. Wklej token prywatny lub komercyjny przypisany do tego urządzenia.", "error");
+    setLicenseStatus("Wymagana aktywacja. Wygeneruj darmowy token i wklej go tutaj.", "error");
     return false;
   }
 
@@ -7845,7 +7824,7 @@
   function applyHoverHelpTooltips() {
     const tooltipById = {
       fileMenuBtn: "Menu zapisu i druku: otwieranie, zapis, import i eksport rysunków.",
-      licenseCategoryBtn: "Otwiera panel licencji i pokazuje aktywny status (Free/Komercyjna oraz właściciel).",
+      licenseCategoryBtn: "Otwiera panel informacji o licencji i aktywacji tokenu.",
       loadJsonBtn: "Wczytuje projekt z pliku JSON.",
       saveJsonBtn: "Zapisuje projekt do pliku JSON.",
       importDxfBtn: "Importuje geometrię z pliku DXF.",
