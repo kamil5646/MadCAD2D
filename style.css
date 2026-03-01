@@ -202,8 +202,6 @@ select {
   border-bottom: 1px solid #2d4566;
   background: linear-gradient(180deg, var(--office-top), var(--office-top-deep));
   box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.14);
-  position: relative;
-  z-index: 260;
 }
 
 .top-quickbar {
@@ -293,7 +291,6 @@ select {
 
 .file-menu {
   position: relative;
-  z-index: 380;
 }
 
 .file-tab-menu {
@@ -317,8 +314,8 @@ select {
 }
 
 .file-menu-panel {
-  position: fixed;
-  top: 0;
+  position: absolute;
+  top: calc(100% + 4px);
   left: 0;
   min-width: 196px;
   display: grid;
@@ -327,7 +324,7 @@ select {
   border: 1px solid #8fa9d0;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent), #294165;
   box-shadow: 0 10px 22px rgba(8, 14, 24, 0.42);
-  z-index: 4200;
+  z-index: 140;
 }
 
 .file-tab-panel {
@@ -550,8 +547,6 @@ select {
   overflow-x: hidden;
   overflow-y: visible;
   box-shadow: inset 0 -1px 0 rgba(10, 20, 33, 0.45);
-  position: relative;
-  z-index: 320;
 }
 
 .ribbon-tab-track {
@@ -638,16 +633,6 @@ select {
   box-shadow: none;
 }
 
-.ribbon-tab.has-icon {
-  gap: 5px;
-}
-
-.ribbon-tab.has-icon::before {
-  font-size: 10px;
-  color: #9fb9dd;
-  opacity: 0.95;
-}
-
 .ribbon-tab:hover:not(.active):not(.tab-disabled) {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(123, 148, 188, 0.4);
@@ -655,7 +640,7 @@ select {
 }
 
 .ribbon-tab-file {
-  min-width: 104px;
+  min-width: 44px;
   color: #ffffff;
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(137, 163, 202, 0.54);
@@ -663,13 +648,9 @@ select {
 }
 
 .ribbon-actions .ribbon-tab-file {
-  min-width: 102px;
-  padding: 3px 9px 3px;
+  min-width: 42px;
+  padding: 3px 7px 3px;
   font-size: 9px;
-}
-
-.ribbon-tab-file.has-icon::before {
-  color: #c9dcfb;
 }
 
 .ribbon-tab-file:hover {
@@ -688,10 +669,6 @@ select {
   color: #ffffff;
   border-color: rgba(126, 166, 221, 0.62);
   box-shadow: none;
-}
-
-.ribbon-tab.active.has-icon::before {
-  color: #e9f2ff;
 }
 
 .ribbon-tab.active::after {
@@ -724,7 +701,6 @@ select {
   max-width: 100%;
   box-sizing: border-box;
   position: relative;
-  z-index: 200;
 }
 
 .ribbon-group {
@@ -941,7 +917,7 @@ select {
 .app[data-ribbon-page="design"] .ribbon-group-steel [data-steel-field="height"],
 .app[data-ribbon-page="design"] .ribbon-group-steel [data-steel-field="frameProfile"],
 .app[data-ribbon-page="design"] .ribbon-group-steel [data-steel-field="barWidth"],
-.app[data-ribbon-page="design"] .ribbon-group-steel [data-steel-field="barSpacing"],
+.app[data-ribbon-page="design"] .ribbon-group-steel [data-steel-field="panelCount"],
 .app[data-ribbon-page="design"] .ribbon-group-steel [data-steel-field="infillPattern"],
 .app[data-ribbon-page="design"] .ribbon-group-steel [data-steel-field="postWidth"],
 .app[data-ribbon-page="design"] .ribbon-group-steel [data-steel-field="postLength"],
@@ -1922,6 +1898,111 @@ button:disabled:hover {
   background: var(--panel-soft);
 }
 
+.license-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(5, 10, 18, 0.84);
+  backdrop-filter: blur(2px);
+}
+
+.license-dialog {
+  width: min(1160px, 96vw);
+  max-height: 94vh;
+  overflow: auto;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, #1d2b3f, #182334);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.5);
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.license-dialog h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #f2f7ff;
+}
+
+.license-dialog h3 {
+  margin: 0;
+  font-size: 15px;
+  color: #dbe8ff;
+}
+
+.license-terms {
+  margin: 0;
+  border: 1px solid var(--border);
+  background: rgba(13, 22, 34, 0.7);
+  color: #d3def0;
+  padding: 9px 10px;
+  line-height: 1.45;
+}
+
+.license-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.license-card {
+  border: 1px solid var(--border);
+  background: rgba(27, 40, 58, 0.78);
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.license-note {
+  margin: 0;
+  font-size: 12px;
+  color: #becce2;
+  line-height: 1.4;
+}
+
+.license-card textarea,
+.license-activation textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 76px;
+  border: 1px solid var(--border);
+  background: #0f1b2b;
+  color: #e5edfb;
+  padding: 7px;
+}
+
+.license-activation {
+  border: 1px solid var(--border);
+  background: rgba(17, 28, 43, 0.7);
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.license-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.license-status {
+  margin: 0;
+  min-height: 20px;
+  color: #bfd0ea;
+  font-weight: 600;
+}
+
+.license-status.is-error {
+  color: #ff9a9a;
+}
+
+.license-status.is-ok {
+  color: #9ff0b2;
+}
+
 @media (max-width: 1440px) {
   .app.steel-dock-open {
     --steel-dock-width: min(430px, 42vw);
@@ -1966,6 +2047,10 @@ button:disabled:hover {
 
   .app[data-ribbon-page="design"] .ribbon-group-steel .ribbon-panel-body-steel {
     grid-template-columns: repeat(10, minmax(0, 1fr));
+  }
+
+  .license-grid {
+    grid-template-columns: 1fr;
   }
 }
 

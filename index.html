@@ -15,11 +15,11 @@
 
         <div class="ribbon-tabs">
           <div class="ribbon-tab-track">
-            <button class="ribbon-tab has-icon active" data-icon="&#8962;" data-page="home">Główne</button>
-            <button class="ribbon-tab has-icon" data-icon="&#128207;" data-page="references">Wymiarowanie</button>
-            <button class="ribbon-tab has-icon" data-icon="&#128736;" data-page="design">Stal</button>
-            <button class="ribbon-tab has-icon" data-icon="&#128209;" data-page="layout">Układ</button>
-            <button class="ribbon-tab has-icon" data-icon="&#128065;" data-page="view">Widok</button>
+            <button class="ribbon-tab active" data-page="home">Główne</button>
+            <button class="ribbon-tab" data-page="references">Wymiarowanie</button>
+            <button class="ribbon-tab" data-page="design">Stal</button>
+            <button class="ribbon-tab" data-page="layout">Układ</button>
+            <button class="ribbon-tab" data-page="view">Widok</button>
           </div>
           <div class="ribbon-actions">
             <button id="undoBtn" class="ribbon-action-btn has-icon" data-icon="&#8630;" data-pages="home" title="Cofnij">Cofnij</button>
@@ -55,14 +55,13 @@
             <div id="fileMenu" class="file-menu file-tab-menu file-tab-menu-right">
               <button
                 id="fileMenuBtn"
-                class="ribbon-tab ribbon-tab-file has-icon"
-                data-icon="&#128438;"
+                class="ribbon-tab ribbon-tab-file"
                 aria-haspopup="true"
                 aria-expanded="false"
                 aria-controls="fileMenuPanel"
-                title="Menu Zapisz/Drukuj"
+                title="Menu Plik"
               >
-                Zapisz/Drukuj
+                Plik
               </button>
               <div id="fileMenuPanel" class="file-menu-panel file-tab-panel" role="menu" hidden>
                 <button id="loadJsonBtn" class="quick-btn has-icon" data-icon="&#128194;" role="menuitem">
@@ -345,10 +344,10 @@
                 <input id="steelBarWidthInput" type="number" value="20" min="5" step="1" />
                 <small class="steel-help">Grubość sztachet/szczebli wewnątrz ramy.</small>
               </label>
-              <label class="control inline steel-control" data-steel-field="barSpacing">
-                <span class="has-icon" data-icon="&#8644;">Odstęp paneli [mm]</span>
-                <input id="steelBarSpacingInput" type="number" value="80" min="5" step="1" />
-                <small id="steelBarSpacingHint" class="steel-help">Dla pionu/siatki przerwy są automatycznie dopasowywane do ilości paneli i szerokości sekcji.</small>
+              <label class="control inline steel-control" data-steel-field="panelCount">
+                <span class="has-icon" data-icon="&#8644;">Ilość paneli [szt./sekcja]</span>
+                <input id="steelPanelCountInput" type="number" value="18" min="1" step="1" />
+                <small id="steelPanelCountHint" class="steel-help">Przerwy są dobierane automatycznie, aby równomiernie rozłożyć panele w sekcji.</small>
               </label>
               <label class="control inline steel-control" data-steel-field="infillPattern">
                 <span class="has-icon" data-icon="&#10065;">Typ wypełnienia</span>
@@ -535,6 +534,86 @@
     <input id="jsonFileInput" type="file" accept=".json" hidden />
     <input id="dxfFileInput" type="file" accept=".dxf,.txt" hidden />
     <div id="toastMessage" class="toast-message has-icon" data-icon="&#10003;" aria-live="assertive"></div>
+
+    <div id="licenseOverlay" class="license-overlay" aria-hidden="true" hidden>
+      <div class="license-dialog">
+        <h2 class="has-icon" data-icon="&#128274;">Aktywacja licencji MadCAD 2D</h2>
+        <p class="license-terms">
+          Użytek prywatny jest bezpłatny po wygenerowaniu tokenu. Modyfikacje aplikacji są zabronione.
+          Użytek komercyjny wymaga datku 50 USD za każde urządzenie (1 licencja = 1 urządzenie).
+        </p>
+
+        <div class="license-grid">
+          <section class="license-card">
+            <h3 class="has-icon" data-icon="&#127968;">Prywatnie (darmowy token)</h3>
+            <label class="control inline">
+              <span>Imię i nazwisko</span>
+              <input id="licensePrivateNameInput" type="text" placeholder="Jan Kowalski" />
+            </label>
+            <label class="control inline">
+              <span>E-mail</span>
+              <input id="licensePrivateEmailInput" type="email" placeholder="jan@przyklad.pl" />
+            </label>
+            <label class="control inline">
+              <span>Cel prywatnego użycia</span>
+              <input id="licensePrivatePurposeInput" type="text" placeholder="Projekt domowy / nauka" />
+            </label>
+            <label class="control inline">
+              <span>ID urządzenia</span>
+              <input id="licenseDeviceIdInput" type="text" readonly />
+            </label>
+            <button id="licenseGeneratePrivateTokenBtn" class="ribbon-btn has-icon" data-icon="&#10010;">
+              Generuj darmowy token
+            </button>
+            <label class="control">
+              <span>Wygenerowany token prywatny</span>
+              <textarea id="licensePrivateTokenOutput" rows="3" readonly></textarea>
+            </label>
+            <button id="licenseCopyPrivateTokenBtn" class="ribbon-btn has-icon" data-icon="&#128203;">
+              Kopiuj token
+            </button>
+          </section>
+
+          <section class="license-card">
+            <h3 class="has-icon" data-icon="&#128188;">Komercyjnie (50 USD / urządzenie)</h3>
+            <p class="license-note">
+              Wypełnij dane i wygeneruj kod zgłoszenia komercyjnego. Po wpłacie 50 USD otrzymasz token komercyjny.
+            </p>
+            <label class="control inline">
+              <span>Firma / osoba</span>
+              <input id="licenseCommercialNameInput" type="text" placeholder="Nazwa firmy lub imię i nazwisko" />
+            </label>
+            <label class="control inline">
+              <span>E-mail kontaktowy</span>
+              <input id="licenseCommercialEmailInput" type="email" placeholder="kontakt@firma.pl" />
+            </label>
+            <label class="control inline">
+              <span>Referencja wpłaty (opcjonalnie)</span>
+              <input id="licenseCommercialRefInput" type="text" placeholder="Np. PAY-2026-0001" />
+            </label>
+            <button id="licenseGenerateCommercialRequestBtn" class="ribbon-btn has-icon" data-icon="&#128221;">
+              Generuj kod zgłoszenia
+            </button>
+            <label class="control">
+              <span>Kod zgłoszenia komercyjnego</span>
+              <textarea id="licenseCommercialRequestOutput" rows="3" readonly></textarea>
+            </label>
+          </section>
+        </div>
+
+        <section class="license-activation">
+          <label class="control">
+            <span>Wklej token licencji</span>
+            <textarea id="licenseTokenInput" rows="3" placeholder="M2D1...."></textarea>
+          </label>
+          <div class="license-actions">
+            <button id="licenseActivateTokenBtn" class="ribbon-btn has-icon" data-icon="&#9989;">Aktywuj token</button>
+            <button id="licenseClearTokenBtn" class="ribbon-btn has-icon" data-icon="&#128465;">Wyczyść zapis</button>
+          </div>
+          <p id="licenseStatus" class="license-status" aria-live="polite"></p>
+        </section>
+      </div>
+    </div>
 
     <script src="./app.js"></script>
   </body>

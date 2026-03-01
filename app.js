@@ -56,8 +56,8 @@
   const steelPostWidthHint = document.getElementById("steelPostWidthHint");
   const steelPostLengthHint = document.getElementById("steelPostLengthHint");
   const steelBarWidthInput = document.getElementById("steelBarWidthInput");
-  const steelBarSpacingInput = document.getElementById("steelBarSpacingInput");
-  const steelBarSpacingHint = document.getElementById("steelBarSpacingHint");
+  const steelPanelCountInput = document.getElementById("steelPanelCountInput");
+  const steelPanelCountHint = document.getElementById("steelPanelCountHint");
   const steelInfillPatternSelect = document.getElementById("steelInfillPatternSelect");
   const steelTopPanelToggle = document.getElementById("steelTopPanelToggle");
   const steelTopPanelSizeInput = document.getElementById("steelTopPanelSizeInput");
@@ -107,6 +107,33 @@
   const startToolName = document.getElementById("startToolName");
   const startScaleValue = document.getElementById("startScaleValue");
   const layoutTabs = Array.from(document.querySelectorAll(".layout-tab[data-layout]"));
+  const licenseOverlay = document.getElementById("licenseOverlay");
+  const licensePrivateNameInput = document.getElementById("licensePrivateNameInput");
+  const licensePrivateEmailInput = document.getElementById("licensePrivateEmailInput");
+  const licensePrivatePurposeInput = document.getElementById("licensePrivatePurposeInput");
+  const licenseDeviceIdInput = document.getElementById("licenseDeviceIdInput");
+  const licenseGeneratePrivateTokenBtn = document.getElementById("licenseGeneratePrivateTokenBtn");
+  const licensePrivateTokenOutput = document.getElementById("licensePrivateTokenOutput");
+  const licenseCopyPrivateTokenBtn = document.getElementById("licenseCopyPrivateTokenBtn");
+  const licenseCommercialNameInput = document.getElementById("licenseCommercialNameInput");
+  const licenseCommercialEmailInput = document.getElementById("licenseCommercialEmailInput");
+  const licenseCommercialRefInput = document.getElementById("licenseCommercialRefInput");
+  const licenseGenerateCommercialRequestBtn = document.getElementById("licenseGenerateCommercialRequestBtn");
+  const licenseCommercialRequestOutput = document.getElementById("licenseCommercialRequestOutput");
+  const licenseTokenInput = document.getElementById("licenseTokenInput");
+  const licenseActivateTokenBtn = document.getElementById("licenseActivateTokenBtn");
+  const licenseClearTokenBtn = document.getElementById("licenseClearTokenBtn");
+  const licenseStatus = document.getElementById("licenseStatus");
+
+  const LICENSE_STORAGE_KEY = "madcad-license-v1";
+  const LICENSE_SIGNATURE_SALT = "MadCAD2D-Private-NoMods-SingleDevice-2026";
+  const LICENSE_TOKEN_PREFIX = "M2D1";
+  const licenseSession = {
+    active: false,
+    token: "",
+    payload: null,
+    deviceId: ""
+  };
 
   const baseLayerId = createId();
   const state = {
@@ -163,7 +190,7 @@
     steelPostWidth: 60,
     steelPostLength: 1700,
     steelBarWidth: 20,
-    steelBarSpacing: 80,
+    steelPanelCount: 18,
     steelInfillPattern: "vertical",
     steelTopPanel: true,
     steelTopPanelThickness: 20,
@@ -232,7 +259,7 @@
       postWidth: 60,
       postLength: 1700,
       barWidth: 20,
-      barSpacing: 80,
+      panelCount: 18,
       infillPattern: "vertical",
       topPanel: true,
       topPanelThickness: 20,
@@ -252,7 +279,7 @@
       postWidth: 60,
       postLength: 1700,
       barWidth: 18,
-      barSpacing: 70,
+      panelCount: 17,
       infillPattern: "horizontal",
       topPanel: true,
       topPanelThickness: 18,
@@ -272,7 +299,7 @@
       postWidth: 50,
       postLength: 1200,
       barWidth: 16,
-      barSpacing: 80,
+      panelCount: 10,
       infillPattern: "horizontal",
       topPanel: true,
       topPanelThickness: 16,
@@ -310,8 +337,6 @@
   let lastCanvasClientHeight = 0;
   const POINTER_DRAG_THRESHOLD_PX = 5;
   const OBJECT_SNAP_THRESHOLD_PX = 14;
-  const SESSION_STORAGE_KEY = "cad-session-v2";
-  const SESSION_PERSIST_ENABLED = false;
 
   if (window.desktopApp && window.desktopApp.platform === "darwin") {
     document.documentElement.classList.add("platform-mac");
@@ -332,9 +357,6 @@
   }
 
   function markDirty() {
-    if (!SESSION_PERSIST_ENABLED) {
-      return;
-    }
     state.persistPending = true;
     if (state.persistTimer) {
       clearTimeout(state.persistTimer);
@@ -342,19 +364,7 @@
     state.persistTimer = setTimeout(persistSession, 500);
   }
 
-  function clearPersistedSession() {
-    try {
-      localStorage.removeItem(SESSION_STORAGE_KEY);
-    } catch (error) {
-      console.warn("Nie udało się wyczyścić sesji:", error);
-    }
-  }
-
   function persistSession() {
-    if (!SESSION_PERSIST_ENABLED) {
-      state.persistPending = false;
-      return;
-    }
     if (!state.persistPending) {
       return;
     }
@@ -390,7 +400,7 @@
         steelPostWidth: state.steelPostWidth,
         steelPostLength: state.steelPostLength,
         steelBarWidth: state.steelBarWidth,
-        steelBarSpacing: state.steelBarSpacing,
+        steelPanelCount: state.steelPanelCount,
         steelInfillPattern: state.steelInfillPattern,
         steelTopPanel: state.steelTopPanel,
         steelTopPanelThickness: state.steelTopPanelThickness,
@@ -416,19 +426,15 @@
     };
 
     try {
-      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(payload));
+      localStorage.setItem("cad-session-v2", JSON.stringify(payload));
     } catch (error) {
       console.warn("Nie udało się zapisać sesji:", error);
     }
   }
 
   function restoreSession() {
-    if (!SESSION_PERSIST_ENABLED) {
-      clearPersistedSession();
-      return;
-    }
     try {
-      const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+      const raw = localStorage.getItem("cad-session-v2");
       if (!raw) {
         return;
       }
@@ -497,7 +503,8 @@
         state.steelPostWidth = Math.max(20, Number(parsed.settings.steelPostWidth) || state.steelPostWidth);
         state.steelPostLength = Math.max(200, Number(parsed.settings.steelPostLength) || state.steelPostLength);
         state.steelBarWidth = Math.max(5, Number(parsed.settings.steelBarWidth) || state.steelBarWidth);
-        state.steelBarSpacing = Math.max(5, Number(parsed.settings.steelBarSpacing) || state.steelBarSpacing);
+        const parsedPanelCount = Number(parsed.settings.steelPanelCount);
+        const legacySpacing = Number(parsed.settings.steelBarSpacing);
         state.steelInfillPattern =
           normalizeInfillPattern(parsed.settings.steelInfillPattern) || state.steelInfillPattern;
         state.steelTopPanel =
@@ -550,6 +557,29 @@
           (!Array.isArray(parsed.entities) || parsed.entities.length === 0);
         if (looksLikeOldGateInfillDefault) {
           state.steelInfillPattern = "vertical";
+        }
+        if (Number.isFinite(parsedPanelCount)) {
+          state.steelPanelCount = clamp(Math.round(parsedPanelCount), 1, 120, state.steelPanelCount);
+        } else {
+          const inferred = inferPanelCountFromLegacySpacing(legacySpacing, {
+            template: state.steelPreset,
+            infillPattern: state.steelInfillPattern,
+            width: state.steelWidth,
+            height: state.steelHeight,
+            frameProfile: state.steelFrameProfile,
+            postWidth: state.steelPostWidth,
+            barWidth: state.steelBarWidth,
+            sectionCount: state.steelSectionCount,
+            gateLeafCount: state.steelGateLeafCount,
+            groundClearance: state.steelGroundClearance,
+            basePlateHeight: state.steelBasePlateHeight,
+            innerFrame: state.steelInnerFrame,
+            topPanel: state.steelTopPanel,
+            topPanelThickness: state.steelTopPanelThickness,
+            bottomPanel: state.steelBottomPanel,
+            bottomPanelThickness: state.steelBottomPanelThickness
+          });
+          state.steelPanelCount = clamp(Math.round(inferred), 1, 120, state.steelPanelCount);
         }
         if (parsed.settings.workspaceView === "start" || parsed.settings.workspaceView === "model") {
           state.workspaceView = parsed.settings.workspaceView;
@@ -622,45 +652,14 @@
     return Boolean(fileMenu && fileMenu.classList.contains("open"));
   }
 
-  function positionFileMenuPanel() {
-    if (!fileMenuBtn || !fileMenuPanel || fileMenuPanel.hidden) {
-      return;
-    }
-    const margin = 8;
-    const rect = fileMenuBtn.getBoundingClientRect();
-    const panelWidth = fileMenuPanel.offsetWidth || 220;
-    const panelHeight = fileMenuPanel.offsetHeight || 220;
-    let left = rect.right - panelWidth;
-    let top = rect.bottom + 4;
-
-    if (left < margin) {
-      left = margin;
-    }
-    if (left + panelWidth > window.innerWidth - margin) {
-      left = Math.max(margin, window.innerWidth - panelWidth - margin);
-    }
-    if (top + panelHeight > window.innerHeight - margin) {
-      top = Math.max(margin, rect.top - panelHeight - 4);
-    }
-
-    fileMenuPanel.style.left = `${Math.round(left)}px`;
-    fileMenuPanel.style.top = `${Math.round(top)}px`;
-  }
-
   function setFileMenuOpen(value) {
     const open = Boolean(value);
     if (!fileMenu || !fileMenuBtn || !fileMenuPanel) {
       return;
     }
     fileMenu.classList.toggle("open", open);
-    fileMenuBtn.classList.toggle("active", open);
     fileMenuBtn.setAttribute("aria-expanded", open ? "true" : "false");
     fileMenuPanel.hidden = !open;
-    if (open) {
-      requestAnimationFrame(() => {
-        positionFileMenuPanel();
-      });
-    }
   }
 
   function updateToastAnchor() {
@@ -1066,6 +1065,369 @@
 
   function isFiniteNumber(value) {
     return Number.isFinite(Number(value));
+  }
+
+  function fnv1aHash(input, seed) {
+    const text = String(input || "");
+    let hash = Number.isFinite(seed) ? seed >>> 0 : 0x811c9dc5;
+    for (let i = 0; i < text.length; i += 1) {
+      hash ^= text.charCodeAt(i);
+      hash = Math.imul(hash, 0x01000193) >>> 0;
+    }
+    return hash.toString(16).padStart(8, "0");
+  }
+
+  function encodeBase64Url(text) {
+    const utf8 = unescape(encodeURIComponent(String(text || "")));
+    return btoa(utf8).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+  }
+
+  function decodeBase64Url(text) {
+    const normalized = String(text || "").replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+    const decoded = atob(padded);
+    return decodeURIComponent(escape(decoded));
+  }
+
+  function normalizeLicenseEmail(email) {
+    return String(email || "").trim().toLowerCase();
+  }
+
+  function getLicenseDeviceId() {
+    if (licenseSession.deviceId) {
+      return licenseSession.deviceId;
+    }
+    if (window.desktopApp && typeof window.desktopApp.deviceId === "string" && window.desktopApp.deviceId.length >= 12) {
+      licenseSession.deviceId = window.desktopApp.deviceId;
+      return licenseSession.deviceId;
+    }
+    const fallbackRaw = `${navigator.userAgent}|${navigator.platform}|${screen.width}x${screen.height}`;
+    licenseSession.deviceId = `web-${fnv1aHash(fallbackRaw)}${fnv1aHash(fallbackRaw, 0x9e3779b9)}`;
+    return licenseSession.deviceId;
+  }
+
+  function makeLicenseSignature(payloadJson) {
+    const source = String(payloadJson || "");
+    const a = fnv1aHash(`${source}|${LICENSE_SIGNATURE_SALT}|A`);
+    const b = fnv1aHash(`${LICENSE_SIGNATURE_SALT}|${source}|B`, 0x9e3779b9);
+    const c = fnv1aHash(`${source}|${LICENSE_SIGNATURE_SALT}|C`, 0x85ebca6b);
+    return `${a}${b}${c}`.toUpperCase();
+  }
+
+  function buildLicenseToken(payload) {
+    const json = JSON.stringify(payload);
+    const body = encodeBase64Url(json);
+    const signature = makeLicenseSignature(json);
+    return `${LICENSE_TOKEN_PREFIX}.${body}.${signature}`;
+  }
+
+  function parseLicenseToken(rawToken) {
+    const token = String(rawToken || "").trim();
+    const parts = token.split(".");
+    if (parts.length !== 3 || parts[0] !== LICENSE_TOKEN_PREFIX) {
+      return { ok: false, error: "Nieprawidłowy format tokenu." };
+    }
+    let payloadJson = "";
+    let payload = null;
+    try {
+      payloadJson = decodeBase64Url(parts[1]);
+      payload = JSON.parse(payloadJson);
+    } catch (error) {
+      return { ok: false, error: "Nie można odczytać danych tokenu." };
+    }
+    const signature = String(parts[2] || "").trim().toUpperCase();
+    return {
+      ok: true,
+      token,
+      payload,
+      payloadJson,
+      signature
+    };
+  }
+
+  function verifyLicenseToken(rawToken) {
+    const parsed = parseLicenseToken(rawToken);
+    if (!parsed.ok) {
+      return parsed;
+    }
+    if (!parsed.payload || typeof parsed.payload !== "object") {
+      return { ok: false, error: "Brak danych licencji w tokenie." };
+    }
+    const expectedSignature = makeLicenseSignature(parsed.payloadJson);
+    if (expectedSignature !== parsed.signature) {
+      return { ok: false, error: "Podpis tokenu jest nieprawidłowy." };
+    }
+    if (Number(parsed.payload.v) !== 1) {
+      return { ok: false, error: "Nieobsługiwana wersja tokenu." };
+    }
+    const scope = String(parsed.payload.scope || "").toLowerCase();
+    if (!["private", "commercial"].includes(scope)) {
+      return { ok: false, error: "Nieznany typ licencji." };
+    }
+    const expectedDeviceId = getLicenseDeviceId();
+    if (String(parsed.payload.deviceId || "") !== expectedDeviceId) {
+      return { ok: false, error: "Token nie jest przypisany do tego urządzenia." };
+    }
+    if (scope === "private") {
+      if (
+        !String(parsed.payload.ownerName || "").trim() ||
+        !normalizeLicenseEmail(parsed.payload.email) ||
+        !String(parsed.payload.purpose || "").trim()
+      ) {
+        return { ok: false, error: "Token prywatny ma niepełne dane formularza." };
+      }
+      if (parsed.payload.noModifications !== true || parsed.payload.commercialUse !== false) {
+        return { ok: false, error: "Token prywatny ma błędne uprawnienia." };
+      }
+    }
+    if (scope === "commercial") {
+      if (Number(parsed.payload.donationUsd) !== 50 || Number(parsed.payload.seats) !== 1) {
+        return { ok: false, error: "Token komercyjny nie spełnia warunku 50 USD / 1 urządzenie." };
+      }
+    }
+    return {
+      ok: true,
+      token: parsed.token,
+      payload: parsed.payload,
+      scope
+    };
+  }
+
+  function setLicenseStatus(message, variant) {
+    if (!licenseStatus) {
+      return;
+    }
+    licenseStatus.textContent = String(message || "");
+    licenseStatus.classList.remove("is-error", "is-ok");
+    if (variant === "error") {
+      licenseStatus.classList.add("is-error");
+    } else if (variant === "ok") {
+      licenseStatus.classList.add("is-ok");
+    }
+  }
+
+  function setLicenseLocked(locked) {
+    const isLocked = Boolean(locked);
+    licenseSession.active = !isLocked;
+    if (appRoot) {
+      appRoot.classList.toggle("license-locked", isLocked);
+    }
+    if (licenseOverlay) {
+      licenseOverlay.hidden = !isLocked;
+      licenseOverlay.setAttribute("aria-hidden", isLocked ? "false" : "true");
+    }
+  }
+
+  function persistLicenseRecord(token, payload) {
+    try {
+      const record = {
+        token,
+        payload,
+        activatedAt: new Date().toISOString()
+      };
+      localStorage.setItem(LICENSE_STORAGE_KEY, JSON.stringify(record));
+    } catch (error) {
+      console.warn("Nie udało się zapisać licencji:", error);
+    }
+  }
+
+  function clearPersistedLicenseRecord() {
+    try {
+      localStorage.removeItem(LICENSE_STORAGE_KEY);
+    } catch (error) {
+      console.warn("Nie udało się usunąć zapisanej licencji:", error);
+    }
+  }
+
+  function activateLicenseToken(rawToken, options) {
+    const verified = verifyLicenseToken(rawToken);
+    if (!verified.ok) {
+      setLicenseLocked(true);
+      if (!options || options.silent !== true) {
+        setLicenseStatus(`Błąd licencji: ${verified.error}`, "error");
+      }
+      return verified;
+    }
+    licenseSession.token = verified.token;
+    licenseSession.payload = verified.payload;
+    if (!options || options.persist !== false) {
+      persistLicenseRecord(verified.token, verified.payload);
+    }
+    setLicenseLocked(false);
+    const scopeLabel = verified.scope === "commercial" ? "komercyjna" : "prywatna";
+    setLicenseStatus(`Licencja ${scopeLabel} aktywna na tym urządzeniu.`, "ok");
+    return verified;
+  }
+
+  function buildPrivateLicensePayload() {
+    const ownerName = String(licensePrivateNameInput ? licensePrivateNameInput.value : "").trim();
+    const email = normalizeLicenseEmail(licensePrivateEmailInput ? licensePrivateEmailInput.value : "");
+    const purpose = String(licensePrivatePurposeInput ? licensePrivatePurposeInput.value : "").trim();
+
+    if (!ownerName) {
+      return { ok: false, error: "Podaj imię i nazwisko." };
+    }
+    if (!email || !email.includes("@")) {
+      return { ok: false, error: "Podaj poprawny adres e-mail." };
+    }
+    if (!purpose) {
+      return { ok: false, error: "Podaj cel prywatnego użycia." };
+    }
+
+    return {
+      ok: true,
+      payload: {
+        v: 1,
+        app: "MadCAD 2D",
+        scope: "private",
+        ownerName,
+        email,
+        purpose,
+        deviceId: getLicenseDeviceId(),
+        noModifications: true,
+        commercialUse: false,
+        seats: 1,
+        issuedAt: new Date().toISOString()
+      }
+    };
+  }
+
+  function generatePrivateLicenseToken() {
+    const payloadResult = buildPrivateLicensePayload();
+    if (!payloadResult.ok) {
+      setLicenseStatus(payloadResult.error, "error");
+      return null;
+    }
+    const token = buildLicenseToken(payloadResult.payload);
+    if (licensePrivateTokenOutput) {
+      licensePrivateTokenOutput.value = token;
+    }
+    if (licenseTokenInput) {
+      licenseTokenInput.value = token;
+    }
+    setLicenseStatus("Wygenerowano darmowy token prywatny. Kliknij: Aktywuj token.", "ok");
+    return token;
+  }
+
+  function generateCommercialRequestCode() {
+    const ownerName = String(licenseCommercialNameInput ? licenseCommercialNameInput.value : "").trim();
+    const email = normalizeLicenseEmail(licenseCommercialEmailInput ? licenseCommercialEmailInput.value : "");
+    const donationRef = String(licenseCommercialRefInput ? licenseCommercialRefInput.value : "").trim();
+    if (!ownerName) {
+      setLicenseStatus("Podaj nazwę firmy/osoby dla zgłoszenia komercyjnego.", "error");
+      return;
+    }
+    if (!email || !email.includes("@")) {
+      setLicenseStatus("Podaj poprawny e-mail dla zgłoszenia komercyjnego.", "error");
+      return;
+    }
+    const requestPayload = {
+      app: "MadCAD 2D",
+      scope: "commercial",
+      ownerName,
+      email,
+      deviceId: getLicenseDeviceId(),
+      donationUsd: 50,
+      seats: 1,
+      donationRef: donationRef || null,
+      requestedAt: new Date().toISOString()
+    };
+    const requestCode = `M2D-COMM-REQ.${encodeBase64Url(JSON.stringify(requestPayload))}`;
+    if (licenseCommercialRequestOutput) {
+      licenseCommercialRequestOutput.value = requestCode;
+    }
+    setLicenseStatus(
+      "Wygenerowano kod zgłoszenia komercyjnego. Po potwierdzeniu wpłaty 50 USD otrzymasz token.",
+      "ok"
+    );
+  }
+
+  async function copyLicenseText(text) {
+    const value = String(text || "").trim();
+    if (!value) {
+      return false;
+    }
+    try {
+      await navigator.clipboard.writeText(value);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function initializeLicenseManager() {
+    if (!licenseOverlay) {
+      licenseSession.active = true;
+      return true;
+    }
+
+    const deviceId = getLicenseDeviceId();
+    if (licenseDeviceIdInput) {
+      licenseDeviceIdInput.value = deviceId;
+    }
+
+    if (licenseGeneratePrivateTokenBtn) {
+      licenseGeneratePrivateTokenBtn.addEventListener("click", () => {
+        generatePrivateLicenseToken();
+      });
+    }
+    if (licenseCopyPrivateTokenBtn) {
+      licenseCopyPrivateTokenBtn.addEventListener("click", async () => {
+        const copied = await copyLicenseText(licensePrivateTokenOutput ? licensePrivateTokenOutput.value : "");
+        setLicenseStatus(copied ? "Skopiowano token do schowka." : "Nie udało się skopiować tokenu.", copied ? "ok" : "error");
+      });
+    }
+    if (licenseGenerateCommercialRequestBtn) {
+      licenseGenerateCommercialRequestBtn.addEventListener("click", () => {
+        generateCommercialRequestCode();
+      });
+    }
+    if (licenseActivateTokenBtn) {
+      licenseActivateTokenBtn.addEventListener("click", () => {
+        const token = licenseTokenInput ? licenseTokenInput.value : "";
+        const result = activateLicenseToken(token);
+        if (result.ok) {
+          echoCommand("Licencja aktywna. Możesz korzystać z aplikacji.");
+        }
+      });
+    }
+    if (licenseClearTokenBtn) {
+      licenseClearTokenBtn.addEventListener("click", () => {
+        clearPersistedLicenseRecord();
+        licenseSession.token = "";
+        licenseSession.payload = null;
+        if (licensePrivateTokenOutput) {
+          licensePrivateTokenOutput.value = "";
+        }
+        if (licenseTokenInput) {
+          licenseTokenInput.value = "";
+        }
+        setLicenseLocked(true);
+        setLicenseStatus("Usunięto zapisany token. Wymagana ponowna aktywacja.", "error");
+      });
+    }
+
+    let storedToken = "";
+    try {
+      const raw = localStorage.getItem(LICENSE_STORAGE_KEY);
+      if (raw) {
+        const record = JSON.parse(raw);
+        storedToken = String(record && record.token ? record.token : "").trim();
+      }
+    } catch (error) {
+      storedToken = "";
+    }
+
+    if (storedToken) {
+      const result = activateLicenseToken(storedToken, { persist: false, silent: true });
+      if (result.ok) {
+        return true;
+      }
+    }
+
+    setLicenseLocked(true);
+    setLicenseStatus("Wymagana aktywacja licencji przed rozpoczęciem pracy.", "error");
+    return false;
   }
 
   function resetViewTransform() {
@@ -2429,7 +2791,7 @@
         postWidth: preset.postWidth,
         postLength: preset.postLength,
         barWidth: preset.barWidth,
-        barSpacing: preset.barSpacing,
+        panelCount: preset.panelCount,
         infillPattern: preset.infillPattern,
         topPanel: preset.topPanel,
         topPanelThickness: preset.topPanelThickness,
@@ -2463,7 +2825,7 @@
         postWidth: preset ? preset.postWidth : state.steelPostWidth,
         postLength: preset ? preset.postLength : state.steelPostLength,
         barWidth: preset ? preset.barWidth : state.steelBarWidth,
-        barSpacing: preset ? preset.barSpacing : state.steelBarSpacing,
+        panelCount: preset ? preset.panelCount : state.steelPanelCount,
         infillPattern: preset ? preset.infillPattern : state.steelInfillPattern,
         topPanel: preset ? preset.topPanel : state.steelTopPanel,
         topPanelThickness: preset ? preset.topPanelThickness : state.steelTopPanelThickness,
@@ -2497,20 +2859,57 @@
       return;
     }
 
-    if (command === "spacing" || command === "odstep" || command === "odstęp") {
+    if (command === "panels" || command === "panele" || command === "iloscpaneli" || command === "panelcount") {
       const parsed = Number(args[0]);
       if (!args[0]) {
-        echoCommand(`Odstęp paneli: ${state.steelBarSpacing} mm.`);
+        echoCommand(`Ilość paneli: ${state.steelPanelCount} szt./sekcja.`);
         return;
       }
       if (!Number.isFinite(parsed)) {
-        echoCommand("Użyj: spacing <mm>", true);
+        echoCommand("Użyj: panele <szt>", true);
         return;
       }
-      state.steelBarSpacing = Math.max(5, parsed);
+      state.steelPanelCount = clamp(Math.round(parsed), 1, 120, state.steelPanelCount);
       syncDocumentControls();
       markDirty();
-      echoCommand(`Odstęp paneli: ${state.steelBarSpacing} mm.`);
+      echoCommand(`Ilość paneli: ${state.steelPanelCount} szt./sekcja.`);
+      return;
+    }
+
+    if (command === "spacing" || command === "odstep" || command === "odstęp") {
+      const parsed = Number(args[0]);
+      if (!args[0]) {
+        echoCommand(`Komenda spacing została zastąpiona. Użyj: panele <szt>. Aktualnie: ${state.steelPanelCount}.`);
+        return;
+      }
+      if (!Number.isFinite(parsed)) {
+        echoCommand("Użyj: panele <szt> (komenda spacing jest wycofana).", true);
+        return;
+      }
+      const inferred = inferPanelCountFromLegacySpacing(parsed, {
+        template: state.steelPreset,
+        infillPattern: state.steelInfillPattern,
+        width: state.steelWidth,
+        height: state.steelHeight,
+        frameProfile: state.steelFrameProfile,
+        postWidth: state.steelPostWidth,
+        barWidth: state.steelBarWidth,
+        sectionCount: state.steelSectionCount,
+        gateLeafCount: state.steelGateLeafCount,
+        groundClearance: state.steelGroundClearance,
+        basePlateHeight: state.steelBasePlateHeight,
+        innerFrame: state.steelInnerFrame,
+        topPanel: state.steelTopPanel,
+        topPanelThickness: state.steelTopPanelThickness,
+        bottomPanel: state.steelBottomPanel,
+        bottomPanelThickness: state.steelBottomPanelThickness
+      });
+      state.steelPanelCount = clamp(Math.round(inferred), 1, 120, state.steelPanelCount);
+      syncDocumentControls();
+      markDirty();
+      echoCommand(
+        `Komenda spacing jest wycofana. Przeliczono na ilość paneli: ${state.steelPanelCount} szt./sekcja.`
+      );
       return;
     }
 
@@ -2725,7 +3124,7 @@
       echoCommand(
         `STAL: ${steelTemplateLabel(template)}, ${state.steelWidth}x${state.steelHeight} mm, rama profil ${state.steelFrameProfile} mm, wypełnienie ${infillPatternLabel(
           state.steelInfillPattern
-        )} (profil ${state.steelBarWidth} mm, odstęp ${state.steelBarSpacing} mm), panel góra ${state.steelTopPanel ? "ON" : "OFF"} ${state.steelTopPanelThickness} mm, panel dół ${state.steelBottomPanel ? "ON" : "OFF"} ${state.steelBottomPanelThickness} mm, słupek ${template === "fence" ? `${state.steelPostWidth}x${state.steelPostLength} mm` : "N/D"}, sekcje ${state.steelSectionCount}, skrzydła ${leafInfo}, prześwit ${state.steelGroundClearance} mm, podmurówka ${state.steelBasePlateHeight} mm, rama wewn. ${state.steelInnerFrame ? "ON" : "OFF"}, ukos ${template === "gate" ? (state.steelDiagonal ? "ON" : "OFF") : "N/D"}.`
+        )} (profil ${state.steelBarWidth} mm, panele ${state.steelPanelCount} szt./sekcja), panel góra ${state.steelTopPanel ? "ON" : "OFF"} ${state.steelTopPanelThickness} mm, panel dół ${state.steelBottomPanel ? "ON" : "OFF"} ${state.steelBottomPanelThickness} mm, słupek ${template === "fence" ? `${state.steelPostWidth}x${state.steelPostLength} mm` : "N/D"}, sekcje ${state.steelSectionCount}, skrzydła ${leafInfo}, prześwit ${state.steelGroundClearance} mm, podmurówka ${state.steelBasePlateHeight} mm, rama wewn. ${state.steelInnerFrame ? "ON" : "OFF"}, ukos ${template === "gate" ? (state.steelDiagonal ? "ON" : "OFF") : "N/D"}.`
       );
       return;
     }
@@ -4701,6 +5100,9 @@
   }
 
   function handleCanvasMouseDown(event) {
+    if (!licenseSession.active) {
+      return;
+    }
     if (event.button === 2) {
       if (state.commandState) {
         cancelActiveCommand({ echo: false });
@@ -4975,6 +5377,9 @@
   }
 
   function handleCanvasMouseMove(event) {
+    if (!licenseSession.active) {
+      return;
+    }
     if (state.splitterDragging) {
       if (!workspaceEl) {
         return;
@@ -5086,6 +5491,9 @@
   }
 
   function handleCanvasMouseUp() {
+    if (!licenseSession.active) {
+      return;
+    }
     if (state.splitterDragging) {
       state.splitterDragging = false;
       syncLayoutChrome();
@@ -5116,6 +5524,10 @@
   }
 
   function handleCanvasWheel(event) {
+    if (!licenseSession.active) {
+      event.preventDefault();
+      return;
+    }
     event.preventDefault();
     const screen = getMouseScreen(event);
     const before = screenToWorld(screen);
@@ -5453,7 +5865,7 @@
       postWidth: Math.max(20, Number(preset.postWidth) || 60),
       postLength: Math.max(Number(preset.height) || 200, Number(preset.postLength) || Number(preset.height) || 200),
       barWidth: preset.barWidth,
-      barSpacing: Math.max(5, Number(preset.barSpacing) || Math.round(preset.barWidth * 3)),
+      panelCount: clamp(Math.round(Number(preset.panelCount) || 12), 1, 120, 12),
       infillPattern: preset.infillPattern,
       topPanel: preset.topPanel !== false,
       topPanelThickness: Math.max(2, Number(preset.topPanelThickness) || Number(preset.barWidth) || 20),
@@ -5485,7 +5897,7 @@
       });
     }
 
-    state.steelBarSpacing = Math.max(5, Number(state.steelBarSpacing) || Math.round(state.steelBarWidth * 3));
+    state.steelPanelCount = clamp(Math.round(Number(state.steelPanelCount) || 12), 1, 120, 12);
 
     const postControlEnabled = template === "fence";
     const postWidthControl =
@@ -5557,7 +5969,7 @@
     if (diagonalControl) {
       diagonalControl.classList.toggle("is-disabled", !diagonalAllowed);
     }
-    updateSteelSpacingHint();
+    updateSteelPanelCountHint();
   }
 
   function applySteelPreset(template, options) {
@@ -5569,7 +5981,7 @@
     state.steelPostWidth = preset.postWidth;
     state.steelPostLength = preset.postLength;
     state.steelBarWidth = preset.barWidth;
-    state.steelBarSpacing = preset.barSpacing;
+    state.steelPanelCount = preset.panelCount;
     state.steelInfillPattern = preset.infillPattern;
     state.steelTopPanel = preset.topPanel;
     state.steelTopPanelThickness = preset.topPanelThickness;
@@ -5733,14 +6145,14 @@
     };
   }
 
-  function resolveBarLayout(span, bar, requestedGap) {
+  function resolvePanelCountFromGap(span, bar, requestedGap) {
     const safeSpan = Math.max(0, Number(span) || 0);
     const safeBar = Math.max(5, Number(bar) || 5);
     const safeGap = Math.max(5, Number(requestedGap) || 5);
     const minGap = 5;
 
     if (safeSpan <= safeBar) {
-      return { count: 1, gap: 0, edgeOffset: Math.max(0, (safeSpan - safeBar) / 2) };
+      return { count: 1, gap: 0, edgeOffset: Math.max(0, (safeSpan - safeBar) / 2), maxCount: 1, minGap };
     }
 
     const maxCount = Math.max(1, Math.floor(safeSpan / safeBar));
@@ -5748,30 +6160,55 @@
     count = Math.max(1, Math.min(maxCount, count));
 
     if (count === 1) {
-      return { count: 1, gap: 0, edgeOffset: Math.max(0, (safeSpan - safeBar) / 2) };
+      return { count: 1, gap: 0, edgeOffset: Math.max(0, (safeSpan - safeBar) / 2), maxCount, minGap };
     }
 
-    // Liczba paneli bierze się z docelowego odstępu, a finalna przerwa jest auto-dopasowana,
-    // żeby panel był równy także przy krawędziach (słupek/profil).
     let gap = (safeSpan - count * safeBar) / (count + 1);
     while (count > 1 && (!Number.isFinite(gap) || gap < minGap)) {
       count -= 1;
       gap = (safeSpan - count * safeBar) / (count + 1);
     }
     if (count <= 1 || !Number.isFinite(gap)) {
-      return { count: 1, gap: 0, edgeOffset: Math.max(0, (safeSpan - safeBar) / 2) };
+      return { count: 1, gap: 0, edgeOffset: Math.max(0, (safeSpan - safeBar) / 2), maxCount, minGap };
     }
 
     const edgeOffset = Math.max(0, gap);
-    return { count, gap, edgeOffset };
+    return { count, gap, edgeOffset, maxCount, minGap };
   }
 
-  function addVerticalBars(area, barWidth, spacing, layerId, stroke) {
+  function resolveBarLayoutByCount(span, bar, requestedCount) {
+    const safeSpan = Math.max(0, Number(span) || 0);
+    const safeBar = Math.max(5, Number(bar) || 5);
+    const minGap = Math.max(2, Math.round(safeBar * 0.2));
+
+    if (safeSpan <= safeBar) {
+      return { count: 1, gap: 0, edgeOffset: Math.max(0, (safeSpan - safeBar) / 2), maxCount: 1, minGap };
+    }
+
+    const maxCount = Math.max(1, Math.floor((safeSpan + minGap) / (safeBar + minGap)));
+    const parsedCount = Math.round(Number(requestedCount));
+    let count = Number.isFinite(parsedCount) ? parsedCount : Math.min(12, maxCount);
+    count = Math.max(1, Math.min(maxCount, count));
+
+    let gap = (safeSpan - count * safeBar) / (count + 1);
+    while (count > 1 && (!Number.isFinite(gap) || gap < minGap)) {
+      count -= 1;
+      gap = (safeSpan - count * safeBar) / (count + 1);
+    }
+
+    if (count <= 1 || !Number.isFinite(gap)) {
+      return { count: 1, gap: 0, edgeOffset: Math.max(0, (safeSpan - safeBar) / 2), maxCount, minGap };
+    }
+
+    return { count, gap: Math.max(0, gap), edgeOffset: Math.max(0, gap), maxCount, minGap };
+  }
+
+  function addVerticalBars(area, barWidth, panelCount, layerId, stroke) {
     if (area.w <= 0 || area.h <= 0) {
-      return 0;
+      return { created: 0, layout: null };
     }
     const bar = Math.max(5, barWidth);
-    const layout = resolveBarLayout(area.w, bar, spacing);
+    const layout = resolveBarLayoutByCount(area.w, bar, panelCount);
     let created = 0;
 
     for (let index = 0; index < layout.count; index += 1) {
@@ -5779,21 +6216,21 @@
       created += addSteelRect(x, area.y, bar, area.h, layerId, stroke, 14);
     }
 
-    return created;
+    return { created, layout };
   }
 
-  function addHorizontalBars(area, barWidth, spacing, layerId, stroke) {
+  function addHorizontalBars(area, barWidth, panelCount, layerId, stroke) {
     if (area.w <= 0 || area.h <= 0) {
-      return 0;
+      return { created: 0, layout: null };
     }
     const bar = Math.max(5, barWidth);
-    const layout = resolveBarLayout(area.h, bar, spacing);
+    const layout = resolveBarLayoutByCount(area.h, bar, panelCount);
     let created = 0;
     for (let index = 0; index < layout.count; index += 1) {
       const y = area.y + layout.edgeOffset + index * (bar + layout.gap);
       created += addSteelRect(area.x, y, area.w, bar, layerId, stroke, 14);
     }
-    return created;
+    return { created, layout };
   }
 
   function addCrossInfill(area, layerId, stroke) {
@@ -5806,29 +6243,21 @@
     return created;
   }
 
-  function resolveInfillGap(barSpacing, barWidth) {
-    const bar = Math.max(5, Number(barWidth) || 5);
-    const requested = Number(barSpacing);
-    const minGap = Math.max(5, Math.round(bar * 0.35));
-    const fallback = Math.max(minGap, Math.round(bar * 3));
-    if (!Number.isFinite(requested)) {
-      return fallback;
-    }
-    return Math.max(minGap, requested);
-  }
-
-  function estimateGateSectionClearWidth(options) {
-    const width = Math.max(200, Number(options.width) || state.steelWidth);
-    const height = Math.max(200, Number(options.height) || state.steelHeight);
-    const frameProfile = Math.max(20, Number(options.frameProfile) || state.steelFrameProfile);
-    const barWidth = Math.max(5, Number(options.barWidth) || state.steelBarWidth);
+  function estimateSteelSectionInfillArea(options) {
+    const source = options && typeof options === "object" ? options : {};
+    const template = normalizeSteelTemplate(source.template) || normalizeSteelTemplate(state.steelPreset) || "gate";
+    const width = Math.max(200, Number(source.width) || state.steelWidth);
+    const height = Math.max(200, Number(source.height) || state.steelHeight);
+    const postWidth = Math.max(20, Number(source.postWidth) || state.steelPostWidth);
+    const frameProfile = Math.max(20, Number(source.frameProfile) || state.steelFrameProfile);
+    const barWidth = Math.max(5, Number(source.barWidth) || state.steelBarWidth);
     const sectionCount = Math.max(
       1,
       Math.min(
         6,
         Math.round(
-          Number.isFinite(Number(options.sectionCount))
-            ? Number(options.sectionCount)
+          Number.isFinite(Number(source.sectionCount))
+            ? Number(source.sectionCount)
             : Number(state.steelSectionCount)
         )
       )
@@ -5838,38 +6267,72 @@
       Math.min(
         2,
         Math.round(
-          Number.isFinite(Number(options.gateLeafCount))
-            ? Number(options.gateLeafCount)
+          Number.isFinite(Number(source.gateLeafCount))
+            ? Number(source.gateLeafCount)
             : Number(state.steelGateLeafCount)
         )
       )
     );
     const groundClearance = Math.max(
       0,
-      Number.isFinite(Number(options.groundClearance))
-        ? Number(options.groundClearance)
+      Number.isFinite(Number(source.groundClearance))
+        ? Number(source.groundClearance)
         : Number(state.steelGroundClearance)
     );
     const basePlateHeight = Math.max(
       0,
-      Number.isFinite(Number(options.basePlateHeight))
-        ? Number(options.basePlateHeight)
+      Number.isFinite(Number(source.basePlateHeight))
+        ? Number(source.basePlateHeight)
         : Number(state.steelBasePlateHeight)
     );
     const innerFrame =
-      typeof options.innerFrame === "boolean" ? options.innerFrame : Boolean(state.steelInnerFrame);
+      typeof source.innerFrame === "boolean" ? source.innerFrame : Boolean(state.steelInnerFrame);
+    const topPanel = typeof source.topPanel === "boolean" ? source.topPanel : Boolean(state.steelTopPanel);
+    const bottomPanel = typeof source.bottomPanel === "boolean" ? source.bottomPanel : Boolean(state.steelBottomPanel);
+    const topPanelThickness = Math.max(
+      2,
+      Number.isFinite(Number(source.topPanelThickness))
+        ? Number(source.topPanelThickness)
+        : Number(state.steelTopPanelThickness) || barWidth
+    );
+    const bottomPanelThickness = Math.max(
+      2,
+      Number.isFinite(Number(source.bottomPanelThickness))
+        ? Number(source.bottomPanelThickness)
+        : Number(state.steelBottomPanelThickness) || barWidth
+    );
 
-    const leafGap = gateLeafCount > 1 ? Math.max(8, Math.round(frameProfile * 0.35)) : 0;
-    const totalGap = leafGap * (gateLeafCount - 1);
-    const usableWidth = width - totalGap;
-    if (usableWidth <= frameProfile * 2 + 20) {
-      return null;
-    }
-
-    const leafWidth = usableWidth / gateLeafCount;
-    const side = Math.max(8, Math.min(frameProfile, leafWidth / 2, height));
-    let clearWidth = Math.max(0, leafWidth - side * 2);
+    let clearWidth = 0;
     let clearHeight = height;
+
+    if (template === "gate") {
+      const leafGap = gateLeafCount > 1 ? Math.max(8, Math.round(frameProfile * 0.35)) : 0;
+      const totalGap = leafGap * (gateLeafCount - 1);
+      const usableWidth = width - totalGap;
+      if (usableWidth <= frameProfile * 2 + 20) {
+        return null;
+      }
+      const leafWidth = usableWidth / gateLeafCount;
+      const side = Math.max(8, Math.min(frameProfile, leafWidth / 2, height));
+      clearWidth = Math.max(0, leafWidth - side * 2);
+    } else if (template === "fence") {
+      if (width <= postWidth * 2 + 20) {
+        return null;
+      }
+      const spanBetweenPosts = width - 2 * postWidth;
+      const desiredPostGap = Math.max(8, Math.round(frameProfile * 0.25));
+      const maxUsableGap = Math.max(0, (spanBetweenPosts - 2 * frameProfile - 40) / 2);
+      const postGap = Math.min(desiredPostGap, maxUsableGap);
+      if (postGap < 2 || spanBetweenPosts - postGap * 2 <= frameProfile * 2 + 20) {
+        return null;
+      }
+      const frameWidth = spanBetweenPosts - postGap * 2;
+      const side = Math.max(8, Math.min(frameProfile, frameWidth / 2, height));
+      clearWidth = Math.max(0, frameWidth - side * 2);
+    } else {
+      const balconyPostWidth = Math.max(barWidth, Math.round(frameProfile * 0.8));
+      clearWidth = Math.max(0, width - 2 * balconyPostWidth);
+    }
 
     const clearanceUsed = Math.min(Math.max(0, groundClearance), Math.max(0, clearHeight - 20));
     clearHeight = Math.max(0, clearHeight - clearanceUsed);
@@ -5891,43 +6354,30 @@
       clearWidth = availableWidth / sectionCount;
     }
 
-    return clearWidth > 0 ? clearWidth : null;
-  }
+    if (topPanel) {
+      const topUsed = Math.min(topPanelThickness, Math.max(0, clearHeight - 10));
+      clearHeight = Math.max(0, clearHeight - topUsed);
+    }
+    if (bottomPanel) {
+      const bottomUsed = Math.min(bottomPanelThickness, Math.max(0, clearHeight - 10));
+      clearHeight = Math.max(0, clearHeight - bottomUsed);
+    }
 
-  function buildGateSpacingAutoInfo(options) {
-    const source = options && typeof options === "object" ? options : {};
-    const template = normalizeSteelTemplate(source.template) || normalizeSteelTemplate(state.steelPreset) || "gate";
-    const pattern = normalizeInfillPattern(source.infillPattern) || normalizeInfillPattern(state.steelInfillPattern) || "vertical";
-    if (template !== "gate" || !["vertical", "grid"].includes(pattern)) {
+    if (clearWidth <= 0 || clearHeight <= 0) {
       return null;
     }
 
-    const sectionWidth = estimateGateSectionClearWidth({
-      width: Number.isFinite(Number(source.width)) ? Number(source.width) : state.steelWidth,
-      height: Number.isFinite(Number(source.height)) ? Number(source.height) : state.steelHeight,
-      frameProfile: Number.isFinite(Number(source.frameProfile))
-        ? Number(source.frameProfile)
-        : state.steelFrameProfile,
-      barWidth: Number.isFinite(Number(source.barWidth)) ? Number(source.barWidth) : state.steelBarWidth,
-      sectionCount: Number.isFinite(Number(source.sectionCount))
-        ? Number(source.sectionCount)
-        : state.steelSectionCount,
-      gateLeafCount: Number.isFinite(Number(source.gateLeafCount))
-        ? Number(source.gateLeafCount)
-        : state.steelGateLeafCount,
-      groundClearance: Number.isFinite(Number(source.groundClearance))
-        ? Number(source.groundClearance)
-        : state.steelGroundClearance,
-      basePlateHeight: Number.isFinite(Number(source.basePlateHeight))
-        ? Number(source.basePlateHeight)
-        : state.steelBasePlateHeight,
-      innerFrame:
-        typeof source.innerFrame === "boolean"
-          ? source.innerFrame
-          : Boolean(state.steelInnerFrame)
-    });
+    return { w: clearWidth, h: clearHeight };
+  }
 
-    if (!Number.isFinite(sectionWidth) || sectionWidth <= 30) {
+  function buildSteelPanelCountAutoInfo(options) {
+    const source = options && typeof options === "object" ? options : {};
+    const pattern = normalizeInfillPattern(source.infillPattern) || normalizeInfillPattern(state.steelInfillPattern) || "vertical";
+    if (pattern === "cross") {
+      return null;
+    }
+    const sectionArea = estimateSteelSectionInfillArea(source);
+    if (!sectionArea) {
       return null;
     }
 
@@ -5935,53 +6385,74 @@
       5,
       Number.isFinite(Number(source.barWidth)) ? Number(source.barWidth) : Number(state.steelBarWidth) || 5
     );
-    const requestedGap = Number.isFinite(Number(source.barSpacing))
-      ? Number(source.barSpacing)
-      : Number(state.steelBarSpacing);
-    const targetGap = resolveInfillGap(requestedGap, bar);
-    const layout = resolveBarLayout(sectionWidth, bar, targetGap);
-    if (!layout || layout.count < 1) {
+    const requestedCount = Number.isFinite(Number(source.panelCount))
+      ? Number(source.panelCount)
+      : Number(state.steelPanelCount);
+    const vertical = resolveBarLayoutByCount(sectionArea.w, bar, requestedCount);
+    const horizontal = resolveBarLayoutByCount(sectionArea.h, bar, requestedCount);
+    if (!vertical || !horizontal) {
       return null;
     }
 
     return {
-      count: layout.count,
-      sectionWidth,
-      targetGap,
-      gap: layout.gap
+      pattern,
+      requestedCount: clamp(Math.round(requestedCount), 1, 120, 12),
+      sectionArea,
+      vertical,
+      horizontal
     };
   }
 
-  function updateSteelSpacingHint() {
-    if (!steelBarSpacingHint) {
+  function updateSteelPanelCountHint() {
+    if (!steelPanelCountHint) {
       return;
     }
-    const baseText =
-      "Dla pionu/siatki liczy gęstość automatycznie, dla poziomu ustawia przerwę między panelami.";
-    const autoInfo = buildGateSpacingAutoInfo();
+    const baseText = "Podajesz ilość paneli, a aplikacja automatycznie dopasowuje równe przerwy.";
+    const autoInfo = buildSteelPanelCountAutoInfo();
     if (!autoInfo) {
-      steelBarSpacingHint.textContent = baseText;
+      steelPanelCountHint.textContent = baseText;
       return;
     }
 
-    const autoGap = Math.max(5, Math.round(autoInfo.gap));
-
-    if (autoInfo.count <= 1) {
-      steelBarSpacingHint.textContent =
-        "Auto: w sekcji mieści się 1 panel, więc przerwa jest ustawiona symetrycznie od krawędzi.";
+    if (autoInfo.pattern === "grid") {
+      steelPanelCountHint.textContent =
+        `Siatka: pion ${autoInfo.vertical.count} szt. (przerwa ${Math.max(0, Math.round(autoInfo.vertical.gap))} mm), ` +
+        `poziom ${autoInfo.horizontal.count} szt. (przerwa ${Math.max(0, Math.round(autoInfo.horizontal.gap))} mm).`;
       return;
     }
 
-    steelBarSpacingHint.textContent =
-      `Auto: przerwy dopasowane do ilości paneli (${autoInfo.count} szt./sekcja), ` +
-      `ustawiona przerwa: ${autoGap} mm.`;
+    const axisLayout = autoInfo.pattern === "horizontal" ? autoInfo.horizontal : autoInfo.vertical;
+    const axisName = autoInfo.pattern === "horizontal" ? "poziomo" : "pionowo";
+    const clampNote =
+      autoInfo.requestedCount > axisLayout.maxCount
+        ? ` (maksymalnie ${axisLayout.maxCount} dla tej sekcji)`
+        : "";
+    steelPanelCountHint.textContent =
+      `Auto ${axisName}: ${axisLayout.count} szt./sekcja${clampNote}, przerwa ${Math.max(
+        0,
+        Math.round(axisLayout.gap)
+      )} mm.`;
+  }
+
+  function inferPanelCountFromLegacySpacing(legacySpacing, options) {
+    const source = options && typeof options === "object" ? options : {};
+    const pattern = normalizeInfillPattern(source.infillPattern) || normalizeInfillPattern(state.steelInfillPattern) || "vertical";
+    const sectionArea = estimateSteelSectionInfillArea(source);
+    if (!sectionArea) {
+      return clamp(Math.round(Number(state.steelPanelCount) || 12), 1, 120, 12);
+    }
+    const bar = Math.max(5, Number(source.barWidth) || state.steelBarWidth);
+    const gap = Math.max(5, Number(legacySpacing) || Math.round(bar * 3));
+    const span = pattern === "horizontal" ? sectionArea.h : sectionArea.w;
+    const layout = resolvePanelCountFromGap(span, bar, gap);
+    return clamp(Math.round(layout.count), 1, 120, 12);
   }
 
   function addInfillPattern(
     area,
     pattern,
     barWidth,
-    barSpacing,
+    panelCount,
     layerId,
     stroke
   ) {
@@ -5993,13 +6464,52 @@
       return addCrossInfill(area, layerId, stroke);
     }
     if (normalized === "horizontal") {
-      return addHorizontalBars(area, barWidth, resolveInfillGap(barSpacing, barWidth), layerId, stroke);
+      return addHorizontalBars(area, barWidth, panelCount, layerId, stroke).created;
     }
-    const gap = resolveInfillGap(barSpacing, barWidth);
     if (normalized === "grid") {
-      return addVerticalBars(area, barWidth, gap, layerId, stroke) + addHorizontalBars(area, barWidth, gap, layerId, stroke);
+      const vertical = addVerticalBars(area, barWidth, panelCount, layerId, stroke);
+      const horizontal = addHorizontalBars(area, barWidth, panelCount, layerId, stroke);
+      return vertical.created + horizontal.created;
     }
-    return addVerticalBars(area, barWidth, gap, layerId, stroke);
+    return addVerticalBars(area, barWidth, panelCount, layerId, stroke).created;
+  }
+
+  function buildPanelInfoForArea(area, pattern, barWidth, panelCount) {
+    if (!area || area.w <= 0 || area.h <= 0) {
+      return null;
+    }
+    const normalized = normalizeInfillPattern(pattern) || "vertical";
+    if (normalized === "cross") {
+      return null;
+    }
+    const bar = Math.max(5, Number(barWidth) || 5);
+    if (normalized === "horizontal") {
+      return {
+        pattern: normalized,
+        horizontal: resolveBarLayoutByCount(area.h, bar, panelCount)
+      };
+    }
+    if (normalized === "grid") {
+      return {
+        pattern: normalized,
+        vertical: resolveBarLayoutByCount(area.w, bar, panelCount),
+        horizontal: resolveBarLayoutByCount(area.h, bar, panelCount)
+      };
+    }
+    return {
+      pattern: normalized,
+      vertical: resolveBarLayoutByCount(area.w, bar, panelCount)
+    };
+  }
+
+  function getPrimaryPanelLayout(panelInfo) {
+    if (!panelInfo) {
+      return null;
+    }
+    if (panelInfo.pattern === "horizontal") {
+      return panelInfo.horizontal || null;
+    }
+    return panelInfo.vertical || panelInfo.horizontal || null;
   }
 
   function applyGroundClearance(area, clearance) {
@@ -6194,7 +6704,16 @@
     const postLengthRequested = Math.max(200, Number(options.postLength) || state.steelPostLength);
     const postLength = Math.max(height, postLengthRequested);
     const barWidth = Math.max(5, Number(options.barWidth) || state.steelBarWidth);
-    const barSpacing = Math.max(5, Number(options.barSpacing) || state.steelBarSpacing);
+    let panelCount = clamp(
+      Math.round(
+        Number.isFinite(Number(options.panelCount))
+          ? Number(options.panelCount)
+          : Number(state.steelPanelCount)
+      ),
+      1,
+      120,
+      state.steelPanelCount
+    );
     const infillPattern = normalizeInfillPattern(options.infillPattern) || state.steelInfillPattern;
     const sectionCount = Math.max(
       1,
@@ -6258,19 +6777,45 @@
     };
     const originX = center.x - width / 2;
     const originY = center.y - height / 2;
-    const autoSpacingPlan = buildGateSpacingAutoInfo({
+    if (!Number.isFinite(Number(options.panelCount)) && Number.isFinite(Number(options.barSpacing))) {
+      panelCount = inferPanelCountFromLegacySpacing(Number(options.barSpacing), {
+        template,
+        infillPattern,
+        width,
+        height,
+        frameProfile,
+        postWidth,
+        barWidth,
+        sectionCount,
+        gateLeafCount,
+        groundClearance,
+        basePlateHeight,
+        innerFrame,
+        topPanel,
+        topPanelThickness,
+        bottomPanel,
+        bottomPanelThickness
+      });
+    }
+
+    const autoPanelPlan = buildSteelPanelCountAutoInfo({
       template,
       infillPattern,
       width,
       height,
       frameProfile,
+      postWidth,
       barWidth,
-      barSpacing,
+      panelCount,
       sectionCount,
       gateLeafCount,
       groundClearance,
       basePlateHeight,
-      innerFrame
+      innerFrame,
+      topPanel,
+      topPanelThickness,
+      bottomPanel,
+      bottomPanelThickness
     });
 
     const frameLayer = ensureLayerByName("KONSTRUKCJA");
@@ -6289,7 +6834,7 @@
       ensureLayerVisibleUnlocked(frameLayer) || ensureLayerVisibleUnlocked(infillLayer);
 
     let created = 0;
-    let generatedGateSpacingInfo = null;
+    let generatedPanelInfo = null;
     if (template === "gate") {
       const leafGap = gateLeafCount > 1 ? Math.max(8, Math.round(frameProfile * 0.35)) : 0;
       const totalGap = leafGap * (gateLeafCount - 1);
@@ -6346,25 +6891,20 @@
           });
           created += edgePanels.created;
           if (edgePanels.area.w > 0 && edgePanels.area.h > 0) {
-            if (!generatedGateSpacingInfo && ["vertical", "grid"].includes(infillPattern)) {
-              const bar = Math.max(5, Number(barWidth) || 5);
-              const requestedGap = resolveInfillGap(barSpacing, bar);
-              const layout = resolveBarLayout(edgePanels.area.w, bar, requestedGap);
-              if (layout && layout.count >= 1) {
-                generatedGateSpacingInfo = {
-                  count: layout.count,
-                  sectionWidth: edgePanels.area.w,
-                  targetGap: requestedGap,
-                  gap: layout.gap
-                };
-              }
+            if (!generatedPanelInfo) {
+              generatedPanelInfo = buildPanelInfoForArea(
+                edgePanels.area,
+                infillPattern,
+                barWidth,
+                panelCount
+              );
             }
             diagonalSections.push(edgePanels.area);
             created += addInfillPattern(
               edgePanels.area,
               infillPattern,
               barWidth,
-              barSpacing,
+              panelCount,
               infillLayer.id,
               infillStroke
             );
@@ -6464,11 +7004,14 @@
           stroke: infillStroke
         });
         created += edgePanels.created;
+        if (!generatedPanelInfo) {
+          generatedPanelInfo = buildPanelInfoForArea(edgePanels.area, infillPattern, barWidth, panelCount);
+        }
         created += addInfillPattern(
           edgePanels.area,
           infillPattern,
           barWidth,
-          barSpacing,
+          panelCount,
           infillLayer.id,
           infillStroke
         );
@@ -6521,11 +7064,14 @@
           stroke: infillStroke
         });
         created += edgePanels.created;
+        if (!generatedPanelInfo) {
+          generatedPanelInfo = buildPanelInfoForArea(edgePanels.area, infillPattern, barWidth, panelCount);
+        }
         created += addInfillPattern(
           edgePanels.area,
           infillPattern,
           barWidth,
-          barSpacing,
+          panelCount,
           infillLayer.id,
           infillStroke
         );
@@ -6555,10 +7101,11 @@
     state.steelBasePlateHeight = basePlateHeight;
     state.steelInnerFrame = innerFrame;
     state.steelDiagonal = diagonal;
-    const finalSpacingAutoInfo = generatedGateSpacingInfo || autoSpacingPlan;
-    state.steelBarSpacing = finalSpacingAutoInfo
-      ? Math.max(5, Math.round(finalSpacingAutoInfo.gap))
-      : barSpacing;
+    const finalPanelAutoInfo = generatedPanelInfo || autoPanelPlan;
+    const finalPrimaryLayout = getPrimaryPanelLayout(finalPanelAutoInfo);
+    state.steelPanelCount = finalPrimaryLayout
+      ? clamp(Math.round(finalPrimaryLayout.count), 1, 120, panelCount)
+      : panelCount;
     state.selectedId = state.entities[state.entities.length - 1].id;
     state.activeLayerId = frameLayer.id;
     if (!state.showGrid) {
@@ -6585,16 +7132,27 @@
         infillPattern
       )}).`
     );
-    if (finalSpacingAutoInfo) {
-      const autoGap = Math.max(5, Math.round(finalSpacingAutoInfo.gap));
-      state.steelBarSpacing = autoGap;
-      if (steelBarSpacingInput) {
-        steelBarSpacingInput.value = String(autoGap);
+    if (steelPanelCountInput) {
+      steelPanelCountInput.value = String(state.steelPanelCount);
+    }
+    if (finalPanelAutoInfo) {
+      if (finalPanelAutoInfo.pattern === "grid") {
+        const vCount = finalPanelAutoInfo.vertical?.count || 0;
+        const vGap = Math.max(0, Math.round(finalPanelAutoInfo.vertical?.gap || 0));
+        const hCount = finalPanelAutoInfo.horizontal?.count || 0;
+        const hGap = Math.max(0, Math.round(finalPanelAutoInfo.horizontal?.gap || 0));
+        echoCommand(`Siatka: pion ${vCount} szt. (przerwa ${vGap} mm), poziom ${hCount} szt. (przerwa ${hGap} mm).`);
+      } else {
+        const layout = getPrimaryPanelLayout(finalPanelAutoInfo);
+        if (layout) {
+          echoCommand(
+            `Panele dopasowano: ${layout.count} szt./sekcja, przerwa ${Math.max(
+              0,
+              Math.round(layout.gap)
+            )} mm.`
+          );
+        }
       }
-      echoCommand(
-        `Przerwy dopasowano automatycznie do ilości paneli: ${finalSpacingAutoInfo.count} szt./sekcja, ` +
-          `ustawiona przerwa: ${autoGap} mm.`
-      );
     }
     if (layerStateAdjusted) {
       echoCommand("Automatycznie odkryto i odblokowano warstwy KONSTRUKCJA/WYPELNIENIE.");
@@ -6611,7 +7169,7 @@
       postWidth: Number(steelPostWidthInput.value),
       postLength: Number(steelPostLengthInput.value),
       barWidth: Number(steelBarWidthInput.value),
-      barSpacing: Number(steelBarSpacingInput.value),
+      panelCount: Number(steelPanelCountInput.value),
       infillPattern: steelInfillPatternSelect.value,
       topPanel: steelTopPanelToggle.checked,
       topPanelThickness: Number(steelTopPanelSizeInput.value),
@@ -7092,7 +7650,7 @@
 
   function applyHoverHelpTooltips() {
     const tooltipById = {
-      fileMenuBtn: "Menu Zapisz/Drukuj: szybki zapis, druk i eksport rysunku.",
+      fileMenuBtn: "Menu plików: otwieranie, zapis, import i eksport rysunków.",
       loadJsonBtn: "Wczytuje projekt z pliku JSON.",
       saveJsonBtn: "Zapisuje projekt do pliku JSON.",
       importDxfBtn: "Importuje geometrię z pliku DXF.",
@@ -7244,7 +7802,7 @@
     steelPostWidthInput.value = String(state.steelPostWidth);
     steelPostLengthInput.value = String(state.steelPostLength);
     steelBarWidthInput.value = String(state.steelBarWidth);
-    steelBarSpacingInput.value = String(state.steelBarSpacing);
+    steelPanelCountInput.value = String(state.steelPanelCount);
     steelInfillPatternSelect.value = state.steelInfillPattern;
     if (steelInfillPatternSelect.value !== state.steelInfillPattern) {
       steelInfillPatternSelect.value = "vertical";
@@ -7278,6 +7836,13 @@
     const target = event.target;
     const isTextInput =
       target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable;
+    const inLicenseDialog =
+      target instanceof Element ? Boolean(target.closest("#licenseOverlay")) : false;
+
+    if (!licenseSession.active && !inLicenseDialog) {
+      event.preventDefault();
+      return;
+    }
 
     if (!isTextInput && event.code === "Space") {
       state.spacePan = true;
@@ -7471,15 +8036,6 @@
   function initializeEvents() {
     if (fileMenuBtn && fileMenuPanel) {
       fileMenuBtn.addEventListener("click", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        setFileMenuOpen(!isFileMenuOpen());
-      });
-
-      fileMenuBtn.addEventListener("keydown", (event) => {
-        if (event.key !== "Enter" && event.key !== " ") {
-          return;
-        }
         event.preventDefault();
         event.stopPropagation();
         setFileMenuOpen(!isFileMenuOpen());
@@ -7832,14 +8388,14 @@
     steelWidthInput.addEventListener("change", () => {
       state.steelWidth = Math.max(200, Number(steelWidthInput.value) || state.steelWidth);
       steelWidthInput.value = String(state.steelWidth);
-      updateSteelSpacingHint();
+      updateSteelPanelCountHint();
       markDirty();
     });
 
     steelHeightInput.addEventListener("change", () => {
       state.steelHeight = Math.max(200, Number(steelHeightInput.value) || state.steelHeight);
       steelHeightInput.value = String(state.steelHeight);
-      updateSteelSpacingHint();
+      updateSteelPanelCountHint();
       markDirty();
     });
 
@@ -7848,13 +8404,14 @@
         20,
         Number(steelFrameProfileSelect.value) || state.steelFrameProfile
       );
-      updateSteelSpacingHint();
+      updateSteelPanelCountHint();
       markDirty();
     });
 
     steelPostWidthInput.addEventListener("change", () => {
       state.steelPostWidth = Math.max(20, Number(steelPostWidthInput.value) || state.steelPostWidth);
       steelPostWidthInput.value = String(state.steelPostWidth);
+      updateSteelPanelCountHint();
       markDirty();
     });
 
@@ -7867,14 +8424,19 @@
     steelBarWidthInput.addEventListener("change", () => {
       state.steelBarWidth = Math.max(5, Number(steelBarWidthInput.value) || state.steelBarWidth);
       steelBarWidthInput.value = String(state.steelBarWidth);
-      updateSteelSpacingHint();
+      updateSteelPanelCountHint();
       markDirty();
     });
 
-    steelBarSpacingInput.addEventListener("change", () => {
-      state.steelBarSpacing = Math.max(5, Number(steelBarSpacingInput.value) || state.steelBarSpacing);
-      steelBarSpacingInput.value = String(state.steelBarSpacing);
-      updateSteelSpacingHint();
+    steelPanelCountInput.addEventListener("change", () => {
+      state.steelPanelCount = clamp(
+        Math.round(Number(steelPanelCountInput.value)),
+        1,
+        120,
+        state.steelPanelCount
+      );
+      steelPanelCountInput.value = String(state.steelPanelCount);
+      updateSteelPanelCountHint();
       markDirty();
     });
 
@@ -7886,12 +8448,13 @@
       }
       state.steelInfillPattern = pattern;
       syncSteelTemplateMeta();
-      updateSteelSpacingHint();
+      updateSteelPanelCountHint();
       markDirty();
     });
 
     steelTopPanelToggle.addEventListener("change", () => {
       state.steelTopPanel = steelTopPanelToggle.checked;
+      updateSteelPanelCountHint();
       markDirty();
     });
 
@@ -7903,12 +8466,14 @@
           Number.isFinite(parsed) ? parsed : state.steelTopPanelThickness
         );
         steelTopPanelSizeInput.value = String(state.steelTopPanelThickness);
+        updateSteelPanelCountHint();
         markDirty();
       });
     }
 
     steelBottomPanelToggle.addEventListener("change", () => {
       state.steelBottomPanel = steelBottomPanelToggle.checked;
+      updateSteelPanelCountHint();
       markDirty();
     });
 
@@ -7920,6 +8485,7 @@
           Number.isFinite(parsed) ? parsed : state.steelBottomPanelThickness
         );
         steelBottomPanelSizeInput.value = String(state.steelBottomPanelThickness);
+        updateSteelPanelCountHint();
         markDirty();
       });
     }
@@ -7931,7 +8497,7 @@
         Math.min(6, Math.round(Number.isFinite(parsed) ? parsed : state.steelSectionCount))
       );
       steelSectionCountInput.value = String(state.steelSectionCount);
-      updateSteelSpacingHint();
+      updateSteelPanelCountHint();
       markDirty();
     });
 
@@ -7942,7 +8508,7 @@
         Math.min(2, Math.round(Number.isFinite(parsed) ? parsed : state.steelGateLeafCount))
       );
       steelGateLeafCountSelect.value = String(state.steelGateLeafCount);
-      updateSteelSpacingHint();
+      updateSteelPanelCountHint();
       markDirty();
     });
 
@@ -7953,7 +8519,7 @@
         Number.isFinite(parsed) ? parsed : state.steelGroundClearance
       );
       steelGroundClearanceInput.value = String(state.steelGroundClearance);
-      updateSteelSpacingHint();
+      updateSteelPanelCountHint();
       markDirty();
     });
 
@@ -7964,13 +8530,13 @@
         Number.isFinite(parsed) ? parsed : state.steelBasePlateHeight
       );
       steelBasePlateHeightInput.value = String(state.steelBasePlateHeight);
-      updateSteelSpacingHint();
+      updateSteelPanelCountHint();
       markDirty();
     });
 
     steelInnerFrameToggle.addEventListener("change", () => {
       state.steelInnerFrame = steelInnerFrameToggle.checked;
-      updateSteelSpacingHint();
+      updateSteelPanelCountHint();
       markDirty();
     });
 
@@ -8195,11 +8761,6 @@
     });
     window.addEventListener("resize", resizeCanvas);
     window.addEventListener("resize", updateToastAnchor);
-    window.addEventListener("resize", () => {
-      if (isFileMenuOpen()) {
-        positionFileMenuPanel();
-      }
-    });
     window.addEventListener("blur", () => {
       setFileMenuOpen(false);
     });
@@ -8207,10 +8768,8 @@
 
   function bootstrap() {
     applyTheme("dark");
+    const licensedAtBoot = initializeLicenseManager();
 
-    if (!SESSION_PERSIST_ENABLED) {
-      clearPersistedSession();
-    }
     restoreSession();
     setWorkspaceView("start", { mode: "draw", force: true, persist: false });
     setFileMenuOpen(false);
@@ -8238,6 +8797,9 @@
     );
     if (restoredHiddenLayers) {
       echoCommand("Przywrócono widoczność warstw z istniejącą geometrią.");
+    }
+    if (!licensedAtBoot) {
+      echoCommand("Aktywuj licencję, aby odblokować pracę w MadCAD 2D.", true, { toast: false });
     }
     queueRender();
   }

@@ -1,57 +1,67 @@
-# MadCAD 2D
+# MadCAD 2D Desktop
 
-Desktopowa aplikacja CAD 2D (Windows/macOS) do projektowania konstrukcji stalowych: bramy, ogrodzenia, balkony.
-
-## Linki
-
-- Strona projektu (GitHub Pages): https://kamil5646.github.io/MadCAD2D/
-- Repozytorium: https://github.com/kamil5646/MadCAD2D
-- Release 1.0: https://github.com/kamil5646/MadCAD2D/releases/tag/1.0
-
-## Pobieranie (Release 1.0)
-
-- Windows: `MadCAD.2D-1.0.0-win-x64.exe`
-- macOS: `MadCAD.2D-1.0.0-mac-x64.zip`
-
-Pliki są dostępne w sekcji release:  
-https://github.com/kamil5646/MadCAD2D/releases/tag/1.0
+Desktopowa aplikacja CAD 2D (Mac/Windows) MadCAD 2D, z naciskiem na projektowanie konstrukcji stalowych: bramy, ogrodzenia, balkony.
 
 ## Najważniejsze funkcje
 
-- Wstążka narzędzi i polski interfejs.
-- Narzędzia 2D: `Linia`, `Polilinia`, `Prostokąt`, `Okrąg`, `Pomiar`, `Wymiar`.
-- Wymiarowanie: `Aligned`, `Linear`, `Rotated`, `Angular` (kątowe).
-- SNAP i ORTHO, przyciąganie do punktów charakterystycznych.
-- Edycja: `MOVE`, `COPY`, `OFFSET`, duplikacja, usuwanie, kolejność.
-- Warstwy: aktywna warstwa, widoczność, blokady.
-- Generator stali: szablony `Brama`, `Ogrodzenie`, `Balkon`.
-- Import/eksport: `JSON`, `DXF`, `SVG`, oraz `Druk/PDF`.
-- Menu `Zapisz/Drukuj` bezpośrednio w górnym pasku.
+- Wstążka (Ribbon) z logiką trybów: `Start`, `Rysowanie 2D`, `Generator stali`.
+- Rysowanie 2D: `Linia`, `Polilinia`, `Prostokąt`, `Okrąg`.
+- Wymiarowanie: `DIM Aligned`, `DIM Linear`, jednostki, precyzja, rozmiar i kolor DIM.
+- SNAP do siatki i obiektów (końce, środki, narożniki, krawędzie).
+- Modyfikacje: `MOVE`, `COPY`, `OFFSET`, duplikacja, usuwanie, kolejność.
+- Warstwy: aktywna warstwa, widoczność, blokady, tworzenie/usuwanie.
+- Generator stali: brama / ogrodzenie / balkon z parametrami w mm.
+- Import/eksport: JSON, DXF, SVG oraz druk/PDF.
 
-## Uruchomienie lokalne (dev)
+## Uruchomienie desktop (dev)
+
+1. Wejdź do katalogu projektu:
 
 ```bash
-npm ci
+cd /Users/kamilkasprzak/Documents/inne/auto-cad
+```
+
+2. Zainstaluj zależności:
+
+```bash
+npm install
+```
+
+3. Uruchom aplikację desktop:
+
+```bash
 npm run dev
 ```
 
 ## Build aplikacji
 
+### macOS
+
 ```bash
-# paczka katalogowa (lokalny test app)
-npm run dist:dir
-
-# macOS (dir)
 npm run dist:mac
+```
 
-# Windows (instalator NSIS x64)
+Wynik:
+
+- gotowa aplikacja `.app` w katalogu `release/mac-*/MadCAD 2D.app`
+
+### Windows
+
+```bash
 npm run dist:win
+```
 
-# oba targety jednocześnie
+Wynik:
+
+- instalator `.exe` (NSIS) w katalogu `release/`
+
+### Jednocześnie (Mac/Windows/Linux)
+
+```bash
 npm run dist
 ```
 
-Artefakty trafiają do katalogu `release/`.
+Artefakty builda trafiają do katalogu `release/`.
 
 ## Skróty klawiszowe
 
@@ -66,20 +76,18 @@ Artefakty trafiają do katalogu `release/`.
 - `F4` - zwiń/rozwiń wstążkę
 - `F6` - ukryj/pokaż panele
 - `F8` - ORTHO
-- `G` - Siatka
+- `G` - GRID
 - `Ctrl+Z` - Cofnij
 - `Ctrl+Y` - Ponów
 - `Ctrl+C` / `Ctrl+V` - kopiuj/wklej
-- `Ctrl+S` - Zapisz JSON
-- `Ctrl+P` - Druk/PDF
+- `Ctrl+S` - zapisz JSON
+- `Ctrl+P` - druk/PDF
 
-## Komendy CAD (przykłady)
+## Komendy (skrótowe)
 
 - `mode start|draw|steel`
 - `layout model|sheet1`
-- `dimstyle [mm|cm|m] [prec] [text] [aligned|linear|rotated|angular] [#RRGGBB]`
-- `dimension angular`
-- `dimangular`
+- `dimstyle [mm|cm|m] [prec] [text] [aligned|linear] [#RRGGBB]`
 - `dimcolor #RRGGBB`
 - `snap on|off|toggle`
 - `grid on|off|toggle`
@@ -88,13 +96,26 @@ Artefakty trafiają do katalogu `release/`.
 
 ## Stack techniczny
 
-- `Electron`
-- `HTML/CSS/JavaScript`
-- `electron-builder`
+- `Electron` (shell desktop na Mac/Windows)
+- `HTML/CSS/JS` (renderer CAD)
+- `electron-builder` (pakowanie instalatorów)
 
-## Prawa i licencja
+## Licencja i aktywacja
 
-- Licencja kodu źródłowego: [MIT](./LICENSE)
-- Prawa autorskie i branding: [COPYRIGHT.md](./COPYRIGHT.md)
-- Warunki binarnych wydań aplikacji: [EULA.md](./EULA.md)
-- Polityka prywatności: [PRIVACY.md](./PRIVACY.md)
+Projekt jest objęty licencją niestandardową: [`LICENSE.md`](./LICENSE.md).
+
+Najważniejsze zasady:
+
+- Użytek prywatny: dozwolony, bezpłatny, po aktywacji tokenem prywatnym.
+- Modyfikacje aplikacji: niedozwolone.
+- Użytek komercyjny: wymaga datku 50 USD za każde urządzenie (1 licencja = 1 urządzenie).
+
+### Token prywatny (darmowy)
+
+Po uruchomieniu aplikacji pojawia się ekran aktywacji:
+
+1. Uzupełnij formularz prywatny (imię i nazwisko, e-mail, cel użycia).
+2. Kliknij `Generuj darmowy token`.
+3. Kliknij `Aktywuj token`.
+
+Token jest przypisany do ID urządzenia i zapisywany lokalnie.
