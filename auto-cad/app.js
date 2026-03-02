@@ -335,7 +335,7 @@
   let layoutResizeObserver = null;
   let lastCanvasClientWidth = 0;
   let lastCanvasClientHeight = 0;
-  const POINTER_DRAG_THRESHOLD_PX = 5;
+  const POINTER_DRAG_THRESHOLD_PX = 8;
   const OBJECT_SNAP_THRESHOLD_PX = 14;
 
   const detectedMac =
@@ -4447,7 +4447,7 @@
   }
 
   function hitTest(worldPoint) {
-    const threshold = 8 / state.view.scale;
+    const threshold = 12 / state.view.scale;
     let best = null;
 
     function pickCandidate(entity, priority, distance, zIndex) {
@@ -5261,7 +5261,10 @@
       state.selectingBox = false;
       state.selectionBoxStart = null;
       state.selectionBoxEnd = null;
-      const hit = hitTest(raw);
+      let hit = hitTest(raw);
+      if (!hit && state.snap) {
+        hit = hitTest(snapped);
+      }
       state.selectedId = hit;
 
       clearDrawingPreview();
