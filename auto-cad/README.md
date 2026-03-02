@@ -1,5 +1,7 @@
 # MadCAD 2D Desktop
 
+English version: [README.en.md](./README.en.md)
+
 Desktopowa aplikacja CAD 2D (Mac/Windows) MadCAD 2D, z naciskiem na projektowanie konstrukcji stalowych: bramy, ogrodzenia, balkony.
 
 ## Wydanie 2.0
