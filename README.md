@@ -6,8 +6,10 @@ Desktopowa aplikacja CAD 2D (Mac/Windows) MadCAD 2D, z naciskiem na projektowani
 
 Aktualne pliki instalacyjne znajdziesz w release `2.0`:
 
-- Windows: https://github.com/kamil5646/MadCAD2D/releases/download/2.0/MadCAD.2D-2.0.0-win-x64.exe
-- macOS: https://github.com/kamil5646/MadCAD2D/releases/download/2.0/MadCAD.2D-2.0.0-mac-arm64.zip
+- PL macOS: https://github.com/kamil5646/MadCAD2D/releases/download/2.0/MadCAD.2D-2.0.0-pl-mac-arm64.zip
+- PL Windows: https://github.com/kamil5646/MadCAD2D/releases/download/2.0/MadCAD.2D-2.0.0-pl-win-x64.exe
+- EN macOS: https://github.com/kamil5646/MadCAD2D/releases/download/2.0/MadCAD.2D-2.0.0-en-mac-arm64.zip
+- EN Windows: https://github.com/kamil5646/MadCAD2D/releases/download/2.0/MadCAD.2D-2.0.0-en-win-x64.exe
 - Strona release: https://github.com/kamil5646/MadCAD2D/releases/tag/2.0
 
 ## Struktura repo
@@ -42,8 +44,10 @@ xattr -dr com.apple.quarantine "/Applications/MadCAD 2D.app" && open -a "/Applic
 Jeśli instalator jest blokowany, uruchom PowerShell jako administrator i wklej:
 
 ```powershell
-Unblock-File "$env:USERPROFILE\Downloads\MadCAD.2D-2.0.0-win-x64.exe"; Start-Process "$env:USERPROFILE\Downloads\MadCAD.2D-2.0.0-win-x64.exe" -Verb RunAs
+Unblock-File "$env:USERPROFILE\Downloads\MadCAD.2D-2.0.0-pl-win-x64.exe"; Start-Process "$env:USERPROFILE\Downloads\MadCAD.2D-2.0.0-pl-win-x64.exe" -Verb RunAs
 ```
+
+Dla wersji angielskiej podmień nazwę pliku na `MadCAD.2D-2.0.0-en-win-x64.exe`.
 
 Jeśli SmartScreen nadal pyta, wybierz: `Więcej informacji` -> `Uruchom mimo to`.
 
