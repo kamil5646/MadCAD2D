@@ -118,8 +118,13 @@ xattr -dr com.apple.quarantine "/Applications/MadCAD 2D.app" && open -a "/Applic
 
 ### Windows
 
-Jeśli SmartScreen blokuje instalator: `Więcej informacji` -> `Uruchom mimo to`.
-Gdy problem wraca, pobierz ponownie najnowszy instalator z release `2.0` i uruchom jako administrator.
+Jeśli instalator jest blokowany, uruchom PowerShell jako administrator i wklej:
+
+```powershell
+Unblock-File "$env:USERPROFILE\Downloads\MadCAD.2D-2.0.0-win-x64.exe"; Start-Process "$env:USERPROFILE\Downloads\MadCAD.2D-2.0.0-win-x64.exe" -Verb RunAs
+```
+
+Jeśli SmartScreen nadal pyta, wybierz: `Więcej informacji` -> `Uruchom mimo to`.
 
 ## Skróty klawiszowe
 
