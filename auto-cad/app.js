@@ -128,6 +128,113 @@
   const LICENSE_SIGNATURE_SALT = "MadCAD2D-Private-NoMods-SingleDevice-2026";
   const LICENSE_TOKEN_PREFIX = "M2D1";
   const LICENSE_PRIVATE_FORM_URL = "https://kamil5646.github.io/MadCAD2D/#token-prywatny";
+  const APP_LANGUAGE =
+    window.desktopApp && window.desktopApp.appLanguage === "en" ? "en" : "pl";
+  const t = (pl, en) => (APP_LANGUAGE === "en" ? en : pl);
+
+  function localizeMessageText(value) {
+    const text = String(value || "");
+    if (APP_LANGUAGE !== "en" || !text) {
+      return text;
+    }
+    const exact = {
+      "Polecenie anulowane.": "Command canceled.",
+      "Brak zaznaczonego obiektu": "No object selected",
+      "Gotowe. Użyj przycisków ze wstążki lub zakładki Skróty.": "Ready. Use ribbon buttons or the Shortcuts tab.",
+      "Przywrócono widoczność warstw z istniejącą geometrią.": "Restored visibility for layers with existing geometry.",
+      "Aktywuj licencję, aby odblokować pracę w MadCAD 2D.": "Activate a license to unlock work in MadCAD 2D.",
+      "Wybierz plik DXF do importu.": "Choose a DXF file to import.",
+      "Wybierz plik JSON do wczytania.": "Choose a JSON file to load.",
+      "Wyczyszczono rysunek.": "Drawing cleared.",
+      "Rysunek jest pusty lub anulowano czyszczenie.": "Drawing is empty or clearing was canceled.",
+      "Brak zaznaczonego obiektu do usunięcia.": "No selected object to delete.",
+      "Najpierw zaznacz obiekt do duplikacji.": "Select an object first to duplicate."
+    };
+    if (Object.prototype.hasOwnProperty.call(exact, text)) {
+      return exact[text];
+    }
+    return text
+      .replace(/^Usunięto obiekty: (\d+)\.$/, "Deleted objects: $1.")
+      .replace(/^Zduplikowano obiekty: (\d+)\.$/, "Duplicated objects: $1.")
+      .replace(/^Wczytano DXF: (.+) \((\d+) obiektów\)\.$/, "Loaded DXF: $1 ($2 objects).")
+      .replace(/^Nie udało się wczytać DXF: (.+)$/, "Failed to load DXF: $1")
+      .replace(/^Błąd importu DXF: (.+)$/, "DXF import error: $1")
+      .replace(/^Niepoprawny plik JSON: (.+)$/, "Invalid JSON file: $1")
+      .replace(/^Wczytano JSON: (.+) \((\d+) obiektów\)\.$/, "Loaded JSON: $1 ($2 objects).")
+      .replace(/^Wyeksportowano plik: (.+)$/, "Exported file: $1")
+      .replace(/^Przyciąganie: WŁ\.$/, "Snap: ON")
+      .replace(/^Przyciąganie: WYŁ\.$/, "Snap: OFF")
+      .replace(/^Siatka: WŁ\.$/, "Grid: ON")
+      .replace(/^Siatka: WYŁ\.$/, "Grid: OFF")
+      .replace(/^ORTHO: WŁ\.$/, "ORTHO: ON")
+      .replace(/^ORTHO: WYŁ\.$/, "ORTHO: OFF");
+  }
+
+  function localizeStaticUi() {
+    if (APP_LANGUAGE !== "en") {
+      return;
+    }
+    document.documentElement.lang = "en";
+    const entries = [
+      ["#undoBtn", "Undo"],
+      ["#redoBtn", "Redo"],
+      ["#flyoutLayersBtn", "Layers"],
+      ["#steelGenerateQuickBtn", "Generate"],
+      ["#flyoutSelectionBtn", "Selection"],
+      ["#toggleRibbonBtn", "Collapse ribbon"],
+      ["#fileMenuBtn", "Save/Print"],
+      ["#loadJsonBtn", "Load JSON"],
+      ["#saveJsonBtn", "Save JSON"],
+      ["#importDxfBtn", "Import DXF"],
+      ["#exportDxfBtn", "Export DXF"],
+      ["#exportSvgBtn", "Export SVG"],
+      ["#printDrawingBtn", "Print/PDF"],
+      [".ribbon-tab[data-page='home']", "Home"],
+      [".ribbon-tab[data-page='references']", "Dimensioning"],
+      [".ribbon-tab[data-page='design']", "Steel"],
+      [".ribbon-tab[data-page='view']", "View"],
+      [".ribbon-tab[data-page='shortcuts']", "Shortcuts"],
+      [".tool-btn[data-tool='select']", "Select"],
+      [".tool-btn[data-tool='line']", "Line"],
+      [".tool-btn[data-tool='polyline']", "Polyline"],
+      [".tool-btn[data-tool='rect']", "Rectangle"],
+      [".tool-btn[data-tool='circle']", "Circle"],
+      [".tool-btn[data-tool='measure']", "Measure"],
+      [".tool-btn[data-tool='dimension']", "Dimension"],
+      [".tool-btn[data-tool='pan']", "Pan view"],
+      ["#moveCmdBtn", "Move"],
+      ["#copyCmdBtn", "Copy"],
+      ["#offsetCmdBtn", "Offset"],
+      ["#duplicateBtn", "Duplicate"],
+      ["#deleteBtn", "Delete"],
+      ["#toFrontBtn", "To front"],
+      ["#toBackBtn", "To back"],
+      ["#fitViewBtn", "Fit view"],
+      ["#clearBtn", "Clear"],
+      ["#snapToggle", "Snap"],
+      ["#showGridToggle", "Grid"],
+      ["#selectionInfo", "No object selected"],
+      ["#steelGenerateBtn", "Generate element"]
+    ];
+    for (const [selector, text] of entries) {
+      const element = document.querySelector(selector);
+      if (element) {
+        element.textContent = text;
+      }
+    }
+    const titleEntries = [
+      ["#undoBtn", "Undo"],
+      ["#redoBtn", "Redo"],
+      ["#licenseCategoryBtn", "License management"]
+    ];
+    for (const [selector, text] of titleEntries) {
+      const element = document.querySelector(selector);
+      if (element) {
+        element.setAttribute("title", text);
+      }
+    }
+  }
+
   const licenseSession = {
     active: false,
     token: "",
@@ -140,6 +247,7 @@
     tool: "select",
     entities: [],
     selectedId: null,
+    selectedIds: [],
     view: {
       scale: 1,
       offsetX: 160,
@@ -164,6 +272,7 @@
     selectingBox: false,
     selectionBoxStart: null,
     selectionBoxEnd: null,
+    selectionBoxAdditive: false,
     polylineAnchor: null,
     spacePan: false,
     snap: true,
@@ -230,14 +339,14 @@
   };
 
   const TOOL_LABELS = {
-    select: "Zaznacz",
-    line: "Linia",
-    polyline: "Polilinia",
-    rect: "Prostokąt",
-    circle: "Okrąg",
-    measure: "Pomiar",
-    dimension: "Wymiar",
-    pan: "Pan widoku"
+    select: t("Zaznacz", "Select"),
+    line: t("Linia", "Line"),
+    polyline: t("Polilinia", "Polyline"),
+    rect: t("Prostokąt", "Rectangle"),
+    circle: t("Okrąg", "Circle"),
+    measure: t("Pomiar", "Measure"),
+    dimension: t("Wymiar", "Dimension"),
+    pan: t("Pan widoku", "Pan view")
   };
 
   const TOOL_ICONS = {
@@ -1798,6 +1907,7 @@
       layers: state.layers,
       activeLayerId: state.activeLayerId,
       selectedId: state.selectedId,
+      selectedIds: state.selectedIds,
       lastMeasure: state.lastMeasure
     });
   }
@@ -1818,10 +1928,12 @@
       ensureActiveLayer();
       state.entities = normalizeEntities(parsed.entities);
       ensureEntityLayers();
-      state.selectedId = parsed.selectedId || null;
-      if (state.selectedId && !getEntityById(state.selectedId)) {
-        state.selectedId = null;
-      }
+      const restoredSelectedIds = Array.isArray(parsed.selectedIds)
+        ? parsed.selectedIds
+        : parsed.selectedId
+        ? [parsed.selectedId]
+        : [];
+      setSelection(restoredSelectedIds, parsed.selectedId || restoredSelectedIds[0] || null);
       state.lastMeasure = parsed.lastMeasure || null;
       queueRender();
     } catch (error) {
@@ -1875,15 +1987,15 @@
   function assertCanDrawOnActiveLayer() {
     const layer = getActiveLayer();
     if (!layer) {
-      alert("Brak aktywnej warstwy.");
+      alert(t("Brak aktywnej warstwy.", "No active layer."));
       return false;
     }
     if (!layer.visible) {
-      alert("Aktywna warstwa jest ukryta. Odkryj ja lub wybierz inna.");
+      alert(t("Aktywna warstwa jest ukryta. Odkryj ja lub wybierz inna.", "Active layer is hidden. Unhide it or choose another."));
       return false;
     }
     if (layer.locked) {
-      alert("Aktywna warstwa jest zablokowana.");
+      alert(t("Aktywna warstwa jest zablokowana.", "Active layer is locked."));
       return false;
     }
     return true;
@@ -2211,6 +2323,111 @@
     return state.entities.find((entity) => entity.id === id) || null;
   }
 
+  function getSelectionIds() {
+    const candidateIds = [];
+    if (Array.isArray(state.selectedIds)) {
+      candidateIds.push(...state.selectedIds);
+    }
+    if (state.selectedId) {
+      candidateIds.push(state.selectedId);
+    }
+
+    const uniqueValidIds = [];
+    const seen = new Set();
+    for (const id of candidateIds) {
+      if (!id || seen.has(id) || !getEntityById(id)) {
+        continue;
+      }
+      seen.add(id);
+      uniqueValidIds.push(id);
+    }
+
+    const primary =
+      state.selectedId && seen.has(state.selectedId)
+        ? state.selectedId
+        : uniqueValidIds.length > 0
+        ? uniqueValidIds[uniqueValidIds.length - 1]
+        : null;
+
+    const changedIds =
+      uniqueValidIds.length !== state.selectedIds.length ||
+      uniqueValidIds.some((id, index) => state.selectedIds[index] !== id);
+    if (changedIds) {
+      state.selectedIds = uniqueValidIds;
+    }
+    if (state.selectedId !== primary) {
+      state.selectedId = primary;
+    }
+
+    return state.selectedIds;
+  }
+
+  function getSelectedEntities() {
+    return getSelectionIds()
+      .map((id) => getEntityById(id))
+      .filter(Boolean);
+  }
+
+  function isEntitySelected(entityId) {
+    if (!entityId) {
+      return false;
+    }
+    return getSelectionIds().includes(entityId);
+  }
+
+  function setSelection(ids, primaryId) {
+    const nextIdsRaw = Array.isArray(ids) ? ids : [];
+    const nextIds = [];
+    const seen = new Set();
+    for (const id of nextIdsRaw) {
+      if (!id || seen.has(id) || !getEntityById(id)) {
+        continue;
+      }
+      seen.add(id);
+      nextIds.push(id);
+    }
+
+    let nextPrimary = null;
+    if (primaryId && seen.has(primaryId)) {
+      nextPrimary = primaryId;
+    } else if (nextIds.length > 0) {
+      nextPrimary = nextIds[nextIds.length - 1];
+    }
+
+    state.selectedIds = nextIds;
+    state.selectedId = nextPrimary;
+  }
+
+  function setPrimarySelection(entityId) {
+    if (!entityId || !getEntityById(entityId)) {
+      state.selectedIds = [];
+      state.selectedId = null;
+      return;
+    }
+    state.selectedIds = [entityId];
+    state.selectedId = entityId;
+  }
+
+  function clearSelection() {
+    state.selectedIds = [];
+    state.selectedId = null;
+  }
+
+  function toggleSelection(entityId) {
+    const currentIds = getSelectionIds();
+    if (!entityId || !getEntityById(entityId)) {
+      return false;
+    }
+    if (currentIds.includes(entityId)) {
+      const remaining = currentIds.filter((id) => id !== entityId);
+      setSelection(remaining, remaining.length > 0 ? remaining[remaining.length - 1] : null);
+      return false;
+    }
+    const added = [...currentIds, entityId];
+    setSelection(added, entityId);
+    return true;
+  }
+
   function setTool(tool) {
     if (state.commandState) {
       cancelActiveCommand({ echo: false });
@@ -2240,28 +2457,32 @@
     zoomInfoLabel.textContent = `Skala: ${(state.view.scale * 100).toFixed(0)}%`;
     entityCountLabel.textContent = `Obiekty: ${state.entities.length}`;
     if (state.commandState) {
-      toolInfoLabel.textContent = `Polecenie: ${String(state.commandState.name || "").toUpperCase()}`;
+      toolInfoLabel.textContent = `${t("Polecenie", "Command")}: ${String(state.commandState.name || "").toUpperCase()}`;
       toolInfoLabel.dataset.icon = "\u23F5";
     } else {
-      toolInfoLabel.textContent = `Narzędzie: ${TOOL_LABELS[state.tool] || state.tool}`;
+      toolInfoLabel.textContent = `${t("Narzędzie", "Tool")}: ${TOOL_LABELS[state.tool] || state.tool}`;
       toolInfoLabel.dataset.icon = TOOL_ICONS[state.tool] || "\u2699";
     }
     if (workspaceStateInfo) {
-      const modeLabel = state.workspaceMode === "steel" ? "Generator stali" : "Rysowanie 2D";
-      const layoutLabel = state.layoutTab === "sheet1" ? "Arkusz1" : "Model";
-      workspaceStateInfo.textContent = `Tryb: ${modeLabel} | Układ: ${layoutLabel}`;
+      const modeLabel = state.workspaceMode === "steel" ? t("Generator stali", "Steel generator") : t("Rysowanie 2D", "2D drawing");
+      const layoutLabel = state.layoutTab === "sheet1" ? t("Arkusz1", "Sheet1") : t("Model", "Model");
+      workspaceStateInfo.textContent = `${t("Tryb", "Mode")}: ${modeLabel} | ${t("Układ", "Layout")}: ${layoutLabel}`;
     }
     syncStartSummary();
   }
 
   function syncActionButtonsState() {
-    const selected = getEntityById(state.selectedId);
-    const hasSelected = Boolean(selected);
-    const selectedLocked = hasSelected ? isEntityLocked(selected) : false;
+    const selectedEntities = getSelectedEntities();
+    const hasSelected = selectedEntities.length > 0;
+    const selectedLocked = hasSelected ? selectedEntities.some((entity) => isEntityLocked(entity)) : false;
     const commandActive = Boolean(state.commandState);
-    const selectedIndex = hasSelected
-      ? state.entities.findIndex((entity) => entity.id === state.selectedId)
-      : -1;
+    const selectedIndexes = hasSelected
+      ? selectedEntities
+          .map((selected) => state.entities.findIndex((entity) => entity.id === selected.id))
+          .filter((index) => index >= 0)
+      : [];
+    const minSelectedIndex = selectedIndexes.length ? Math.min(...selectedIndexes) : -1;
+    const maxSelectedIndex = selectedIndexes.length ? Math.max(...selectedIndexes) : -1;
 
     undoBtn.disabled = state.historyUndo.length === 0;
     redoBtn.disabled = state.historyRedo.length === 0;
@@ -2277,8 +2498,8 @@
     }
     deleteBtn.disabled = !hasSelected || selectedLocked;
     toFrontBtn.disabled =
-      !hasSelected || selectedLocked || selectedIndex === -1 || selectedIndex === state.entities.length - 1;
-    toBackBtn.disabled = !hasSelected || selectedLocked || selectedIndex <= 0;
+      !hasSelected || selectedLocked || maxSelectedIndex === -1 || maxSelectedIndex === state.entities.length - 1;
+    toBackBtn.disabled = !hasSelected || selectedLocked || minSelectedIndex <= 0;
     clearBtn.disabled = state.entities.length === 0;
     fitViewBtn.disabled = state.entities.length === 0;
   }
@@ -2322,7 +2543,7 @@
   }
 
   function echoCommand(message, isError, options) {
-    const text = String(message || "");
+    const text = localizeMessageText(String(message || ""));
     pushActivityMessage(text, Boolean(isError));
     const showToast = !options || options.toast !== false;
     if (showToast) {
@@ -2392,19 +2613,19 @@
   function startMoveCommand() {
     clearDrawingPreview();
     finishPolyline();
-    const selected = getEntityById(state.selectedId);
-    if (!selected) {
+    const selectedEntities = getSelectedEntities();
+    if (selectedEntities.length === 0) {
       echoCommand("MOVE: najpierw zaznacz obiekt.", true);
       return false;
     }
-    if (isEntityLocked(selected)) {
+    if (selectedEntities.some((entity) => isEntityLocked(entity))) {
       echoCommand("MOVE: obiekt jest na zablokowanej warstwie.", true);
       return false;
     }
     state.commandState = {
       name: "move",
       phase: "pick-base",
-      sourceId: selected.id,
+      sourceIds: selectedEntities.map((entity) => entity.id),
       basePoint: null
     };
     echoCommand("MOVE: wskaz punkt bazowy.");
@@ -2414,19 +2635,19 @@
   function startCopyCommand() {
     clearDrawingPreview();
     finishPolyline();
-    const selected = getEntityById(state.selectedId);
-    if (!selected) {
+    const selectedEntities = getSelectedEntities();
+    if (selectedEntities.length === 0) {
       echoCommand("COPY: najpierw zaznacz obiekt.", true);
       return false;
     }
-    if (isEntityLocked(selected)) {
+    if (selectedEntities.some((entity) => isEntityLocked(entity))) {
       echoCommand("COPY: obiekt jest na zablokowanej warstwie.", true);
       return false;
     }
     state.commandState = {
       name: "copy",
       phase: "pick-base",
-      sourceId: selected.id,
+      sourceIds: selectedEntities.map((entity) => entity.id),
       basePoint: null
     };
     echoCommand("COPY: wskaz punkt bazowy.");
@@ -2537,8 +2758,9 @@
     const point = state.snap ? snappedPoint : rawPoint;
 
     if (command.name === "move" || command.name === "copy") {
-      const source = getEntityById(command.sourceId);
-      if (!source) {
+      const sourceIds = Array.isArray(command.sourceIds) ? command.sourceIds : command.sourceId ? [command.sourceId] : [];
+      const sources = sourceIds.map((id) => getEntityById(id)).filter(Boolean);
+      if (sources.length === 0) {
         cancelActiveCommand({ echo: false });
         echoCommand(`${command.name.toUpperCase()}: obiekt źródłowy nie istnieje.`, true);
         return true;
@@ -2563,14 +2785,23 @@
 
         saveHistory();
         if (command.name === "move") {
-          moveEntity(source, dx, dy);
-          state.selectedId = source.id;
+          for (const source of sources) {
+            moveEntity(source, dx, dy);
+          }
+          setSelection(
+            sources.map((source) => source.id),
+            sources[sources.length - 1].id
+          );
         } else {
-          const copy = cloneEntity(source);
-          copy.id = createId();
-          moveEntity(copy, dx, dy);
-          state.entities.push(copy);
-          state.selectedId = copy.id;
+          const createdIds = [];
+          for (const source of sources) {
+            const copy = cloneEntity(source);
+            copy.id = createId();
+            moveEntity(copy, dx, dy);
+            state.entities.push(copy);
+            createdIds.push(copy.id);
+          }
+          setSelection(createdIds, createdIds.length ? createdIds[createdIds.length - 1] : null);
         }
         state.commandState = null;
         markDirty();
@@ -2594,7 +2825,7 @@
         }
         command.sourceId = hit.id;
         command.phase = "pick-side";
-        state.selectedId = hit.id;
+        setPrimarySelection(hit.id);
         queueRender();
         echoCommand(`OFFSET: wskaz stronę odsunięcia (dystans ${command.distance}).`);
         return true;
@@ -2609,7 +2840,7 @@
         }
         saveHistory();
         state.entities.push(created);
-        state.selectedId = created.id;
+        setPrimarySelection(created.id);
         markDirty();
         queueRender();
         echoCommand("OFFSET: utworzono obiekt.");
@@ -3497,7 +3728,17 @@
   }
 
   function syncControlsFromSelection() {
-    const selected = getEntityById(state.selectedId);
+    const selectedEntities = getSelectedEntities();
+    if (selectedEntities.length > 1) {
+      updateFillControlsAvailability(null);
+      if (dimensionColorInput) {
+        dimensionColorInput.value = state.dimensionColor;
+      }
+      selectionInfo.textContent = `Zaznaczono obiekty: ${selectedEntities.length}`;
+      return;
+    }
+
+    const selected = selectedEntities[0] || null;
     if (!selected) {
       updateFillControlsAvailability(null);
       if (dimensionColorInput) {
@@ -4394,7 +4635,7 @@
       if (!isEntityVisible(entity)) {
         continue;
       }
-      const selected = entity.id === state.selectedId;
+      const selected = isEntitySelected(entity.id);
       if (entity.type === "line") {
         drawLine(entity, selected, false);
       } else if (entity.type === "dimension") {
@@ -4582,7 +4823,7 @@
     return best ? best.id : null;
   }
 
-  function selectByWindow(start, end, mode) {
+  function selectByWindow(start, end, mode, additive) {
     const box = {
       minX: Math.min(start.x, end.x),
       maxX: Math.max(start.x, end.x),
@@ -4591,6 +4832,7 @@
     };
     const normalizedMode = mode === "window" ? "window" : "crossing";
 
+    const matchedIds = [];
     for (let i = state.entities.length - 1; i >= 0; i -= 1) {
       const entity = state.entities[i];
       if (!isEntityVisible(entity)) {
@@ -4605,12 +4847,15 @@
       const intersectsWindow = boundsIntersect(bounds, box);
       const matches = normalizedMode === "window" ? insideWindow : intersectsWindow;
       if (matches) {
-        state.selectedId = entity.id;
-        return;
+        matchedIds.unshift(entity.id);
       }
     }
 
-    state.selectedId = null;
+    if (additive) {
+      setSelection([...getSelectionIds(), ...matchedIds], matchedIds.length > 0 ? matchedIds[matchedIds.length - 1] : state.selectedId);
+      return;
+    }
+    setSelection(matchedIds, matchedIds.length > 0 ? matchedIds[matchedIds.length - 1] : null);
   }
 
   function moveEntity(entity, dx, dy) {
@@ -4646,26 +4891,24 @@
   }
 
   function deleteSelected() {
-    if (!state.selectedId) {
+    const selectedIds = getSelectionIds();
+    if (selectedIds.length === 0) {
       return false;
     }
-    const selected = getEntityById(state.selectedId);
-    if (!selected) {
-      state.selectedId = null;
+    const selectedEntities = selectedIds.map((id) => getEntityById(id)).filter(Boolean);
+    if (selectedEntities.length === 0) {
+      clearSelection();
       queueRender();
       return false;
     }
-    if (isEntityLocked(selected)) {
-      alert("Nie można usunąć obiektu z zablokowanej warstwy.");
+    if (selectedEntities.some((entity) => isEntityLocked(entity))) {
+      alert(t("Nie można usunąć obiektu z zablokowanej warstwy.", "Cannot delete object from a locked layer."));
       return false;
     }
-    const index = state.entities.findIndex((entity) => entity.id === state.selectedId);
-    if (index < 0) {
-      return false;
-    }
+    const selectedSet = new Set(selectedEntities.map((entity) => entity.id));
     saveHistory();
-    state.entities.splice(index, 1);
-    state.selectedId = null;
+    state.entities = state.entities.filter((entity) => !selectedSet.has(entity.id));
+    clearSelection();
     markDirty();
     queueRender();
     return true;
@@ -4681,20 +4924,24 @@
   }
 
   function duplicateSelected() {
-    const selected = getEntityById(state.selectedId);
-    if (!selected) {
+    const selectedEntities = getSelectedEntities();
+    if (selectedEntities.length === 0) {
       return false;
     }
-    if (isEntityLocked(selected)) {
-      alert("Nie można duplikować obiektu z zablokowanej warstwy.");
+    if (selectedEntities.some((entity) => isEntityLocked(entity))) {
+      alert(t("Nie można duplikować obiektu z zablokowanej warstwy.", "Cannot duplicate object from a locked layer."));
       return false;
     }
     saveHistory();
-    const duplicated = cloneEntity(selected);
-    duplicated.id = createId();
-    moveEntity(duplicated, state.gridSize, state.gridSize);
-    state.entities.push(duplicated);
-    state.selectedId = duplicated.id;
+    const duplicatedIds = [];
+    for (const selected of selectedEntities) {
+      const duplicated = cloneEntity(selected);
+      duplicated.id = createId();
+      moveEntity(duplicated, state.gridSize, state.gridSize);
+      state.entities.push(duplicated);
+      duplicatedIds.push(duplicated.id);
+    }
+    setSelection(duplicatedIds, duplicatedIds.length > 0 ? duplicatedIds[duplicatedIds.length - 1] : null);
     markDirty();
     queueRender();
     return true;
@@ -4712,47 +4959,49 @@
     }
     moveEntity(pasted, state.gridSize * 2, state.gridSize * 2);
     state.entities.push(pasted);
-    state.selectedId = pasted.id;
+    setPrimarySelection(pasted.id);
     markDirty();
     queueRender();
     return true;
   }
 
   function bringSelectedToFront() {
-    const selected = getEntityById(state.selectedId);
-    if (!selected) {
+    const selectedEntities = getSelectedEntities();
+    if (selectedEntities.length === 0) {
       return false;
     }
-    if (isEntityLocked(selected)) {
+    if (selectedEntities.some((entity) => isEntityLocked(entity))) {
       return false;
     }
-    const index = state.entities.findIndex((entity) => entity.id === selected.id);
-    if (index === -1 || index === state.entities.length - 1) {
+    const selectedSet = new Set(selectedEntities.map((entity) => entity.id));
+    const selectedTail = state.entities.filter((entity) => selectedSet.has(entity.id));
+    if (selectedTail.length === 0 || state.entities.slice(-selectedTail.length).every((entity) => selectedSet.has(entity.id))) {
       return false;
     }
     saveHistory();
-    state.entities.splice(index, 1);
-    state.entities.push(selected);
+    state.entities = state.entities.filter((entity) => !selectedSet.has(entity.id));
+    state.entities.push(...selectedTail);
     markDirty();
     queueRender();
     return true;
   }
 
   function sendSelectedToBack() {
-    const selected = getEntityById(state.selectedId);
-    if (!selected) {
+    const selectedEntities = getSelectedEntities();
+    if (selectedEntities.length === 0) {
       return false;
     }
-    if (isEntityLocked(selected)) {
+    if (selectedEntities.some((entity) => isEntityLocked(entity))) {
       return false;
     }
-    const index = state.entities.findIndex((entity) => entity.id === selected.id);
-    if (index <= 0) {
+    const selectedSet = new Set(selectedEntities.map((entity) => entity.id));
+    const selectedHead = state.entities.filter((entity) => selectedSet.has(entity.id));
+    if (selectedHead.length === 0 || state.entities.slice(0, selectedHead.length).every((entity) => selectedSet.has(entity.id))) {
       return false;
     }
     saveHistory();
-    state.entities.splice(index, 1);
-    state.entities.unshift(selected);
+    state.entities = state.entities.filter((entity) => !selectedSet.has(entity.id));
+    state.entities.unshift(...selectedHead);
     markDirty();
     queueRender();
     return true;
@@ -5215,7 +5464,7 @@
       distance,
       angle
     };
-    state.selectedId = null;
+    clearSelection();
   }
 
   function handleCanvasMouseDown(event) {
@@ -5261,27 +5510,36 @@
       state.selectingBox = false;
       state.selectionBoxStart = null;
       state.selectionBoxEnd = null;
+      state.selectionBoxAdditive = false;
       let hit = hitTest(raw);
       if (!hit && state.snap) {
         hit = hitTest(snapped);
       }
-      state.selectedId = hit;
 
       clearDrawingPreview();
       state.polylineAnchor = null;
 
       if (hit) {
+        if (event.shiftKey) {
+          toggleSelection(hit);
+        } else if (!isEntitySelected(hit)) {
+          setPrimarySelection(hit);
+        }
         const selected = getEntityById(hit);
-        if (selected && !isEntityLocked(selected)) {
+        if (selected && !isEntityLocked(selected) && isEntitySelected(hit)) {
           state.dragging = true;
           state.dragStartScreen = screen;
           state.dragLastWorld = state.snap ? snapped : raw;
           state.dragMoved = false;
         }
       } else {
+        if (!event.shiftKey) {
+          clearSelection();
+        }
         state.selectingBox = true;
         state.selectionBoxStart = raw;
         state.selectionBoxEnd = raw;
+        state.selectionBoxAdditive = event.shiftKey;
       }
 
       queueRender();
@@ -5303,7 +5561,7 @@
           saveHistory();
           const entity = createLineEntity(state.polylineAnchor, endpoint);
           state.entities.push(entity);
-          state.selectedId = entity.id;
+          setPrimarySelection(entity.id);
           state.polylineAnchor = endpoint;
           state.previewPoint = endpoint;
           markDirty();
@@ -5380,7 +5638,7 @@
         if (entity) {
           saveHistory();
           state.entities.push(entity);
-          state.selectedId = entity.id;
+          setPrimarySelection(entity.id);
           markDirty();
         }
         clearDrawingPreview();
@@ -5407,7 +5665,7 @@
       if (entity) {
         saveHistory();
         state.entities.push(entity);
-        state.selectedId = entity.id;
+        setPrimarySelection(entity.id);
         markDirty();
       }
       clearDrawingPreview();
@@ -5456,7 +5714,7 @@
             saveHistory();
             const entity = createLineEntity(state.drawStart, endpoint);
             state.entities.push(entity);
-            state.selectedId = entity.id;
+            setPrimarySelection(entity.id);
             markDirty();
           }
         } else if (tool === "rect") {
@@ -5471,7 +5729,7 @@
             saveHistory();
             const entity = createRectEntity(state.drawStart, endpoint);
             state.entities.push(entity);
-            state.selectedId = entity.id;
+            setPrimarySelection(entity.id);
             markDirty();
           }
         } else if (tool === "circle") {
@@ -5485,7 +5743,7 @@
             saveHistory();
             const entity = createCircleEntity(state.drawStart, endpoint);
             state.entities.push(entity);
-            state.selectedId = entity.id;
+            setPrimarySelection(entity.id);
             markDirty();
           }
         } else if (tool === "measure") {
@@ -5535,9 +5793,9 @@
       return;
     }
 
-    if (state.dragging && state.selectedId) {
-      const selected = getEntityById(state.selectedId);
-      if (selected && !isEntityLocked(selected)) {
+    if (state.dragging && getSelectionIds().length > 0) {
+      const draggable = getSelectedEntities().filter((entity) => !isEntityLocked(entity));
+      if (draggable.length > 0) {
         if (!state.dragMoved && state.dragStartScreen) {
           const movedPx = Math.hypot(screen.x - state.dragStartScreen.x, screen.y - state.dragStartScreen.y);
           if (movedPx < POINTER_DRAG_THRESHOLD_PX) {
@@ -5552,7 +5810,9 @@
             saveHistory();
             state.dragMoved = true;
           }
-          moveEntity(selected, dx, dy);
+          for (const entity of draggable) {
+            moveEntity(entity, dx, dy);
+          }
           state.dragLastWorld = current;
           markDirty();
           queueRender();
@@ -5629,7 +5889,7 @@
       const movedPx = Math.hypot(b.x - a.x, b.y - a.y);
       if (movedPx >= POINTER_DRAG_THRESHOLD_PX) {
         const mode = state.selectionBoxEnd.x >= state.selectionBoxStart.x ? "window" : "crossing";
-        selectByWindow(state.selectionBoxStart, state.selectionBoxEnd, mode);
+        selectByWindow(state.selectionBoxStart, state.selectionBoxEnd, mode, state.selectionBoxAdditive);
       }
     }
 
@@ -5641,6 +5901,7 @@
     state.selectingBox = false;
     state.selectionBoxStart = null;
     state.selectionBoxEnd = null;
+    state.selectionBoxAdditive = false;
 
     queueRender();
   }
@@ -5735,13 +5996,13 @@
     if (state.entities.length === 0) {
       return false;
     }
-    const approved = window.confirm("Czy na pewno chcesz wyczyścić cały rysunek?");
+    const approved = window.confirm(t("Czy na pewno chcesz wyczyścić cały rysunek?", "Are you sure you want to clear the whole drawing?"));
     if (!approved) {
       return false;
     }
     saveHistory();
     state.entities = [];
-    state.selectedId = null;
+    clearSelection();
     state.lastMeasure = null;
     state.commandState = null;
     state.drawStart = null;
@@ -5758,7 +6019,7 @@
     const skipPrompt = Boolean(options && options.skipPrompt);
     if (state.entities.length > 0) {
       if (!skipPrompt) {
-        const approved = window.confirm("Czy rozpoczac nowy rysunek i usunąć bieżącą geometrię?");
+        const approved = window.confirm(t("Czy rozpoczac nowy rysunek i usunąć bieżącą geometrię?", "Start a new drawing and remove current geometry?"));
         if (!approved) {
           return false;
         }
@@ -5767,7 +6028,7 @@
     }
 
     state.entities = [];
-    state.selectedId = null;
+    clearSelection();
     state.lastMeasure = null;
     state.commandState = null;
     state.drawStart = null;
@@ -5828,7 +6089,7 @@
 
   function deleteLayer(layerId) {
     if (state.layers.length <= 1) {
-      alert("Musi zostac co najmniej jedna warstwa.");
+      alert(t("Musi zostac co najmniej jedna warstwa.", "At least one layer must remain."));
       return false;
     }
 
@@ -5865,10 +6126,11 @@
     layer.visible = visible;
 
     if (!visible) {
-      const selected = getEntityById(state.selectedId);
-      if (selected && selected.layerId === layer.id) {
-        state.selectedId = null;
-      }
+      const remainingSelectedIds = getSelectionIds().filter((id) => {
+        const selected = getEntityById(id);
+        return selected && selected.layerId !== layer.id;
+      });
+      setSelection(remainingSelectedIds, remainingSelectedIds.length ? remainingSelectedIds[remainingSelectedIds.length - 1] : null);
     }
 
     markDirty();
@@ -5882,8 +6144,8 @@
     }
     layer.locked = locked;
 
-    const selected = getEntityById(state.selectedId);
-    if (selected && selected.layerId === layer.id && locked) {
+    const selectedOnLayer = getSelectedEntities().some((selected) => selected.layerId === layer.id);
+    if (selectedOnLayer && locked) {
       state.dragging = false;
     }
 
@@ -5901,15 +6163,17 @@
   }
 
   function moveSelectedByNudge(dx, dy) {
-    const selected = getEntityById(state.selectedId);
-    if (!selected) {
+    const selectedEntities = getSelectedEntities();
+    if (selectedEntities.length === 0) {
       return;
     }
-    if (isEntityLocked(selected)) {
+    if (selectedEntities.some((entity) => isEntityLocked(entity))) {
       return;
     }
     saveHistory();
-    moveEntity(selected, dx, dy);
+    for (const selected of selectedEntities) {
+      moveEntity(selected, dx, dy);
+    }
     markDirty();
     queueRender();
   }
@@ -7227,7 +7491,7 @@
     state.steelPanelCount = finalPrimaryLayout
       ? clamp(Math.round(finalPrimaryLayout.count), 1, 120, panelCount)
       : panelCount;
-    state.selectedId = state.entities[state.entities.length - 1].id;
+    setPrimarySelection(state.entities[state.entities.length - 1].id);
     state.activeLayerId = frameLayer.id;
     if (!state.showGrid) {
       state.showGrid = true;
@@ -8210,7 +8474,7 @@
       }
       clearDrawingPreview();
       finishPolyline();
-      state.selectedId = null;
+      clearSelection();
       queueRender();
       return;
     }
@@ -8440,21 +8704,31 @@
     });
     duplicateBtn.addEventListener("click", () => {
       const selected = getEntityById(state.selectedId);
+      const selectedCount = getSelectionIds().length;
       const duplicated = duplicateSelected();
       if (!duplicated) {
         echoCommand("Najpierw zaznacz obiekt do duplikacji.", true);
         return;
       }
-      echoCommand(`Zduplikowano: ${selectedEntityLabel(selected)}.`);
+      echoCommand(
+        selectedCount > 1
+          ? `Zduplikowano obiekty: ${selectedCount}.`
+          : `Zduplikowano: ${selectedEntityLabel(selected)}.`
+      );
     });
     deleteBtn.addEventListener("click", () => {
       const selected = getEntityById(state.selectedId);
+      const selectedCount = getSelectionIds().length;
       const deleted = deleteSelected();
       if (!deleted) {
         echoCommand("Brak zaznaczonego obiektu do usunięcia.", true);
         return;
       }
-      echoCommand(`Usunięto: ${selectedEntityLabel(selected)}.`);
+      echoCommand(
+        selectedCount > 1
+          ? `Usunięto obiekty: ${selectedCount}.`
+          : `Usunięto: ${selectedEntityLabel(selected)}.`
+      );
     });
     toFrontBtn.addEventListener("click", () => {
       const moved = bringSelectedToFront();
@@ -8930,7 +9204,7 @@
         ensureActiveLayer();
         state.entities = normalizeEntities(entitiesRaw);
         ensureEntityLayers();
-        state.selectedId = null;
+        clearSelection();
         state.lastMeasure = null;
         setWorkspaceMode("draw", { persist: false });
         setRibbonPage("home", { persist: false });
@@ -8938,7 +9212,7 @@
         queueRender();
         echoCommand(`Wczytano JSON: ${file.name} (${state.entities.length} obiektów).`);
       } catch (error) {
-        alert(`Niepoprawny plik JSON: ${error.message}`);
+        alert(localizeMessageText(`Niepoprawny plik JSON: ${error.message}`));
         echoCommand(`Niepoprawny plik JSON: ${error.message}`, true);
       } finally {
         jsonFileInput.value = "";
@@ -8981,7 +9255,7 @@
         }
         state.historyRedo = [];
         state.entities.push(...imported);
-        state.selectedId = imported[imported.length - 1].id;
+        setPrimarySelection(imported[imported.length - 1].id);
         ensureEntityLayers();
         setWorkspaceMode("draw", { persist: false });
         setRibbonPage("home", { persist: false });
@@ -8989,7 +9263,7 @@
         queueRender();
         echoCommand(`Wczytano DXF: ${file.name} (${imported.length} obiektów).`);
       } catch (error) {
-        alert(`Nie udało się wczytać DXF: ${error.message}`);
+        alert(localizeMessageText(`Nie udało się wczytać DXF: ${error.message}`));
         echoCommand(`Błąd importu DXF: ${error.message}`, true);
       } finally {
         dxfFileInput.value = "";
@@ -9055,6 +9329,7 @@
   }
 
   function bootstrap() {
+    localizeStaticUi();
     applyTheme("dark");
     const licensedAtBoot = initializeLicenseManager();
 

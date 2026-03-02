@@ -5,16 +5,35 @@ const { app, BrowserWindow, Menu, shell, nativeImage, dialog, ipcMain } = requir
 const isMac = process.platform === 'darwin';
 const appIconPng = path.join(__dirname, '..', 'assets', 'icons', 'madcad-512.png');
 
+function resolveAppLanguage() {
+  if (process.env.APP_LANG === 'en') {
+    return 'en';
+  }
+  if (process.env.APP_LANG === 'pl') {
+    return 'pl';
+  }
+  const appName = String(app.getName() || '').toLowerCase();
+  if (appName.includes(' en')) {
+    return 'en';
+  }
+  if (appName.includes(' pl')) {
+    return 'pl';
+  }
+  return 'pl';
+}
+
+const t = (pl, en) => (resolveAppLanguage() === 'en' ? en : pl);
+
 async function handleSavePromptBeforeExit(win) {
   const response = await dialog.showMessageBox(win, {
     type: 'question',
-    buttons: ['Zapisz i wyjdź', 'Wyjdź bez zapisu', 'Anuluj'],
+    buttons: [t('Zapisz i wyjdź', 'Save and Exit'), t('Wyjdź bez zapisu', 'Exit Without Saving'), t('Anuluj', 'Cancel')],
     defaultId: 0,
     cancelId: 2,
     noLink: true,
-    title: 'Zamykanie MadCAD 2D',
-    message: 'Czy chcesz zapisać rysunek przed wyjściem?',
-    detail: 'Po zamknięciu sesja robocza zostanie wyczyszczona.'
+    title: t('Zamykanie MadCAD 2D', 'Closing MadCAD 2D'),
+    message: t('Czy chcesz zapisać rysunek przed wyjściem?', 'Do you want to save the drawing before exit?'),
+    detail: t('Po zamknięciu sesja robocza zostanie wyczyszczona.', 'The current runtime session will be cleared after closing.')
   });
 
   if (response.response === 2) {
@@ -31,15 +50,15 @@ async function handleSavePromptBeforeExit(win) {
     } catch (_error) {
       await dialog.showMessageBox(win, {
         type: 'error',
-        title: 'Błąd zapisu',
-        message: 'Nie udało się przygotować danych do zapisu.'
+        title: t('Błąd zapisu', 'Save Error'),
+        message: t('Nie udało się przygotować danych do zapisu.', 'Failed to prepare drawing data for saving.')
       });
       return false;
     }
 
     const saveResult = await dialog.showSaveDialog(win, {
-      title: 'Zapisz rysunek przed wyjściem',
-      defaultPath: path.join(app.getPath('documents'), 'rysunek.json'),
+      title: t('Zapisz rysunek przed wyjściem', 'Save Drawing Before Exit'),
+      defaultPath: path.join(app.getPath('documents'), appLanguage === 'en' ? 'drawing.json' : 'rysunek.json'),
       filters: [{ name: 'JSON', extensions: ['json'] }],
       properties: ['createDirectory', 'showOverwriteConfirmation']
     });
@@ -53,8 +72,8 @@ async function handleSavePromptBeforeExit(win) {
     } catch (_error) {
       await dialog.showMessageBox(win, {
         type: 'error',
-        title: 'Błąd zapisu',
-        message: 'Nie udało się zapisać pliku.'
+        title: t('Błąd zapisu', 'Save Error'),
+        message: t('Nie udało się zapisać pliku.', 'Failed to save file.')
       });
       return false;
     }
@@ -71,13 +90,14 @@ async function handleSavePromptBeforeExit(win) {
 }
 
 function createMainWindow() {
+  const appLanguage = resolveAppLanguage();
   const win = new BrowserWindow({
     width: 1680,
     height: 980,
     minWidth: 1200,
     minHeight: 760,
     backgroundColor: '#111b29',
-    title: 'MadCAD 2D',
+    title: appLanguage === 'en' ? 'MadCAD 2D EN' : 'MadCAD 2D PL',
     icon: appIconPng,
     ...(isMac
       ? {
@@ -88,7 +108,8 @@ function createMainWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      devTools: true
+      devTools: true,
+      additionalArguments: [`--madcad-lang=${appLanguage}`]
     }
   });
 
@@ -149,10 +170,10 @@ function createMenu() {
         ]
       : []),
     {
-      label: 'Plik',
+      label: t('Plik', 'File'),
       submenu: [
         {
-          label: 'Nowy rysunek',
+          label: t('Nowy rysunek', 'New drawing'),
           accelerator: 'CmdOrCtrl+N',
           click: () => {
             const focused = BrowserWindow.getFocusedWindow();
@@ -164,49 +185,51 @@ function createMenu() {
           }
         },
         { type: 'separator' },
-        { role: isMac ? 'close' : 'quit', label: isMac ? 'Zamknij okno' : 'Wyjście' }
+        { role: isMac ? 'close' : 'quit', label: isMac ? t('Zamknij okno', 'Close window') : t('Wyjście', 'Exit') }
       ]
     },
     {
-      label: 'Edycja',
+      label: t('Edycja', 'Edit'),
       submenu: [
-        { role: 'undo', label: 'Cofnij' },
-        { role: 'redo', label: 'Ponów' },
+        { role: 'undo', label: t('Cofnij', 'Undo') },
+        { role: 'redo', label: t('Ponów', 'Redo') },
         { type: 'separator' },
-        { role: 'cut', label: 'Wytnij' },
-        { role: 'copy', label: 'Kopiuj' },
-        { role: 'paste', label: 'Wklej' },
-        { role: 'selectAll', label: 'Zaznacz wszystko' }
+        { role: 'cut', label: t('Wytnij', 'Cut') },
+        { role: 'copy', label: t('Kopiuj', 'Copy') },
+        { role: 'paste', label: t('Wklej', 'Paste') },
+        { role: 'selectAll', label: t('Zaznacz wszystko', 'Select all') }
       ]
     },
     {
-      label: 'Widok',
+      label: t('Widok', 'View'),
       submenu: [
-        { role: 'reload', label: 'Odśwież' },
-        { role: 'forceReload', label: 'Wymuś odświeżenie' },
-        { role: 'toggleDevTools', label: 'Narzędzia deweloperskie' },
+        { role: 'reload', label: t('Odśwież', 'Reload') },
+        { role: 'forceReload', label: t('Wymuś odświeżenie', 'Force reload') },
+        { role: 'toggleDevTools', label: t('Narzędzia deweloperskie', 'Developer tools') },
         { type: 'separator' },
-        { role: 'resetZoom', label: 'Reset powiększenia' },
-        { role: 'zoomIn', label: 'Powiększ' },
-        { role: 'zoomOut', label: 'Pomniejsz' },
+        { role: 'resetZoom', label: t('Reset powiększenia', 'Reset zoom') },
+        { role: 'zoomIn', label: t('Powiększ', 'Zoom in') },
+        { role: 'zoomOut', label: t('Pomniejsz', 'Zoom out') },
         { type: 'separator' },
-        { role: 'togglefullscreen', label: 'Pełny ekran' }
+        { role: 'togglefullscreen', label: t('Pełny ekran', 'Full screen') }
       ]
     },
     {
       role: 'window',
-      label: 'Okno',
+      label: t('Okno', 'Window'),
       submenu: [
-        { role: 'minimize', label: 'Minimalizuj' },
-        { role: 'zoom', label: 'Powiększ okno' },
-        ...(isMac ? [{ type: 'separator' }, { role: 'front', label: 'Na wierzch' }] : [{ role: 'close', label: 'Zamknij' }])
+        { role: 'minimize', label: t('Minimalizuj', 'Minimize') },
+        { role: 'zoom', label: t('Powiększ okno', 'Zoom window') },
+        ...(isMac
+          ? [{ type: 'separator' }, { role: 'front', label: t('Na wierzch', 'Bring all to front') }]
+          : [{ role: 'close', label: t('Zamknij', 'Close') }])
       ]
     },
     {
-      label: 'Pomoc',
+      label: t('Pomoc', 'Help'),
       submenu: [
         {
-          label: 'Dokumentacja projektu (README)',
+          label: t('Dokumentacja projektu (README)', 'Project documentation (README)'),
           click: () => {
             const readmePath = path.join(__dirname, '..', 'README.md');
             shell.openPath(readmePath);
@@ -225,12 +248,14 @@ ipcMain.handle('madcad:save-text-file', async (event, payload) => {
     const defaultName =
       payload && typeof payload.defaultName === 'string' && payload.defaultName.trim()
         ? payload.defaultName.trim()
+        : appLanguage === 'en'
+        ? 'drawing.txt'
         : 'rysunek.txt';
     const text = payload && typeof payload.text === 'string' ? payload.text : '';
     const filters = Array.isArray(payload && payload.filters) ? payload.filters : [];
 
     const result = await dialog.showSaveDialog(senderWindow, {
-      title: 'Zapisz plik',
+      title: t('Zapisz plik', 'Save file'),
       defaultPath: defaultName,
       filters,
       properties: ['createDirectory', 'showOverwriteConfirmation']
@@ -246,7 +271,7 @@ ipcMain.handle('madcad:save-text-file', async (event, payload) => {
     return {
       ok: false,
       canceled: false,
-      error: error && error.message ? String(error.message) : 'Nieznany błąd zapisu'
+      error: error && error.message ? String(error.message) : t('Nieznany błąd zapisu', 'Unknown save error')
     };
   }
 });
@@ -272,7 +297,7 @@ ipcMain.handle('madcad:append-license-audit', async (_event, payload) => {
   } catch (error) {
     return {
       ok: false,
-      error: error && error.message ? String(error.message) : 'Nieznany błąd zapisu audytu'
+      error: error && error.message ? String(error.message) : t('Nieznany błąd zapisu audytu', 'Unknown audit save error')
     };
   }
 });

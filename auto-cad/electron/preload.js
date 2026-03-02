@@ -43,6 +43,16 @@ function verifyLicenseSignature(payloadJson, signatureBase64Url) {
 contextBridge.exposeInMainWorld('desktopApp', {
   platform: process.platform,
   isDesktop: true,
+  appLanguage: (() => {
+    const langArg = process.argv.find((arg) => typeof arg === 'string' && arg.startsWith('--madcad-lang='));
+    if (langArg) {
+      const value = String(langArg.split('=')[1] || '').toLowerCase();
+      if (value === 'en' || value === 'pl') {
+        return value;
+      }
+    }
+    return process.env.APP_LANG === 'en' ? 'en' : 'pl';
+  })(),
   deviceId: resolveDeviceId(),
   verifyLicenseSignature: (payloadJson, signatureBase64Url) =>
     verifyLicenseSignature(payloadJson, signatureBase64Url),
