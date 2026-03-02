@@ -5767,7 +5767,6 @@
       setRibbonCollapsed(false, { persist: false });
     }
     setPaletteHidden(false);
-    setActiveFlyout(null, { persist: false });
     steelTemplateSelect.focus();
     echoCommand("Stal: wybierz szablon (Brama/Ogrodzenie/Balkon), ustaw parametry i kliknij Generuj element.");
   }
