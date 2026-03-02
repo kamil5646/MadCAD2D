@@ -1037,13 +1037,39 @@
     });
   }
 
+  function ensureHomeFlyoutVisible() {
+    if (state.ribbonPage !== "home" || state.paletteHidden || state.ribbonCollapsed) {
+      return;
+    }
+
+    const activeVisible = paletteFlyouts.some((flyout) => {
+      const flyoutName = String(flyout.dataset.flyout || "").trim().toLowerCase();
+      return flyoutName === state.activeFlyout && !flyout.classList.contains("ribbon-group-hidden");
+    });
+
+    if (activeVisible) {
+      return;
+    }
+
+    const selectionVisible = paletteFlyouts.some((flyout) => {
+      const flyoutName = String(flyout.dataset.flyout || "").trim().toLowerCase();
+      return flyoutName === "selection" && !flyout.classList.contains("ribbon-group-hidden");
+    });
+
+    if (selectionVisible) {
+      setActiveFlyout("selection", { persist: false });
+    }
+  }
+
   function setRibbonPage(page, options) {
     const normalized = normalizeRibbonPage(page);
     if (state.ribbonPage === normalized && !(options && options.force)) {
+      ensureHomeFlyoutVisible();
       return;
     }
     state.ribbonPage = normalized;
     syncRibbonPage();
+    ensureHomeFlyoutVisible();
     if (!options || options.persist !== false) {
       markDirty();
     }
