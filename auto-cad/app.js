@@ -748,7 +748,7 @@
       return "design";
     }
     if (["layout", "output", "wyjście", "wyjscie", "układ", "uklad"].includes(value)) {
-      return "layout";
+      return "home";
     }
     if (["references", "reference", "annotate", "adnotacje", "adnotacja", "wymiarowanie", "wymiary"].includes(value)) {
       return "references";
@@ -766,7 +766,7 @@
   }
 
   function getAvailableRibbonPages() {
-    return ["home", "references", "design", "layout", "view", "shortcuts"];
+    return ["home", "references", "design", "view", "shortcuts"];
   }
 
   function resolveRibbonPageAlias(rawValue) {
@@ -784,7 +784,7 @@
       return "design";
     }
     if (["layout", "output", "wyjście", "wyjscie", "układ", "uklad"].includes(value)) {
-      return "layout";
+      return "home";
     }
     if (
       ["references", "reference", "odwołania", "odwolania", "annotate", "adnotacje", "adnotacja", "wymiar", "wymiary", "wymiarowanie", "dim"].includes(
@@ -2661,6 +2661,11 @@
     const original = String(rawCommand || "").trim();
     const normalized = original.toLowerCase().replace(/\s+/g, " ");
 
+    if (normalized) {
+      echoCommand("Komendy tekstowe są wyłączone.", true);
+    }
+    return;
+
     if (!normalized) {
       echoCommand("Wpisz polecenie.", true);
       return;
@@ -2831,6 +2836,9 @@
       if (page === "design") {
         openCustomSteelSetup();
         return;
+      }
+      if (state.workspaceMode === "steel") {
+        setWorkspaceMode("draw", { persist: false });
       }
       if (state.workspaceView === "start") {
         setWorkspaceMode("draw", { persist: false });
@@ -8297,6 +8305,9 @@
         if (page === "design") {
           openCustomSteelSetup();
           return;
+        }
+        if (state.workspaceMode === "steel") {
+          setWorkspaceMode("draw", { persist: false });
         }
         if (state.workspaceView === "start") {
           setWorkspaceMode("draw", { persist: false });
