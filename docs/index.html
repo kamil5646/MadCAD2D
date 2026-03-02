@@ -100,6 +100,27 @@
         flex-wrap: wrap;
       }
 
+      .lang-switch {
+        display: inline-flex;
+        gap: 6px;
+        margin-left: 8px;
+      }
+
+      .lang-btn {
+        border: 1px solid rgba(127, 160, 204, 0.35);
+        border-radius: 9px;
+        color: #d7e8ff;
+        padding: 5px 9px;
+        font-size: 12px;
+        background: rgba(255, 255, 255, 0.04);
+        cursor: pointer;
+      }
+
+      .lang-btn.active {
+        border-color: rgba(165, 202, 250, 0.9);
+        background: rgba(93, 169, 255, 0.22);
+      }
+
       .nav a {
         text-decoration: none;
         border: 1px solid rgba(127, 160, 204, 0.35);
@@ -575,6 +596,10 @@
           <a href="#token-prywatny">Token prywatny</a>
           <a href="#pobierz">Pobierz</a>
           <a href="#faq">FAQ</a>
+          <div class="lang-switch" aria-label="Wybór języka / Language switch">
+            <button id="langPlBtn" class="lang-btn" type="button">PL</button>
+            <button id="langEnBtn" class="lang-btn" type="button">EN</button>
+          </div>
         </div>
       </nav>
 
@@ -856,6 +881,83 @@
 
     <script>
       (() => {
+        const LANGUAGE_STORAGE_KEY = "madcad-site-lang-v1";
+        const urlParams = new URLSearchParams(window.location.search);
+        const storedLang = String(localStorage.getItem(LANGUAGE_STORAGE_KEY) || "").toLowerCase();
+        let currentLang = urlParams.get("lang") === "en" || storedLang === "en" ? "en" : "pl";
+
+        function t(pl, en) {
+          return currentLang === "en" ? en : pl;
+        }
+
+        function applyLanguage() {
+          document.documentElement.lang = currentLang;
+          const setText = (selector, pl, en) => {
+            const el = document.querySelector(selector);
+            if (el) {
+              el.textContent = t(pl, en);
+            }
+          };
+
+          setText(".brand span", "Desktop CAD 2D - konstrukcje stalowe", "Desktop CAD 2D - steel structures");
+          setText(".nav a[href='#funkcje']", "Funkcje", "Features");
+          setText(".nav a[href='#jak-dziala']", "Jak działa", "How it works");
+          setText(".nav a[href='#token-prywatny']", "Token prywatny", "Private token");
+          setText(".nav a[href='#pobierz']", "Pobierz", "Download");
+          setText(".subtitle", "Aplikacja CAD 2D na Windows i macOS do szybkiego projektowania bram, ogrodzeń i balkonów. Lekki interfejs, generator stali i wymiarowanie w jednym miejscu.", "A 2D CAD app for Windows and macOS to quickly design gates, fences, and balconies. Lightweight UI, steel generator and dimensioning in one place.");
+
+          const pills = Array.from(document.querySelectorAll(".pill-row .pill"));
+          if (pills[0]) pills[0].textContent = t("Wersja 2.0", "Version 2.0");
+          if (pills[1]) pills[1].textContent = t("Windows + macOS", "Windows + macOS");
+          if (pills[2]) pills[2].textContent = t("Wymiarowanie kątowe", "Angular dimensioning");
+          if (pills[3]) pills[3].textContent = t("Generator konstrukcji stalowych", "Steel structure generator");
+
+          const ctaButtons = Array.from(document.querySelectorAll("#pobierz .btn"));
+          if (ctaButtons[0]) ctaButtons[0].textContent = t("Pobierz PL Windows (.exe)", "Download PL Windows (.exe)");
+          if (ctaButtons[1]) ctaButtons[1].textContent = t("Pobierz PL macOS (.zip)", "Download PL macOS (.zip)");
+          if (ctaButtons[2]) ctaButtons[2].textContent = t("Download EN Windows (.exe)", "Download EN Windows (.exe)");
+          if (ctaButtons[3]) ctaButtons[3].textContent = t("Download EN macOS (.zip)", "Download EN macOS (.zip)");
+          if (ctaButtons[5]) ctaButtons[5].textContent = t("Kod źródłowy", "Source code");
+
+          const statusRows = Array.from(document.querySelectorAll(".status span:last-child"));
+          if (statusRows[0]) statusRows[0].textContent = t("Status projektu: aktywnie rozwijany", "Project status: actively developed");
+          if (statusRows[1]) statusRows[1].textContent = t("Uwaga: buildy macOS są bez podpisu Apple Developer ID.", "Note: macOS builds are unsigned (no Apple Developer ID).");
+
+          setText("#funkcje h2", "Najważniejsze funkcje", "Key features");
+          setText("#funkcje .lead", "Interfejs jest przygotowany pod codzienną pracę warsztatową: szybkie rysowanie, poprawki, wymiarowanie oraz generowanie podstawowych układów stalowych.", "The interface is optimized for daily workshop work: quick drawing, edits, dimensioning and generating basic steel layouts.");
+          setText("#jak-dziala h2", "Jak wygląda praca w MadCAD 2D", "How work looks in MadCAD 2D");
+          setText("#token-prywatny h2", "Generator darmowego tokenu prywatnego", "Free private token generator");
+          setText("#token-prywatny .lead", "Ten formularz generuje token licencji prywatnej do aplikacji MadCAD 2D. Token jest przypisany do jednego urządzenia, dlatego najpierw skopiuj ID urządzenia z okna aktywacji w aplikacji.", "This form generates a private license token for MadCAD 2D. The token is bound to one device, so first copy the device ID from the activation window in the app.");
+
+          setText("label[for='tokenOwnerName']", "Imię i nazwisko", "Full name");
+          setText("label[for='tokenEmail']", "E-mail", "Email");
+          setText("label[for='tokenPurpose']", "Cel prywatnego użycia", "Private usage purpose");
+          setText("label[for='tokenDeviceId']", "ID urządzenia (z aplikacji)", "Device ID (from app)");
+          setText("#generatePrivateTokenBtn", "Generuj token prywatny", "Generate private token");
+          setText("#copyPrivateTokenBtn", "Kopiuj token", "Copy token");
+          setText("label[for='generatedPrivateToken']", "Wygenerowany token", "Generated token");
+          setText("#token-admin h2", "Prywatny panel zarządzania tokenami", "Private token management panel");
+          setText("#token-admin .lead", "Panel administratora działa tylko po wejściu przez link prywatny i odblokowaniu PIN-em. Dane są zapisywane lokalnie w przeglądarce (nie są publicznie publikowane na stronie).", "The admin panel works only via a private link and PIN unlock. Data is stored locally in the browser (not publicly published on the website).");
+          setText("#release h2", "Wydanie 2.0", "Release 2.0");
+          setText("#release .box h3", "Co zawiera wersja 2.0", "What version 2.0 includes");
+          setText("#faq h2", "FAQ", "FAQ");
+
+          const faqSummaries = Array.from(document.querySelectorAll("#faq summary"));
+          if (faqSummaries[0]) faqSummaries[0].textContent = t("Czy aplikacja działa offline?", "Does the app work offline?");
+          if (faqSummaries[1]) faqSummaries[1].textContent = t("Czy mogę wyeksportować rysunek do DXF?", "Can I export a drawing to DXF?");
+          if (faqSummaries[2]) faqSummaries[2].textContent = t("Czy jest wymiarowanie kątów?", "Is angular dimensioning available?");
+          if (faqSummaries[3]) faqSummaries[3].textContent = t("Czy mogę używać tego do bram i ogrodzeń na co dzień?", "Can I use it daily for gates and fences?");
+
+          const langPlBtn = document.getElementById("langPlBtn");
+          const langEnBtn = document.getElementById("langEnBtn");
+          if (langPlBtn) {
+            langPlBtn.classList.toggle("active", currentLang === "pl");
+          }
+          if (langEnBtn) {
+            langEnBtn.classList.toggle("active", currentLang === "en");
+          }
+        }
+
         const LICENSE_SIGNATURE_SALT = "MadCAD2D-Private-NoMods-SingleDevice-2026";
         const LICENSE_TOKEN_PREFIX = "M2D1";
 
@@ -889,6 +991,24 @@
         const clearTokensBtn = document.getElementById("clearTokensBtn");
         const openTokenImportBtn = document.getElementById("openTokenImportBtn");
         const tokenImportInput = document.getElementById("tokenImportInput");
+        const langPlBtn = document.getElementById("langPlBtn");
+        const langEnBtn = document.getElementById("langEnBtn");
+
+        if (langPlBtn) {
+          langPlBtn.addEventListener("click", () => {
+            currentLang = "pl";
+            localStorage.setItem(LANGUAGE_STORAGE_KEY, currentLang);
+            applyLanguage();
+          });
+        }
+        if (langEnBtn) {
+          langEnBtn.addEventListener("click", () => {
+            currentLang = "en";
+            localStorage.setItem(LANGUAGE_STORAGE_KEY, currentLang);
+            applyLanguage();
+          });
+        }
+        applyLanguage();
 
         const TOKEN_REGISTRY_KEY = "madcad-token-registry-v1";
         const TOKEN_LAST_PRIVATE_KEY = "madcad-last-private-token-v1";
