@@ -10,10 +10,17 @@
     "start": "electron .",
     "dist": "electron-builder --mac dir --win nsis --x64",
     "dist:mac": "electron-builder --mac dir",
+    "dist:mac:trusted": "electron-builder --mac zip --arm64 --publish never",
+    "cert:mac:local": "bash scripts/create-local-mac-cert.sh",
+    "sign:mac:local": "bash scripts/sign-mac-app.sh",
+    "dist:mac:local-signed": "npm run dist:mac && npm run cert:mac:local && npm run sign:mac:local",
+    "dist:win:trusted": "electron-builder --win nsis --x64 --publish never",
+    "dist:release:trusted": "npm run dist:mac:trusted && npm run dist:win:trusted",
     "dist:win": "electron-builder --win nsis --x64",
     "dist:dir": "electron-builder --dir"
   },
   "devDependencies": {
+    "@electron/notarize": "^3.1.1",
     "electron": "^32.2.0",
     "electron-builder": "^24.13.3"
   },
@@ -37,10 +44,14 @@
     },
     "mac": {
       "target": [
-        "dir"
+        "zip"
       ],
       "icon": "assets/icons/madcad.icns",
-      "category": "public.app-category.graphics-design"
+      "category": "public.app-category.graphics-design",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "electron/entitlements.mac.plist",
+      "entitlementsInherit": "electron/entitlements.mac.plist"
     },
     "win": {
       "target": [
@@ -53,6 +64,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
-    }
+    },
+    "afterSign": "scripts/notarize.js"
   }
 }

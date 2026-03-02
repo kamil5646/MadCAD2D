@@ -79,6 +79,33 @@ npm run dist
 
 Artefakty builda trafiają do katalogu `release/`.
 
+## Zaufane wydanie (bez ostrzeżeń systemu)
+
+Aby użytkownicy nie dostawali ostrzeżeń o niezaufanej aplikacji, wymagane są:
+
+- macOS: `Developer ID Application` + notaryzacja Apple
+- Windows: certyfikat podpisu kodu (OV/EV) do podpisania instalatora `.exe`
+
+Ustaw zmienne środowiskowe przed buildem:
+
+```bash
+export APPLE_ID="twoj-apple-id@example.com"
+export APPLE_APP_SPECIFIC_PASSWORD="xxxx-xxxx-xxxx-xxxx"
+export APPLE_TEAM_ID="TEAMID1234"
+
+# certyfikat podpisu (macOS i/lub Windows)
+export CSC_LINK="/sciezka/do/certyfikatu.p12"
+export CSC_KEY_PASSWORD="haslo_do_certyfikatu"
+```
+
+Uruchom build z podpisem:
+
+```bash
+npm run dist:release:trusted
+```
+
+Skrypty wykonują podpisanie i notaryzację dla macOS oraz podpisanie instalatora Windows (jeśli certyfikat jest dostępny).
+
 ## Skróty klawiszowe
 
 - `Z` - Zaznacz
