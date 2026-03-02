@@ -5,6 +5,71 @@ const { app, BrowserWindow, Menu, shell, nativeImage, dialog, ipcMain } = requir
 const isMac = process.platform === 'darwin';
 const appIconPng = path.join(__dirname, '..', 'assets', 'icons', 'madcad-512.png');
 
+async function handleSavePromptBeforeExit(win) {
+  const response = await dialog.showMessageBox(win, {
+    type: 'question',
+    buttons: ['Zapisz i wyjdź', 'Wyjdź bez zapisu', 'Anuluj'],
+    defaultId: 0,
+    cancelId: 2,
+    noLink: true,
+    title: 'Zamykanie MadCAD 2D',
+    message: 'Czy chcesz zapisać rysunek przed wyjściem?',
+    detail: 'Po zamknięciu sesja robocza zostanie wyczyszczona.'
+  });
+
+  if (response.response === 2) {
+    return false;
+  }
+
+  if (response.response === 0) {
+    let exportedText = '';
+    try {
+      exportedText = await win.webContents.executeJavaScript(
+        'window.__madcadGetSessionExport ? window.__madcadGetSessionExport() : ""',
+        true
+      );
+    } catch (_error) {
+      await dialog.showMessageBox(win, {
+        type: 'error',
+        title: 'Błąd zapisu',
+        message: 'Nie udało się przygotować danych do zapisu.'
+      });
+      return false;
+    }
+
+    const saveResult = await dialog.showSaveDialog(win, {
+      title: 'Zapisz rysunek przed wyjściem',
+      defaultPath: path.join(app.getPath('documents'), 'rysunek.json'),
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+      properties: ['createDirectory', 'showOverwriteConfirmation']
+    });
+
+    if (saveResult.canceled || !saveResult.filePath) {
+      return false;
+    }
+
+    try {
+      await fs.writeFile(saveResult.filePath, String(exportedText || ''), 'utf8');
+    } catch (_error) {
+      await dialog.showMessageBox(win, {
+        type: 'error',
+        title: 'Błąd zapisu',
+        message: 'Nie udało się zapisać pliku.'
+      });
+      return false;
+    }
+  }
+
+  try {
+    await win.webContents.executeJavaScript(
+      'window.__madcadClearRuntimeSession && window.__madcadClearRuntimeSession();',
+      true
+    );
+  } catch (_error) {}
+
+  return true;
+}
+
 function createMainWindow() {
   const win = new BrowserWindow({
     width: 1680,
@@ -40,6 +105,25 @@ function createMainWindow() {
   if (!app.isPackaged) {
     win.webContents.openDevTools({ mode: 'detach' });
   }
+
+  let closeApproved = false;
+  win.on('close', (event) => {
+    if (closeApproved) {
+      return;
+    }
+    event.preventDefault();
+    void (async () => {
+      if (win.isDestroyed()) {
+        return;
+      }
+      const canClose = await handleSavePromptBeforeExit(win);
+      if (!canClose || win.isDestroyed()) {
+        return;
+      }
+      closeApproved = true;
+      win.close();
+    })();
+  });
 
   return win;
 }

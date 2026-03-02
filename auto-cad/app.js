@@ -7831,6 +7831,16 @@
     return true;
   }
 
+  function buildProjectPayload() {
+    return {
+      version: 2,
+      exportedAt: new Date().toISOString(),
+      entities: state.entities,
+      layers: state.layers,
+      activeLayerId: state.activeLayerId
+    };
+  }
+
   function applyHoverHelpTooltips() {
     const tooltipById = {
       fileMenuBtn: "Menu zapisu i druku: otwieranie, zapis, import i eksport rysunków.",
@@ -8130,13 +8140,7 @@
       }
       if (key === "s") {
         event.preventDefault();
-        const payload = {
-          version: 2,
-          exportedAt: new Date().toISOString(),
-          entities: state.entities,
-          layers: state.layers,
-          activeLayerId: state.activeLayerId
-        };
+        const payload = buildProjectPayload();
         void saveTextWithFeedback("rysunek.json", JSON.stringify(payload, null, 2), "Zapisano plik: rysunek.json (Ctrl+S).");
       }
       return;
@@ -8860,13 +8864,7 @@
     });
 
     saveJsonBtn.addEventListener("click", async () => {
-      const payload = {
-        version: 2,
-        exportedAt: new Date().toISOString(),
-        entities: state.entities,
-        layers: state.layers,
-        activeLayerId: state.activeLayerId
-      };
+      const payload = buildProjectPayload();
       await saveTextWithFeedback("rysunek.json", JSON.stringify(payload, null, 2), "Zapisano plik: rysunek.json");
     });
 
@@ -9049,6 +9047,24 @@
     }
     queueRender();
   }
+
+  window.__madcadGetSessionExport = () => {
+    return JSON.stringify(buildProjectPayload(), null, 2);
+  };
+
+  window.__madcadClearRuntimeSession = () => {
+    try {
+      localStorage.removeItem("cad-session-v2");
+      state.persistPending = false;
+      if (state.persistTimer) {
+        clearTimeout(state.persistTimer);
+        state.persistTimer = null;
+      }
+      return true;
+    } catch (_error) {
+      return false;
+    }
+  };
 
   bootstrap();
 })();
