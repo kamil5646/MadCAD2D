@@ -106,6 +106,21 @@ npm run dist:release:trusted
 
 Skrypty wykonują podpisanie i notaryzację dla macOS oraz podpisanie instalatora Windows (jeśli certyfikat jest dostępny).
 
+## Gdy aplikacja nie działa
+
+### macOS (jeden krok naprawczy)
+
+Jeśli pojawia się komunikat „Rzecz jest uszkodzona i nie można jej otworzyć”, wklej w Terminal:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/MadCAD 2D.app" && open -a "/Applications/MadCAD 2D.app"
+```
+
+### Windows
+
+Jeśli SmartScreen blokuje instalator: `Więcej informacji` -> `Uruchom mimo to`.
+Gdy problem wraca, pobierz ponownie najnowszy instalator z release `2.0` i uruchom jako administrator.
+
 ## Skróty klawiszowe
 
 - `Z` - Zaznacz

@@ -12,9 +12,10 @@ exports.default = async function notarizeMac(context) {
   const appleTeamId = process.env.APPLE_TEAM_ID;
 
   if (!appleId || !applePassword || !appleTeamId) {
-    throw new Error(
-      'Brak zmiennych APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID. Notaryzacja macOS jest wymagana dla zaufanego wydania.'
+    console.warn(
+      '[notarize] Pomijam notaryzację: brak APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID.'
     );
+    return;
   }
 
   const appName = packager.appInfo.productFilename;
