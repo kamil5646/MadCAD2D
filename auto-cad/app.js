@@ -930,13 +930,23 @@
     const hidden = state.paletteHidden;
     const ribbonCollapsed = state.ribbonCollapsed;
 
-    const activeFlyoutExists = paletteFlyouts.some((flyout) => {
+    const activeFlyoutKnown = paletteFlyouts.some((flyout) => {
+      const flyoutName = String(flyout.dataset.flyout || "").trim().toLowerCase();
+      return flyoutName === active;
+    });
+
+    if (!activeFlyoutKnown) {
+      state.activeFlyout = null;
+      active = null;
+    }
+
+    const activeFlyoutVisible = paletteFlyouts.some((flyout) => {
       const flyoutName = String(flyout.dataset.flyout || "").trim().toLowerCase();
       return flyoutName === active && !flyout.classList.contains("ribbon-group-hidden");
     });
-    if (hidden || ribbonCollapsed || !activeFlyoutExists) {
+
+    if (hidden || ribbonCollapsed || !activeFlyoutVisible) {
       active = null;
-      state.activeFlyout = null;
     }
 
     if (appRoot) {
