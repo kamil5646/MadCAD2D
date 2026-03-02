@@ -274,6 +274,7 @@
     selectionBoxEnd: null,
     selectionBoxAdditive: false,
     polylineAnchor: null,
+    lengthInputBuffer: "",
     spacePan: false,
     snap: true,
     showGrid: true,
@@ -445,7 +446,7 @@
   let lastCanvasClientWidth = 0;
   let lastCanvasClientHeight = 0;
   const POINTER_DRAG_THRESHOLD_PX = 8;
-  const OBJECT_SNAP_THRESHOLD_PX = 14;
+  const OBJECT_SNAP_THRESHOLD_PX = 18;
 
   const detectedMac =
     (window.desktopApp && window.desktopApp.platform === "darwin") ||
@@ -2061,7 +2062,7 @@
     }
     const objectDistSq = (objectSnap.x - point.x) ** 2 + (objectSnap.y - point.y) ** 2;
     const gridDistSq = (gridSnap.x - point.x) ** 2 + (gridSnap.y - point.y) ** 2;
-    return objectDistSq <= gridDistSq ? objectSnap : gridSnap;
+    return objectDistSq <= gridDistSq * 1.35 ? objectSnap : gridSnap;
   }
 
   function isPointNearBounds(point, bounds, padding) {
@@ -2212,8 +2213,12 @@
     }
     const thresholdWorld = OBJECT_SNAP_THRESHOLD_PX / Math.max(0.05, state.view.scale);
     const thresholdSq = thresholdWorld * thresholdWorld;
-    let best = null;
-    let bestDistSq = thresholdSq;
+    let bestPoint = null;
+    let bestPointDistSq = thresholdSq;
+    let bestIntersection = null;
+    let bestIntersectionDistSq = thresholdSq;
+    let bestSegment = null;
+    let bestSegmentDistSq = thresholdSq * 0.72;
     const segments = [];
 
     for (const entity of state.entities) {
@@ -2231,9 +2236,9 @@
         const dx = candidate.x - point.x;
         const dy = candidate.y - point.y;
         const distSq = dx * dx + dy * dy;
-        if (distSq <= bestDistSq) {
-          bestDistSq = distSq;
-          best = { x: candidate.x, y: candidate.y };
+        if (distSq <= bestPointDistSq) {
+          bestPointDistSq = distSq;
+          bestPoint = { x: candidate.x, y: candidate.y };
         }
       }
       collectSnapSegmentsForEntity(entity, segments);
@@ -2251,9 +2256,9 @@
       const dx = projected.x - point.x;
       const dy = projected.y - point.y;
       const distSq = dx * dx + dy * dy;
-      if (distSq <= bestDistSq) {
-        bestDistSq = distSq;
-        best = projected;
+      if (distSq <= bestSegmentDistSq) {
+        bestSegmentDistSq = distSq;
+        bestSegment = projected;
       }
     }
 
@@ -2273,15 +2278,15 @@
           const dx = intersection.x - point.x;
           const dy = intersection.y - point.y;
           const distSq = dx * dx + dy * dy;
-          if (distSq <= bestDistSq) {
-            bestDistSq = distSq;
-            best = intersection;
+          if (distSq <= bestIntersectionDistSq) {
+            bestIntersectionDistSq = distSq;
+            bestIntersection = intersection;
           }
         }
       }
     }
 
-    return best;
+    return bestPoint || bestIntersection || bestSegment;
   }
 
   function constrainOrtho(anchor, point, enabled) {
@@ -2441,9 +2446,13 @@
       state.previewPoint = null;
       state.dimensionSecond = null;
       state.dimensionThird = null;
+      state.lengthInputBuffer = "";
     }
     if (tool !== "polyline") {
       state.polylineAnchor = null;
+      if (tool !== "line" && tool !== "measure") {
+        state.lengthInputBuffer = "";
+      }
     }
     toolButtons.forEach((button) => {
       button.classList.toggle("active", button.dataset.tool === tool);
@@ -2460,7 +2469,9 @@
       toolInfoLabel.textContent = `${t("Polecenie", "Command")}: ${String(state.commandState.name || "").toUpperCase()}`;
       toolInfoLabel.dataset.icon = "\u23F5";
     } else {
-      toolInfoLabel.textContent = `${t("Narzędzie", "Tool")}: ${TOOL_LABELS[state.tool] || state.tool}`;
+      const lengthPreview = String(state.lengthInputBuffer || "").trim();
+      const lengthSuffix = lengthPreview ? ` | ${t("Długość", "Length")}: ${lengthPreview}` : "";
+      toolInfoLabel.textContent = `${t("Narzędzie", "Tool")}: ${TOOL_LABELS[state.tool] || state.tool}${lengthSuffix}`;
       toolInfoLabel.dataset.icon = TOOL_ICONS[state.tool] || "\u2699";
     }
     if (workspaceStateInfo) {
@@ -5012,12 +5023,119 @@
     state.dimensionSecond = null;
     state.dimensionThird = null;
     state.previewPoint = null;
+    state.lengthInputBuffer = "";
   }
 
   function finishPolyline() {
     state.polylineAnchor = null;
     state.previewPoint = null;
+    state.lengthInputBuffer = "";
     queueRender();
+  }
+
+  function isDirectLengthInputActive() {
+    if (state.tool === "polyline") {
+      return Boolean(state.polylineAnchor);
+    }
+    if (state.tool === "line" || state.tool === "measure") {
+      return Boolean(state.drawStart);
+    }
+    return false;
+  }
+
+  function parseLengthInputBuffer() {
+    const normalized = String(state.lengthInputBuffer || "")
+      .trim()
+      .replace(",", ".");
+    if (!normalized) {
+      return null;
+    }
+    const parsed = Number(normalized);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return null;
+    }
+    return parsed;
+  }
+
+  function getDirectLengthAnchor() {
+    if (state.tool === "polyline") {
+      return state.polylineAnchor;
+    }
+    if (state.tool === "line" || state.tool === "measure") {
+      return state.drawStart;
+    }
+    return null;
+  }
+
+  function buildPointByDistance(anchor, distance) {
+    const reference = state.previewPoint || state.pointerRawWorld || state.pointerWorld || { x: anchor.x + 1, y: anchor.y };
+    let dx = reference.x - anchor.x;
+    let dy = reference.y - anchor.y;
+    const len = Math.hypot(dx, dy);
+    if (len <= 0.000001) {
+      dx = 1;
+      dy = 0;
+    } else {
+      dx /= len;
+      dy /= len;
+    }
+    return {
+      x: anchor.x + dx * distance,
+      y: anchor.y + dy * distance
+    };
+  }
+
+  function applyDirectLengthInput() {
+    if (!isDirectLengthInputActive()) {
+      return false;
+    }
+    const distance = parseLengthInputBuffer();
+    if (!distance) {
+      echoCommand(t("Podaj poprawną dodatnią długość.", "Enter a valid positive length."), true);
+      return false;
+    }
+    const anchor = getDirectLengthAnchor();
+    if (!anchor) {
+      return false;
+    }
+    const endpoint = buildPointByDistance(anchor, distance);
+
+    if (state.tool === "polyline") {
+      saveHistory();
+      const entity = createLineEntity(anchor, endpoint);
+      state.entities.push(entity);
+      setPrimarySelection(entity.id);
+      state.polylineAnchor = endpoint;
+      state.previewPoint = endpoint;
+      state.lengthInputBuffer = "";
+      state.lastMeasure = null;
+      markDirty();
+      queueRender();
+      echoCommand(t(`Polilinia: dodano odcinek ${distance.toFixed(2)}.`, `Polyline: added segment ${distance.toFixed(2)}.`));
+      return true;
+    }
+
+    if (state.tool === "line") {
+      saveHistory();
+      const entity = createLineEntity(anchor, endpoint);
+      state.entities.push(entity);
+      setPrimarySelection(entity.id);
+      clearDrawingPreview();
+      markDirty();
+      queueRender();
+      echoCommand(t(`Linia: ustawiono długość ${distance.toFixed(2)}.`, `Line: set length ${distance.toFixed(2)}.`));
+      return true;
+    }
+
+    if (state.tool === "measure") {
+      finalizeMeasure(anchor, endpoint);
+      clearDrawingPreview();
+      queueRender();
+      echoCommand(t(`Pomiar: długość ${distance.toFixed(2)}.`, `Measure: distance ${distance.toFixed(2)}.`));
+      return true;
+    }
+
+    return false;
   }
 
   function effectiveTool() {
@@ -8391,6 +8509,39 @@
 
     if (isTextInput) {
       return;
+    }
+
+    if (isDirectLengthInputActive()) {
+      const keyRaw = String(event.key || "");
+      if (/^[0-9]$/.test(keyRaw)) {
+        state.lengthInputBuffer += keyRaw;
+        event.preventDefault();
+        queueRender();
+        return;
+      }
+      if ((keyRaw === "." || keyRaw === ",") && !state.lengthInputBuffer.includes(".") && !state.lengthInputBuffer.includes(",")) {
+        state.lengthInputBuffer += ".";
+        event.preventDefault();
+        queueRender();
+        return;
+      }
+      if ((keyRaw === "Backspace" || keyRaw === "Delete") && state.lengthInputBuffer.length > 0) {
+        state.lengthInputBuffer = state.lengthInputBuffer.slice(0, -1);
+        event.preventDefault();
+        queueRender();
+        return;
+      }
+      if (keyRaw === "Enter") {
+        event.preventDefault();
+        applyDirectLengthInput();
+        return;
+      }
+      if (keyRaw === "Escape" && state.lengthInputBuffer.length > 0) {
+        state.lengthInputBuffer = "";
+        event.preventDefault();
+        queueRender();
+        return;
+      }
     }
 
     const key = event.key.toLowerCase();
