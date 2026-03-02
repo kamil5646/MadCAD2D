@@ -8146,6 +8146,7 @@
     }
 
     if (key === "escape") {
+      resetTransientInputState();
       if (isFileMenuOpen()) {
         setFileMenuOpen(false);
         return;
@@ -8215,6 +8216,10 @@
     if (event.code === "Space") {
       state.spacePan = false;
     }
+  }
+
+  function resetTransientInputState() {
+    state.spacePan = false;
   }
 
   function initializeEvents() {
@@ -8992,7 +8997,13 @@
       true
     );
     window.addEventListener("blur", () => {
+      resetTransientInputState();
       setFileMenuOpen(false);
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        resetTransientInputState();
+      }
     });
   }
 
