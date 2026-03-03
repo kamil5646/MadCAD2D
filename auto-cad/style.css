@@ -1788,6 +1788,35 @@ button:disabled:hover {
   color: #8b1f1f;
 }
 
+.shape-context-window {
+  position: fixed;
+  right: 14px;
+  top: 118px;
+  z-index: 1700;
+  min-width: 228px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent), var(--panel-bg);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+}
+
+.shape-context-title {
+  margin: 0 0 8px;
+  font-size: var(--ui-font-sm);
+  color: var(--text);
+}
+
+.shape-context-fields {
+  display: grid;
+  gap: 6px;
+}
+
+.shape-context-window .control.inline {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+}
+
 .statusbar {
   min-height: 28px;
   display: flex;

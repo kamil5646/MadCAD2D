@@ -44,6 +44,13 @@
   const fillToggle = document.getElementById("fillToggle");
   const fillColorInput = document.getElementById("fillColorInput");
   const fillAlphaInput = document.getElementById("fillAlphaInput");
+  const shapeContextWindow = document.getElementById("shapeContextWindow");
+  const shapeContextTitle = document.getElementById("shapeContextTitle");
+  const shapeContextRectFields = document.getElementById("shapeContextRectFields");
+  const shapeContextCircleFields = document.getElementById("shapeContextCircleFields");
+  const rectConfigWidthInput = document.getElementById("rectConfigWidthInput");
+  const rectConfigHeightInput = document.getElementById("rectConfigHeightInput");
+  const circleConfigRadiusInput = document.getElementById("circleConfigRadiusInput");
 
   const activeLayerSelect = document.getElementById("activeLayerSelect");
   const newLayerNameInput = document.getElementById("newLayerNameInput");
@@ -293,6 +300,9 @@
     fillEnabled: false,
     fillColor: "#00a9e0",
     fillAlpha: 20,
+    rectConfigWidth: 120,
+    rectConfigHeight: 80,
+    circleConfigRadius: 60,
     dimensionMode: "aligned",
     dimensionRotation: 0,
     dimensionAngleSnap: 15,
@@ -455,6 +465,7 @@
   const POINTER_DRAG_THRESHOLD_PX = 8;
   const OBJECT_SNAP_THRESHOLD_PX = 18;
   const EDGE_SNAP_THRESHOLD_PX = 28;
+  const MIN_DRAW_LENGTH = 0.0001;
 
   const detectedMac =
     (window.desktopApp && window.desktopApp.platform === "darwin") ||
@@ -508,6 +519,9 @@
         fillEnabled: state.fillEnabled,
         fillColor: state.fillColor,
         fillAlpha: state.fillAlpha,
+        rectConfigWidth: state.rectConfigWidth,
+        rectConfigHeight: state.rectConfigHeight,
+        circleConfigRadius: state.circleConfigRadius,
         dimensionMode: state.dimensionMode,
         dimensionRotation: state.dimensionRotation,
         dimensionAngleSnap: state.dimensionAngleSnap,
@@ -585,6 +599,9 @@
         state.fillEnabled = Boolean(parsed.settings.fillEnabled);
         state.fillColor = parsed.settings.fillColor || state.fillColor;
         state.fillAlpha = clamp(Number(parsed.settings.fillAlpha), 0, 100, state.fillAlpha);
+        state.rectConfigWidth = Math.max(1, Number(parsed.settings.rectConfigWidth) || state.rectConfigWidth);
+        state.rectConfigHeight = Math.max(1, Number(parsed.settings.rectConfigHeight) || state.rectConfigHeight);
+        state.circleConfigRadius = Math.max(1, Number(parsed.settings.circleConfigRadius) || state.circleConfigRadius);
         state.dimensionMode = normalizeDimensionMode(parsed.settings.dimensionMode);
         state.dimensionRotation = normalizeAngleDegrees(parsed.settings.dimensionRotation);
         state.dimensionAngleSnap = clamp(
@@ -2601,6 +2618,7 @@
     toolButtons.forEach((button) => {
       button.classList.toggle("active", button.dataset.tool === tool);
     });
+    syncShapeConfigControls();
     queueRender();
   }
 
@@ -3883,7 +3901,62 @@
     fillAlphaInput.disabled = !supportsFill;
   }
 
+  function syncShapeConfigControls() {
+    if (!rectConfigWidthInput || !rectConfigHeightInput || !circleConfigRadiusInput) {
+      return;
+    }
+    const selectedEntities = getSelectedEntities();
+    const selected = selectedEntities.length === 1 ? selectedEntities[0] : null;
+
+    const selectedRect = selected && selected.type === "rect";
+    const selectedCircle = selected && selected.type === "circle";
+    const contextMode = selectedRect || state.tool === "rect" ? "rect" : selectedCircle || state.tool === "circle" ? "circle" : null;
+
+    if (shapeContextWindow) {
+      shapeContextWindow.hidden = !contextMode;
+    }
+    if (shapeContextRectFields) {
+      shapeContextRectFields.hidden = contextMode !== "rect";
+    }
+    if (shapeContextCircleFields) {
+      shapeContextCircleFields.hidden = contextMode !== "circle";
+    }
+    if (shapeContextTitle) {
+      shapeContextTitle.textContent =
+        contextMode === "rect"
+          ? t("Kontekst: Prostokąt/Kwadrat", "Context: Rectangle/Square")
+          : contextMode === "circle"
+            ? t("Kontekst: Okrąg", "Context: Circle")
+            : t("Kontekst: figura", "Context: shape");
+    }
+
+    let rectWidth = state.rectConfigWidth;
+    let rectHeight = state.rectConfigHeight;
+    let circleRadius = state.circleConfigRadius;
+
+    if (selectedRect) {
+      rectWidth = Math.max(1, Math.abs(Number(selected.w) || 0));
+      rectHeight = Math.max(1, Math.abs(Number(selected.h) || 0));
+    }
+    if (selectedCircle) {
+      circleRadius = Math.max(1, Number(selected.r) || 0);
+    }
+
+    rectConfigWidthInput.value = String(Math.round(rectWidth));
+    rectConfigHeightInput.value = String(Math.round(rectHeight));
+    circleConfigRadiusInput.value = String(Math.round(circleRadius));
+
+    const rectEditable = contextMode === "rect" && (state.tool === "rect" || (selectedRect && !isEntityLocked(selected)));
+    const circleEditable =
+      contextMode === "circle" && (state.tool === "circle" || (selectedCircle && !isEntityLocked(selected)));
+
+    rectConfigWidthInput.disabled = !rectEditable;
+    rectConfigHeightInput.disabled = !rectEditable;
+    circleConfigRadiusInput.disabled = !circleEditable;
+  }
+
   function syncControlsFromSelection() {
+    syncShapeConfigControls();
     const selectedEntities = getSelectedEntities();
     if (selectedEntities.length > 1) {
       updateFillControlsAvailability(null);
@@ -4550,8 +4623,53 @@
     ctx.font = "11px Segoe UI, sans-serif";
     const labelW = ctx.measureText(modeLabel).width + 8;
     const labelH = 16;
-    const labelX = marker.x + 10;
-    const labelY = marker.y - 22;
+
+    const { width: canvasW, height: canvasH } = getCanvasSize();
+    const snapCandidates = [
+      { x: marker.x + 10, y: marker.y - 22 },
+      { x: marker.x + 10, y: marker.y + 10 },
+      { x: marker.x - labelW - 10, y: marker.y - 22 },
+      { x: marker.x - labelW - 10, y: marker.y + 10 }
+    ];
+
+    let measureLabelBounds = null;
+    if (state.tool === "measure" && state.drawStart && state.previewPoint) {
+      const measureEnd = worldToScreen(state.previewPoint);
+      const measureText = `D: ${Math.hypot(state.previewPoint.x - state.drawStart.x, state.previewPoint.y - state.drawStart.y).toFixed(2)} | Kąt: ${
+        ((Math.atan2(state.previewPoint.y - state.drawStart.y, state.previewPoint.x - state.drawStart.x) * 180) / Math.PI).toFixed(2)
+      }°`;
+      ctx.save();
+      ctx.font = "12px Rajdhani, sans-serif";
+      const measureW = ctx.measureText(measureText).width;
+      ctx.restore();
+      measureLabelBounds = {
+        x: measureEnd.x + 10,
+        y: measureEnd.y - 20,
+        w: measureW,
+        h: 16
+      };
+    }
+
+    const overlaps = (a, b) => {
+      if (!a || !b) {
+        return false;
+      }
+      return !(a.x + a.w < b.x || b.x + b.w < a.x || a.y + a.h < b.y || b.y + b.h < a.y);
+    };
+
+    let labelX = snapCandidates[0].x;
+    let labelY = snapCandidates[0].y;
+    for (const candidate of snapCandidates) {
+      const rect = { x: candidate.x, y: candidate.y, w: labelW, h: labelH };
+      const insideCanvas =
+        rect.x >= 0 && rect.y >= 0 && rect.x + rect.w <= canvasW && rect.y + rect.h <= canvasH;
+      if (insideCanvas && !overlaps(rect, measureLabelBounds)) {
+        labelX = candidate.x;
+        labelY = candidate.y;
+        break;
+      }
+    }
+
     ctx.fillStyle = "rgba(10, 16, 24, 0.82)";
     ctx.fillRect(labelX, labelY, labelW, labelH);
     ctx.strokeStyle = color;
@@ -5327,7 +5445,11 @@
     }
 
     if (state.tool === "measure") {
-      finalizeMeasure(anchor, endpoint);
+      const finalized = finalizeMeasure(anchor, endpoint);
+      if (!finalized) {
+        echoCommand(t("Pomiar jest zbyt krótki.", "Measurement is too short."), true);
+        return false;
+      }
       clearDrawingPreview();
       queueRender();
       echoCommand(t(`Pomiar: długość ${distance.toFixed(2)}.`, `Measure: distance ${distance.toFixed(2)}.`));
@@ -5789,7 +5911,11 @@
 
   function finalizeMeasure(start, end) {
     const distance = Math.hypot(end.x - start.x, end.y - start.y);
-    const angle = (Math.atan2(end.y - start.y, end.x - start.x) * 180) / Math.PI;
+    if (!Number.isFinite(distance) || distance <= MIN_DRAW_LENGTH) {
+      return false;
+    }
+    const rawAngle = (Math.atan2(end.y - start.y, end.x - start.x) * 180) / Math.PI;
+    const angle = normalizeAngleDegrees(rawAngle);
     state.lastMeasure = {
       p1: start,
       p2: end,
@@ -5797,6 +5923,7 @@
       angle
     };
     clearSelection();
+    return true;
   }
 
   function handleCanvasMouseDown(event) {
@@ -6048,7 +6175,7 @@
           }
           const w = endpoint.x - state.drawStart.x;
           const h = endpoint.y - state.drawStart.y;
-          if (Math.abs(w) > 0 || Math.abs(h) > 0) {
+          if (Math.abs(w) > MIN_DRAW_LENGTH && Math.abs(h) > MIN_DRAW_LENGTH) {
             saveHistory();
             const entity = createRectEntity(state.drawStart, endpoint);
             state.entities.push(entity);
@@ -6062,7 +6189,7 @@
             return;
           }
           const r = Math.hypot(endpoint.x - state.drawStart.x, endpoint.y - state.drawStart.y);
-          if (r > 0) {
+          if (r > MIN_DRAW_LENGTH) {
             saveHistory();
             const entity = createCircleEntity(state.drawStart, endpoint);
             state.entities.push(entity);
@@ -6070,7 +6197,10 @@
             markDirty();
           }
         } else if (tool === "measure") {
-          finalizeMeasure(state.drawStart, endpoint);
+          const finalized = finalizeMeasure(state.drawStart, endpoint);
+          if (!finalized) {
+            echoCommand(t("Pomiar jest zbyt krótki.", "Measurement is too short."), true);
+          }
         }
 
         clearDrawingPreview();
@@ -8539,6 +8669,9 @@
       orthoToggle: "Ogranicza rysowanie do kierunku poziomego i pionowego.",
       activeLayerSelect: "Wybiera aktywną warstwę dla nowych obiektów.",
       gridSizeInput: "Ustawia rozmiar oczka siatki roboczej.",
+      rectConfigWidthInput: "Ustawia szerokość prostokąta oraz szerokość zaznaczonego prostokąta.",
+      rectConfigHeightInput: "Ustawia wysokość prostokąta oraz wysokość zaznaczonego prostokąta.",
+      circleConfigRadiusInput: "Ustawia promień okręgu oraz promień zaznaczonego okręgu.",
       dimensionRotationInput: "Ustawia kąt wymiaru dla trybu obróconego.",
       dimensionAngleSnapInput: "Ustawia skok przyciągania kątowego podczas wskazywania punktów wymiaru.",
       newLayerNameInput: "Wpisz nazwę nowej warstwy.",
@@ -8627,6 +8760,7 @@
     fillToggle.checked = state.fillEnabled;
     fillColorInput.value = state.fillColor;
     fillAlphaInput.value = String(state.fillAlpha);
+    syncShapeConfigControls();
     if (dimensionModeSelect) {
       dimensionModeSelect.value = state.dimensionMode;
     }
@@ -9366,6 +9500,60 @@
       }
       queueRender();
     });
+
+    if (rectConfigWidthInput) {
+      rectConfigWidthInput.addEventListener("change", () => {
+        state.rectConfigWidth = Math.max(1, Number(rectConfigWidthInput.value) || state.rectConfigWidth);
+        rectConfigWidthInput.value = String(Math.round(state.rectConfigWidth));
+        const selected = getEntityById(state.selectedId);
+        if (selected && selected.type === "rect" && !isEntityLocked(selected)) {
+          saveHistory();
+          selected.w = (selected.w < 0 ? -1 : 1) * state.rectConfigWidth;
+          markDirty();
+          queueRender();
+          syncControlsFromSelection();
+          return;
+        }
+        markDirty();
+        syncShapeConfigControls();
+      });
+    }
+
+    if (rectConfigHeightInput) {
+      rectConfigHeightInput.addEventListener("change", () => {
+        state.rectConfigHeight = Math.max(1, Number(rectConfigHeightInput.value) || state.rectConfigHeight);
+        rectConfigHeightInput.value = String(Math.round(state.rectConfigHeight));
+        const selected = getEntityById(state.selectedId);
+        if (selected && selected.type === "rect" && !isEntityLocked(selected)) {
+          saveHistory();
+          selected.h = (selected.h < 0 ? -1 : 1) * state.rectConfigHeight;
+          markDirty();
+          queueRender();
+          syncControlsFromSelection();
+          return;
+        }
+        markDirty();
+        syncShapeConfigControls();
+      });
+    }
+
+    if (circleConfigRadiusInput) {
+      circleConfigRadiusInput.addEventListener("change", () => {
+        state.circleConfigRadius = Math.max(1, Number(circleConfigRadiusInput.value) || state.circleConfigRadius);
+        circleConfigRadiusInput.value = String(Math.round(state.circleConfigRadius));
+        const selected = getEntityById(state.selectedId);
+        if (selected && selected.type === "circle" && !isEntityLocked(selected)) {
+          saveHistory();
+          selected.r = state.circleConfigRadius;
+          markDirty();
+          queueRender();
+          syncControlsFromSelection();
+          return;
+        }
+        markDirty();
+        syncShapeConfigControls();
+      });
+    }
 
     if (dimensionModeSelect) {
       dimensionModeSelect.addEventListener("change", () => {

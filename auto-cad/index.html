@@ -456,6 +456,26 @@
     <input id="dxfFileInput" type="file" accept=".dxf,.txt" hidden />
     <div id="toastMessage" class="toast-message has-icon" data-icon="&#10003;" aria-live="assertive"></div>
 
+    <div id="shapeContextWindow" class="shape-context-window" hidden>
+      <h3 id="shapeContextTitle" class="shape-context-title has-icon" data-icon="&#9881;">Kontekst: figura</h3>
+      <div id="shapeContextRectFields" class="shape-context-fields" hidden>
+        <label class="control inline">
+          <span>Prostokąt: szer.</span>
+          <input id="rectConfigWidthInput" type="number" value="120" min="1" step="1" />
+        </label>
+        <label class="control inline">
+          <span>Prostokąt: wys.</span>
+          <input id="rectConfigHeightInput" type="number" value="80" min="1" step="1" />
+        </label>
+      </div>
+      <div id="shapeContextCircleFields" class="shape-context-fields" hidden>
+        <label class="control inline">
+          <span>Okrąg: promień</span>
+          <input id="circleConfigRadiusInput" type="number" value="60" min="1" step="1" />
+        </label>
+      </div>
+    </div>
+
     <div id="licenseOverlay" class="license-overlay" aria-hidden="true" hidden>
       <div class="license-dialog">
         <div class="license-header-row">
