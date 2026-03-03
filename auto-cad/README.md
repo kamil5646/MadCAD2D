@@ -4,25 +4,21 @@ English version: [README.en.md](./README.en.md)
 
 Desktopowa aplikacja CAD 2D (Mac/Windows) MadCAD 2D, z naciskiem na projektowanie konstrukcji stalowych: bramy, ogrodzenia, balkony.
 
-## Wydanie 2.0
+## Wydanie 3.0
 
-Aktualne pliki instalacyjne znajdziesz w release `2.0`:
+Aktualne pliki instalacyjne znajdziesz w release `3.0`:
 
-- PL macOS: https://github.com/kamil5646/MadCAD2D/releases/download/2.0/MadCAD.2D-2.0.0-pl-mac-arm64.zip
-- PL Windows: https://github.com/kamil5646/MadCAD2D/releases/download/2.0/MadCAD.2D-2.0.0-pl-win-x64.exe
-- EN macOS: https://github.com/kamil5646/MadCAD2D/releases/download/2.0/MadCAD.2D-2.0.0-en-mac-arm64.zip
-- EN Windows: https://github.com/kamil5646/MadCAD2D/releases/download/2.0/MadCAD.2D-2.0.0-en-win-x64.exe
-- Strona release: https://github.com/kamil5646/MadCAD2D/releases/tag/2.0
+- macOS (arm64): https://github.com/kamil5646/MadCAD2D/releases/download/3.0/MadCAD.2D-3.0.0-mac-arm64.zip
+- Windows (x64): https://github.com/kamil5646/MadCAD2D/releases/download/3.0/MadCAD.2D-3.0.0-win-x64.exe
+- Strona release: https://github.com/kamil5646/MadCAD2D/releases/tag/3.0
 
-## Release 2.0 (English)
+## Release 3.0 (English)
 
-Current installers are available in release `2.0`:
+Current installers are available in release `3.0`:
 
-- PL macOS: https://github.com/kamil5646/MadCAD2D/releases/download/2.0/MadCAD.2D-2.0.0-pl-mac-arm64.zip
-- PL Windows: https://github.com/kamil5646/MadCAD2D/releases/download/2.0/MadCAD.2D-2.0.0-pl-win-x64.exe
-- EN macOS: https://github.com/kamil5646/MadCAD2D/releases/download/2.0/MadCAD.2D-2.0.0-en-mac-arm64.zip
-- EN Windows: https://github.com/kamil5646/MadCAD2D/releases/download/2.0/MadCAD.2D-2.0.0-en-win-x64.exe
-- Release page: https://github.com/kamil5646/MadCAD2D/releases/tag/2.0
+- macOS (arm64): https://github.com/kamil5646/MadCAD2D/releases/download/3.0/MadCAD.2D-3.0.0-mac-arm64.zip
+- Windows (x64): https://github.com/kamil5646/MadCAD2D/releases/download/3.0/MadCAD.2D-3.0.0-win-x64.exe
+- Release page: https://github.com/kamil5646/MadCAD2D/releases/tag/3.0
 
 Quick start (desktop dev):
 
@@ -155,10 +151,8 @@ xattr -dr com.apple.quarantine "/Applications/MadCAD 2D.app" && open -a "/Applic
 Jeśli instalator jest blokowany, uruchom PowerShell jako administrator i wklej:
 
 ```powershell
-Unblock-File "$env:USERPROFILE\Downloads\MadCAD.2D-2.0.0-pl-win-x64.exe"; Start-Process "$env:USERPROFILE\Downloads\MadCAD.2D-2.0.0-pl-win-x64.exe" -Verb RunAs
+Unblock-File "$env:USERPROFILE\Downloads\MadCAD.2D-3.0.0-win-x64.exe"; Start-Process "$env:USERPROFILE\Downloads\MadCAD.2D-3.0.0-win-x64.exe" -Verb RunAs
 ```
-
-Dla wersji angielskiej podmień nazwę pliku na `MadCAD.2D-2.0.0-en-win-x64.exe`.
 
 Jeśli SmartScreen nadal pyta, wybierz: `Więcej informacji` -> `Uruchom mimo to`.
 

@@ -2,15 +2,13 @@
 
 MadCAD 2D is a desktop 2D CAD application (macOS/Windows) focused on steel structure design: gates, fences, and balconies.
 
-## Release 2.0
+## Release 3.0
 
-Current installers are available in release `2.0`:
+Current installers are available in release `3.0`:
 
-- PL macOS: https://github.com/kamil5646/MadCAD2D/releases/download/2.0/MadCAD.2D-2.0.0-pl-mac-arm64.zip
-- PL Windows: https://github.com/kamil5646/MadCAD2D/releases/download/2.0/MadCAD.2D-2.0.0-pl-win-x64.exe
-- EN macOS: https://github.com/kamil5646/MadCAD2D/releases/download/2.0/MadCAD.2D-2.0.0-en-mac-arm64.zip
-- EN Windows: https://github.com/kamil5646/MadCAD2D/releases/download/2.0/MadCAD.2D-2.0.0-en-win-x64.exe
-- Release page: https://github.com/kamil5646/MadCAD2D/releases/tag/2.0
+- macOS (arm64): https://github.com/kamil5646/MadCAD2D/releases/download/3.0/MadCAD.2D-3.0.0-mac-arm64.zip
+- Windows (x64): https://github.com/kamil5646/MadCAD2D/releases/download/3.0/MadCAD.2D-3.0.0-win-x64.exe
+- Release page: https://github.com/kamil5646/MadCAD2D/releases/tag/3.0
 
 ## Quick start (desktop dev)
 
@@ -67,10 +65,8 @@ xattr -dr com.apple.quarantine "/Applications/MadCAD 2D.app" && open -a "/Applic
 ### Windows
 
 ```powershell
-Unblock-File "$env:USERPROFILE\Downloads\MadCAD.2D-2.0.0-en-win-x64.exe"; Start-Process "$env:USERPROFILE\Downloads\MadCAD.2D-2.0.0-en-win-x64.exe" -Verb RunAs
+Unblock-File "$env:USERPROFILE\Downloads\MadCAD.2D-3.0.0-win-x64.exe"; Start-Process "$env:USERPROFILE\Downloads\MadCAD.2D-3.0.0-win-x64.exe" -Verb RunAs
 ```
-
-For Polish installer, replace filename with `MadCAD.2D-2.0.0-pl-win-x64.exe`.
 
 ## License
 
