@@ -10,22 +10,6 @@ Aktualne pliki instalacyjne znajdziesz w release `3.1`:
 - Windows (x64): https://github.com/kamil5646/MadCAD2D/releases/download/3.1/MadCAD.2D-3.1.0-win-x64.exe
 - Strona release: https://github.com/kamil5646/MadCAD2D/releases/tag/3.1
 
-## Release 3.1 (English)
-
-Current installers are available in release `3.1`:
-
-- macOS (arm64): https://github.com/kamil5646/MadCAD2D/releases/download/3.1/MadCAD.2D-3.1.0-mac-arm64.zip
-- Windows (x64): https://github.com/kamil5646/MadCAD2D/releases/download/3.1/MadCAD.2D-3.1.0-win-x64.exe
-- Release page: https://github.com/kamil5646/MadCAD2D/releases/tag/3.1
-
-Quick start (desktop dev):
-
-```bash
-cd auto-cad
-npm install
-npm run dev
-```
-
 ## Struktura repo
 
 - `auto-cad/` - główny kod aplikacji desktop (to katalog, z którego uruchamiasz build i dev)
@@ -34,14 +18,14 @@ npm run dev
 
 ## Najważniejsze funkcje
 
-- Wstążka (Ribbon) z zakładkami: `Główne`, `Wymiarowanie`, `Stal`, `Układ`, `Widok`, `Skróty`.
-- Rysowanie 2D: `Linia`, `Polilinia`, `Prostokąt`, `Okrąg`.
-- Wymiarowanie: `DIM Aligned`, `DIM Linear`, jednostki, precyzja, rozmiar i kolor DIM.
-- SNAP do siatki i obiektów (końce, środki, narożniki, krawędzie).
-- Modyfikacje: `MOVE`, `COPY`, `OFFSET`, duplikacja, usuwanie, kolejność.
-- Warstwy: aktywna warstwa, widoczność, blokady, tworzenie/usuwanie.
-- Generator stali: brama / ogrodzenie / balkon z parametrami w mm.
+- Wstążka z zakładkami: `Główne`, `Wymiarowanie`, `Stal`, `Widok`, `Warstwy`, `Skróty`.
+- Rysowanie: `Linia`, `Polilinia`, `Prostokąt/Kwadrat`, `Okrąg`, `Pomiar`, `Wymiar`.
+- Przyciąganie: jeden tryb `SNAP` (punkty + krawędzie) + siatka i tryb `Poziom/Pion`.
+- Modyfikacje: `Przesuń`, `Kopiuj`, `Odsuń`, `Duplikuj`, `Usuń`, `Na wierzch/Na spod`.
+- Warstwy: aktywna warstwa, widoczność, blokada, dodawanie i zarządzanie listą warstw.
+- Konstrukcje stalowe: generator bramy/ogrodzenia/balkonu z parametrami mm.
 - Import/eksport: JSON, DXF, SVG oraz druk/PDF.
+- Okno kontekstowe figur: konfiguracja prostokąta i okręgu zależna od aktywnego narzędzia/zaznaczenia.
 
 ## Uruchomienie desktop (dev)
 
@@ -166,24 +150,39 @@ Jeśli SmartScreen nadal pyta, wybierz: `Więcej informacji` -> `Uruchom mimo to
 - `F2` - zakładka `Skróty`
 - `F4` - zwiń/rozwiń wstążkę
 - `F6` - ukryj/pokaż panele
-- `F8` - ORTHO
-- `G` - GRID
+- `F3` - Przyciąganie (SNAP)
+- `F8` - Poziom/Pion
+- `G` - Siatka
 - `Ctrl+Z` - Cofnij
 - `Ctrl+Y` - Ponów
 - `Ctrl+C` / `Ctrl+V` - kopiuj/wklej
+- `Ctrl+O` - wczytaj JSON
 - `Ctrl+S` - zapisz JSON
 - `Ctrl+P` - druk/PDF
+
+### Dodatkowe skróty (Alt)
+
+- `Alt+M` Przesuń
+- `Alt+C` Kopiuj
+- `Alt+F` Odsuń
+- `Alt+J` Na wierzch
+- `Alt+K` Na spod
+- `Alt+0` Dopasuj widok
+- `Alt+Delete` Wyczyść rysunek
+- `Alt+1..4` tryby wymiarowania
+- `Alt+I/E/V` import/eksport DXF/SVG
+- `Alt+N` dodaj warstwę
+- `Alt+Enter` generuj konstrukcję
 
 ## Komendy (skrótowe)
 
 - `mode draw|steel`
-- `tab główne|wymiarowanie|stal|układ|widok|skróty`
-- `layout model|sheet1`
+- `tab główne|wymiarowanie|stal|widok|warstwy|skróty`
 - `dimstyle [mm|cm|m] [prec] [text] [aligned|linear] [#RRGGBB]`
 - `dimcolor #RRGGBB`
 - `snap on|off|toggle`
 - `grid on|off|toggle`
-- `ortho on|off|toggle`
+- `ortho on|off|toggle` (Poziom/Pion)
 - `steel <brama|ogrodzenie|balkon> [szer] [wys]`
 
 ## Stack techniczny
