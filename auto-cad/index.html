@@ -19,20 +19,12 @@
             <button class="ribbon-tab has-icon" data-icon="&#128207;" data-page="references">Wymiarowanie</button>
             <button class="ribbon-tab has-icon" data-icon="&#127959;" data-page="design">Stal</button>
             <button class="ribbon-tab has-icon" data-icon="&#128065;" data-page="view">Widok</button>
+            <button class="ribbon-tab has-icon" data-icon="&#128209;" data-page="layers">Warstwy</button>
             <button class="ribbon-tab has-icon" data-icon="&#9000;" data-page="shortcuts">Skróty</button>
           </div>
           <div class="ribbon-actions">
-            <button id="undoBtn" class="ribbon-action-btn has-icon" data-icon="&#8630;" data-pages="home" title="Cofnij">Cofnij</button>
-            <button id="redoBtn" class="ribbon-action-btn has-icon" data-icon="&#8631;" data-pages="home" title="Ponów">Ponów</button>
-            <button
-              id="flyoutLayersBtn"
-              class="has-icon palette-launch-btn"
-              data-icon="&#128209;"
-              data-flyout-target="layers"
-              data-pages="view"
-            >
-              Warstwy
-            </button>
+            <button id="undoBtn" class="ribbon-action-btn has-icon" data-icon="&#8630;" data-pages="home" title="Cofnij">Cofnij (Ctrl+Z)</button>
+            <button id="redoBtn" class="ribbon-action-btn has-icon" data-icon="&#8631;" data-pages="home" title="Ponów">Ponów (Ctrl+Y)</button>
             <button
               id="steelGenerateQuickBtn"
               class="has-icon"
@@ -40,7 +32,7 @@
               data-pages="design"
               title="Generuje konstrukcję stalową według aktualnych ustawień."
             >
-              Generuj
+              Generuj (Alt+G)
             </button>
             <button
               id="flyoutSelectionBtn"
@@ -49,9 +41,9 @@
               data-flyout-target="selection"
               data-pages="home"
             >
-              Zaznaczenie
+              Zaznaczenie (Alt+Q)
             </button>
-            <button id="toggleRibbonBtn" class="has-icon" data-icon="&#9660;" data-pages="view">Zwiń wstążkę</button>
+            <button id="toggleRibbonBtn" class="has-icon" data-icon="&#9660;" data-pages="view">Zwiń wstążkę (F4)</button>
             <button
               id="licenseCategoryBtn"
               class="license-summary-chip has-icon"
@@ -70,26 +62,26 @@
                 aria-controls="fileMenuPanel"
                 title="Menu zapisu i druku"
               >
-                Zapisz/Drukuj
+                Zapisz/Drukuj (Alt+S)
               </button>
               <div id="fileMenuPanel" class="file-menu-panel file-tab-panel" role="menu" hidden>
                 <button id="loadJsonBtn" class="quick-btn has-icon" data-icon="&#128194;" role="menuitem">
-                  Wczytaj JSON
+                  Wczytaj JSON (Ctrl+O)
                 </button>
                 <button id="saveJsonBtn" class="quick-btn has-icon" data-icon="&#128190;" role="menuitem">
-                  Zapisz JSON
+                  Zapisz JSON (Ctrl+S)
                 </button>
                 <button id="importDxfBtn" class="quick-btn has-icon" data-icon="&#128228;" role="menuitem">
-                  Wczytaj DXF
+                  Wczytaj DXF (Alt+I)
                 </button>
                 <button id="exportDxfBtn" class="quick-btn has-icon" data-icon="&#128229;" role="menuitem">
-                  Eksport DXF
+                  Eksport DXF (Alt+E)
                 </button>
                 <button id="exportSvgBtn" class="quick-btn has-icon" data-icon="&#128196;" role="menuitem">
-                  Eksport SVG
+                  Eksport SVG (Alt+V)
                 </button>
                 <button id="printDrawingBtn" class="quick-btn has-icon" data-icon="&#128438;" role="menuitem">
-                  Drukuj/PDF
+                  Drukuj/PDF (Ctrl+P)
                 </button>
               </div>
             </div>
@@ -104,24 +96,24 @@
                 data-icon="&#11097;"
                 data-tool="select"
               >
-                Zaznacz
+                Zaznacz (Z)
               </button>
               <div class="ribbon-tool-grid">
-                <button class="tool-btn ribbon-btn has-icon" data-icon="&#128207;" data-tool="line">Linia</button>
+                <button class="tool-btn ribbon-btn has-icon" data-icon="&#128207;" data-tool="line">Linia (L)</button>
                 <button class="tool-btn ribbon-btn has-icon" data-icon="&#128395;" data-tool="polyline">
-                  Polilinia
+                  Polilinia (Y)
                 </button>
                 <button class="tool-btn ribbon-btn has-icon" data-icon="&#9645;" data-tool="rect">
-                  Prostokąt
+                  Prostokąt (P)
                 </button>
-                <button class="tool-btn ribbon-btn has-icon" data-icon="&#9711;" data-tool="circle">Okrąg</button>
+                <button class="tool-btn ribbon-btn has-icon" data-icon="&#9711;" data-tool="circle">Okrąg (O)</button>
                 <button class="tool-btn ribbon-btn has-icon" data-icon="&#128208;" data-tool="measure">
-                  Pomiar
+                  Pomiar (M)
                 </button>
                 <button class="tool-btn ribbon-btn has-icon" data-icon="&#128207;" data-tool="dimension">
-                  Wymiar
+                  Wymiar (D)
                 </button>
-                <button class="tool-btn ribbon-btn has-icon" data-icon="&#9995;" data-tool="pan">Pan widoku</button>
+                <button class="tool-btn ribbon-btn has-icon" data-icon="&#9995;" data-tool="pan">Pan widoku (H)</button>
               </div>
             </div>
             <h2 class="has-icon" data-icon="&#9998;">Rysuj</h2>
@@ -129,15 +121,15 @@
 
           <section class="ribbon-group ribbon-group-modify" data-pages="home" data-modes="draw,steel">
             <div class="ribbon-tool-grid">
-              <button id="moveCmdBtn" class="ribbon-btn has-icon" data-icon="&#10140;">Przesuń</button>
-              <button id="copyCmdBtn" class="ribbon-btn has-icon" data-icon="&#128203;">Kopiuj</button>
-              <button id="offsetCmdBtn" class="ribbon-btn has-icon" data-icon="&#8644;">Odsuń</button>
-              <button id="duplicateBtn" class="ribbon-btn has-icon" data-icon="&#128209;">Duplikuj</button>
-              <button id="deleteBtn" class="ribbon-btn has-icon" data-icon="&#128465;">Usuń</button>
-              <button id="toFrontBtn" class="ribbon-btn has-icon" data-icon="&#11014;">Na wierzch</button>
-              <button id="toBackBtn" class="ribbon-btn has-icon" data-icon="&#11015;">Na spod</button>
-              <button id="fitViewBtn" class="ribbon-btn has-icon" data-icon="&#128269;">Dopasuj</button>
-              <button id="clearBtn" class="ribbon-btn has-icon" data-icon="&#10060;">Wyczyść</button>
+              <button id="moveCmdBtn" class="ribbon-btn has-icon" data-icon="&#10140;">Przesuń (Alt+M)</button>
+              <button id="copyCmdBtn" class="ribbon-btn has-icon" data-icon="&#128203;">Kopiuj (Alt+C)</button>
+              <button id="offsetCmdBtn" class="ribbon-btn has-icon" data-icon="&#8644;">Odsuń (Alt+F)</button>
+              <button id="duplicateBtn" class="ribbon-btn has-icon" data-icon="&#128209;">Duplikuj (Ctrl+D)</button>
+              <button id="deleteBtn" class="ribbon-btn has-icon" data-icon="&#128465;">Usuń (Delete)</button>
+              <button id="toFrontBtn" class="ribbon-btn has-icon" data-icon="&#11014;">Na wierzch (Alt+J)</button>
+              <button id="toBackBtn" class="ribbon-btn has-icon" data-icon="&#11015;">Na spod (Alt+K)</button>
+              <button id="fitViewBtn" class="ribbon-btn has-icon" data-icon="&#128269;">Dopasuj (Alt+0)</button>
+              <button id="clearBtn" class="ribbon-btn has-icon" data-icon="&#10060;">Wyczyść (Alt+Delete)</button>
             </div>
             <h2 class="has-icon" data-icon="&#128295;">Modyfikuj</h2>
           </section>
@@ -181,10 +173,10 @@
                 <span>Kolor wymiaru</span>
                 <input id="dimensionColorInput" type="color" value="#ffd166" />
               </label>
-              <button id="dimAlignedBtn" class="ribbon-btn has-icon" data-icon="&#8596;">Wymiar wyrównany</button>
-              <button id="dimLinearBtn" class="ribbon-btn has-icon" data-icon="&#8646;">Wymiar liniowy</button>
-              <button id="dimRotatedBtn" class="ribbon-btn has-icon" data-icon="&#8736;">Wymiar obrócony</button>
-              <button id="dimAngularBtn" class="ribbon-btn has-icon" data-icon="&#8737;">Wymiar kątowy</button>
+              <button id="dimAlignedBtn" class="ribbon-btn has-icon" data-icon="&#8596;">Wymiar wyrównany (Alt+1)</button>
+              <button id="dimLinearBtn" class="ribbon-btn has-icon" data-icon="&#8646;">Wymiar liniowy (Alt+2)</button>
+              <button id="dimRotatedBtn" class="ribbon-btn has-icon" data-icon="&#8736;">Wymiar obrócony (Alt+3)</button>
+              <button id="dimAngularBtn" class="ribbon-btn has-icon" data-icon="&#8737;">Wymiar kątowy (Alt+4)</button>
             </div>
             <h2 class="has-icon" data-icon="&#128207;">Wymiarowanie</h2>
           </section>
@@ -227,10 +219,10 @@
             <h2 class="has-icon" data-icon="&#9881;">Właściwości</h2>
           </section>
 
-          <section class="ribbon-group ribbon-group-modes" data-pages="view" data-modes="draw,steel">
+          <section class="ribbon-group ribbon-group-modes" data-pages="home,view" data-modes="draw,steel">
             <div class="ribbon-file-grid">
               <button id="snapToggle" class="ribbon-btn has-icon ribbon-toggle-btn" data-icon="&#128204;" aria-pressed="true">
-                Przyciąganie
+                Przyciąganie (F3)
               </button>
               <button
                 id="showGridToggle"
@@ -238,20 +230,19 @@
                 data-icon="&#8862;"
                 aria-pressed="true"
               >
-                Siatka
+                Siatka (G)
               </button>
               <button id="orthoToggle" class="ribbon-btn has-icon ribbon-toggle-btn" data-icon="&#8739;" aria-pressed="false">
-                ORTHO
+                Poziom/Pion (F8)
               </button>
             </div>
             <h2 class="has-icon" data-icon="&#9876;">Tryby</h2>
           </section>
 
           <section
-            class="ribbon-group ribbon-group-layers ribbon-group-palette"
-            data-pages="view"
+            class="ribbon-group ribbon-group-layers"
+            data-pages="layers"
             data-modes="draw,steel"
-            data-flyout="layers"
           >
             <div class="ribbon-panel-body">
               <label class="control inline">
@@ -264,7 +255,7 @@
               </label>
               <div class="layer-create">
                 <input id="newLayerNameInput" type="text" placeholder="Nowa warstwa" />
-                <button id="addLayerBtn" class="has-icon" data-icon="&#10133;">Dodaj</button>
+                <button id="addLayerBtn" class="has-icon" data-icon="&#10133;">Dodaj (Alt+N)</button>
               </div>
               <div id="layerList" class="layer-list layer-list-ribbon"></div>
             </div>
@@ -276,11 +267,11 @@
               <ul class="ribbon-shortcuts-list">
                 <li><kbd>L</kbd> Linia, <kbd>P</kbd> Prostokąt, <kbd>O</kbd> Okrąg, <kbd>Y</kbd> Polilinia, <kbd>D</kbd> Wymiar</li>
                 <li><kbd>Ctrl+S</kbd> Zapis JSON, <kbd>Ctrl+P</kbd> Drukuj/PDF, <kbd>Ctrl+Z</kbd> Cofnij, <kbd>Ctrl+Y</kbd> Ponów</li>
-                <li><kbd>F2</kbd> Zakładka Skróty, <kbd>F4</kbd> Zwiń/Rozwiń wstążkę, <kbd>F6</kbd> Pokaż/Ukryj panele, <kbd>F8</kbd> ORTHO</li>
+                <li><kbd>F2</kbd> Zakładka Skróty, <kbd>F3</kbd> Przyciąganie, <kbd>F4</kbd> Zwiń/Rozwiń wstążkę, <kbd>F6</kbd> Pokaż/Ukryj panele, <kbd>F8</kbd> Poziom/Pion</li>
               </ul>
               <div class="selection-info" style="margin-top:10px; white-space:normal;">
                 <strong>English:</strong> Download links for Windows and macOS are available on the
-                <a href="https://github.com/kamil5646/MadCAD2D/releases/tag/2.0" target="_blank" rel="noopener">Release 2.0 page</a>.
+                <a href="https://github.com/kamil5646/MadCAD2D/releases/tag/3.0" target="_blank" rel="noopener">Release 3.0 page</a>.
               </div>
             </div>
             <h2 class="has-icon" data-icon="&#9000;">Szybkie skróty</h2>
@@ -424,7 +415,7 @@
                 <input id="steelDiagonalToggle" type="checkbox" checked />
                 <small class="steel-help" id="steelDiagonalHint">Dodatkowe usztywnienie po przekątnej.</small>
               </label>
-              <button id="steelGenerateBtn" class="ribbon-btn has-icon" data-icon="&#128296;">Generuj element</button>
+              <button id="steelGenerateBtn" class="ribbon-btn has-icon" data-icon="&#128296;">Generuj element (Alt+Enter)</button>
             </div>
             <h2 class="has-icon" data-icon="&#127959;">Konstrukcje stalowe</h2>
           </section>

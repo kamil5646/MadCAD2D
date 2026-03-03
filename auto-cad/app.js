@@ -166,6 +166,10 @@
       .replace(/^Przyciąganie: WYŁ\.$/, "Snap: OFF")
       .replace(/^Siatka: WŁ\.$/, "Grid: ON")
       .replace(/^Siatka: WYŁ\.$/, "Grid: OFF")
+      .replace(/^Poziom\/Pion: WŁ\.$/, "Horizontal/Vertical: ON")
+      .replace(/^Poziom\/Pion: WYŁ\.$/, "Horizontal/Vertical: OFF")
+      .replace(/^Poziom\/Pion: WŁ\. \(F8\)$/, "Horizontal/Vertical: ON (F8)")
+      .replace(/^Poziom\/Pion: WYŁ\. \(F8\)$/, "Horizontal/Vertical: OFF (F8)")
       .replace(/^ORTHO: WŁ\.$/, "ORTHO: ON")
       .replace(/^ORTHO: WYŁ\.$/, "ORTHO: OFF");
   }
@@ -176,45 +180,48 @@
     }
     document.documentElement.lang = "en";
     const entries = [
-      ["#undoBtn", "Undo"],
-      ["#redoBtn", "Redo"],
+      ["#undoBtn", "Undo (Ctrl+Z)"],
+      ["#redoBtn", "Redo (Ctrl+Y)"],
       ["#flyoutLayersBtn", "Layers"],
-      ["#steelGenerateQuickBtn", "Generate"],
-      ["#flyoutSelectionBtn", "Selection"],
-      ["#toggleRibbonBtn", "Collapse ribbon"],
-      ["#fileMenuBtn", "Save/Print"],
-      ["#loadJsonBtn", "Load JSON"],
-      ["#saveJsonBtn", "Save JSON"],
-      ["#importDxfBtn", "Import DXF"],
-      ["#exportDxfBtn", "Export DXF"],
-      ["#exportSvgBtn", "Export SVG"],
-      ["#printDrawingBtn", "Print/PDF"],
+      ["#steelGenerateQuickBtn", "Generate (Alt+G)"],
+      ["#flyoutSelectionBtn", "Selection (Alt+Q)"],
+      ["#toggleRibbonBtn", "Collapse ribbon (F4)"],
+      ["#fileMenuBtn", "Save/Print (Alt+S)"],
+      ["#loadJsonBtn", "Load JSON (Ctrl+O)"],
+      ["#saveJsonBtn", "Save JSON (Ctrl+S)"],
+      ["#importDxfBtn", "Import DXF (Alt+I)"],
+      ["#exportDxfBtn", "Export DXF (Alt+E)"],
+      ["#exportSvgBtn", "Export SVG (Alt+V)"],
+      ["#printDrawingBtn", "Print/PDF (Ctrl+P)"],
       [".ribbon-tab[data-page='home']", "Home"],
       [".ribbon-tab[data-page='references']", "Dimensioning"],
       [".ribbon-tab[data-page='design']", "Steel"],
       [".ribbon-tab[data-page='view']", "View"],
+      [".ribbon-tab[data-page='layers']", "Layers"],
       [".ribbon-tab[data-page='shortcuts']", "Shortcuts"],
-      [".tool-btn[data-tool='select']", "Select"],
-      [".tool-btn[data-tool='line']", "Line"],
-      [".tool-btn[data-tool='polyline']", "Polyline"],
-      [".tool-btn[data-tool='rect']", "Rectangle"],
-      [".tool-btn[data-tool='circle']", "Circle"],
-      [".tool-btn[data-tool='measure']", "Measure"],
-      [".tool-btn[data-tool='dimension']", "Dimension"],
-      [".tool-btn[data-tool='pan']", "Pan view"],
-      ["#moveCmdBtn", "Move"],
-      ["#copyCmdBtn", "Copy"],
-      ["#offsetCmdBtn", "Offset"],
-      ["#duplicateBtn", "Duplicate"],
-      ["#deleteBtn", "Delete"],
-      ["#toFrontBtn", "To front"],
-      ["#toBackBtn", "To back"],
-      ["#fitViewBtn", "Fit view"],
-      ["#clearBtn", "Clear"],
-      ["#snapToggle", "Snap"],
-      ["#showGridToggle", "Grid"],
+      [".tool-btn[data-tool='select']", "Select (Z)"],
+      [".tool-btn[data-tool='line']", "Line (L)"],
+      [".tool-btn[data-tool='polyline']", "Polyline (Y)"],
+      [".tool-btn[data-tool='rect']", "Rectangle (P)"],
+      [".tool-btn[data-tool='circle']", "Circle (O)"],
+      [".tool-btn[data-tool='measure']", "Measure (M)"],
+      [".tool-btn[data-tool='dimension']", "Dimension (D)"],
+      [".tool-btn[data-tool='pan']", "Pan view (H)"],
+      ["#moveCmdBtn", "Move (Alt+M)"],
+      ["#copyCmdBtn", "Copy (Alt+C)"],
+      ["#offsetCmdBtn", "Offset (Alt+F)"],
+      ["#duplicateBtn", "Duplicate (Ctrl+D)"],
+      ["#deleteBtn", "Delete (Delete)"],
+      ["#toFrontBtn", "To front (Alt+J)"],
+      ["#toBackBtn", "To back (Alt+K)"],
+      ["#fitViewBtn", "Fit view (Alt+0)"],
+      ["#clearBtn", "Clear (Alt+Delete)"],
+      ["#snapToggle", "Snap (F3)"],
+      ["#orthoToggle", "Horizontal/Vertical (F8)"],
+      ["#showGridToggle", "Grid (G)"],
       ["#selectionInfo", "No object selected"],
-      ["#steelGenerateBtn", "Generate element"]
+      ["#addLayerBtn", "Add (Alt+N)"],
+      ["#steelGenerateBtn", "Generate element (Alt+Enter)"]
     ];
     for (const [selector, text] of entries) {
       const element = document.querySelector(selector);
@@ -447,6 +454,7 @@
   let lastCanvasClientHeight = 0;
   const POINTER_DRAG_THRESHOLD_PX = 8;
   const OBJECT_SNAP_THRESHOLD_PX = 18;
+  const EDGE_SNAP_THRESHOLD_PX = 28;
 
   const detectedMac =
     (window.desktopApp && window.desktopApp.platform === "darwin") ||
@@ -751,7 +759,7 @@
     appRoot.style.setProperty("--palette-width", `${state.paletteWidth}px`);
 
     if (toggleRibbonBtn) {
-      toggleRibbonBtn.textContent = state.ribbonCollapsed ? "Rozwiń wstążkę" : "Zwiń wstążkę";
+      toggleRibbonBtn.textContent = state.ribbonCollapsed ? "Rozwiń wstążkę (F4)" : "Zwiń wstążkę (F4)";
       toggleRibbonBtn.dataset.icon = state.ribbonCollapsed ? "\u25B6" : "\u25BC";
     }
 
@@ -866,6 +874,9 @@
     if (["view", "widok"].includes(value)) {
       return "view";
     }
+    if (["layers", "layer", "warstwy", "warstwa"].includes(value)) {
+      return "layers";
+    }
     if (["shortcuts", "skr", "skrót", "skrot", "skróty", "skroty"].includes(value)) {
       return "shortcuts";
     }
@@ -876,7 +887,7 @@
   }
 
   function getAvailableRibbonPages() {
-    return ["home", "references", "design", "view", "shortcuts"];
+    return ["home", "references", "design", "view", "layers", "shortcuts"];
   }
 
   function resolveRibbonPageAlias(rawValue) {
@@ -906,6 +917,9 @@
     if (["view", "widok"].includes(value)) {
       return "view";
     }
+    if (["layers", "layer", "warstwy", "warstwa"].includes(value)) {
+      return "layers";
+    }
     if (["shortcuts", "skr", "skrót", "skrot", "skróty", "skroty"].includes(value)) {
       return "shortcuts";
     }
@@ -928,6 +942,9 @@
     }
     if (normalized === "view") {
       return "Widok";
+    }
+    if (normalized === "layers") {
+      return "Warstwy";
     }
     if (normalized === "shortcuts") {
       return "Skróty";
@@ -2052,17 +2069,19 @@
       return point;
     }
     const objectSnap = findObjectSnapPoint(point);
+    const edgeSnap = findEdgeSnapPoint(point);
     const g = Math.max(1, state.gridSize);
     const gridSnap = {
       x: Math.round(point.x / g) * g,
       y: Math.round(point.y / g) * g
     };
-    if (!objectSnap) {
-      return gridSnap;
+    if (objectSnap) {
+      return objectSnap;
     }
-    const objectDistSq = (objectSnap.x - point.x) ** 2 + (objectSnap.y - point.y) ** 2;
-    const gridDistSq = (gridSnap.x - point.x) ** 2 + (gridSnap.y - point.y) ** 2;
-    return objectDistSq <= gridDistSq * 1.35 ? objectSnap : gridSnap;
+    if (edgeSnap) {
+      return edgeSnap;
+    }
+    return gridSnap;
   }
 
   function isPointNearBounds(point, bounds, padding) {
@@ -2120,14 +2139,30 @@
     return { x: px, y: py };
   }
 
+  function pushSnapCandidate(output, x, y, priority) {
+    if (!output) {
+      return;
+    }
+    const px = Number(x);
+    const py = Number(y);
+    if (!Number.isFinite(px) || !Number.isFinite(py)) {
+      return;
+    }
+    output.push({
+      x: px,
+      y: py,
+      priority: clamp(Math.round(Number(priority)), 0, 4, 1)
+    });
+  }
+
   function collectSnapPointsForEntity(entity, output) {
     if (!entity || !output) {
       return;
     }
     if (entity.type === "line") {
-      output.push({ x: entity.x1, y: entity.y1 });
-      output.push({ x: entity.x2, y: entity.y2 });
-      output.push({ x: (entity.x1 + entity.x2) / 2, y: (entity.y1 + entity.y2) / 2 });
+      pushSnapCandidate(output, entity.x1, entity.y1, 0);
+      pushSnapCandidate(output, entity.x2, entity.y2, 0);
+      pushSnapCandidate(output, (entity.x1 + entity.x2) / 2, (entity.y1 + entity.y2) / 2, 1);
       return;
     }
     if (entity.type === "rect") {
@@ -2137,32 +2172,41 @@
       const y2 = Math.max(entity.y, entity.y + entity.h);
       const mx = (x1 + x2) / 2;
       const my = (y1 + y2) / 2;
-      output.push({ x: x1, y: y1 }, { x: x2, y: y1 }, { x: x2, y: y2 }, { x: x1, y: y2 });
-      output.push({ x: mx, y: y1 }, { x: x2, y: my }, { x: mx, y: y2 }, { x: x1, y: my }, { x: mx, y: my });
+      pushSnapCandidate(output, x1, y1, 0);
+      pushSnapCandidate(output, x2, y1, 0);
+      pushSnapCandidate(output, x2, y2, 0);
+      pushSnapCandidate(output, x1, y2, 0);
+      pushSnapCandidate(output, mx, y1, 1);
+      pushSnapCandidate(output, x2, my, 1);
+      pushSnapCandidate(output, mx, y2, 1);
+      pushSnapCandidate(output, x1, my, 1);
+      pushSnapCandidate(output, mx, my, 2);
       return;
     }
     if (entity.type === "circle") {
-      output.push({ x: entity.cx, y: entity.cy });
-      output.push({ x: entity.cx + entity.r, y: entity.cy });
-      output.push({ x: entity.cx - entity.r, y: entity.cy });
-      output.push({ x: entity.cx, y: entity.cy + entity.r });
-      output.push({ x: entity.cx, y: entity.cy - entity.r });
+      pushSnapCandidate(output, entity.cx + entity.r, entity.cy, 0);
+      pushSnapCandidate(output, entity.cx - entity.r, entity.cy, 0);
+      pushSnapCandidate(output, entity.cx, entity.cy + entity.r, 0);
+      pushSnapCandidate(output, entity.cx, entity.cy - entity.r, 0);
+      pushSnapCandidate(output, entity.cx, entity.cy, 1);
       return;
     }
     if (entity.type === "dimension") {
       const geometry = getDimensionGeometry(entity);
-      output.push({ x: entity.x1, y: entity.y1 }, { x: entity.x2, y: entity.y2 });
+      pushSnapCandidate(output, entity.x1, entity.y1, 0);
+      pushSnapCandidate(output, entity.x2, entity.y2, 0);
       if (entity.x3 !== null && entity.x3 !== undefined && entity.x3 !== "") {
         const x3 = Number(entity.x3);
         const y3 = Number(entity.y3);
         if (Number.isFinite(x3) && Number.isFinite(y3)) {
-          output.push({ x: x3, y: y3 });
+          pushSnapCandidate(output, x3, y3, 0);
         }
       }
       if (geometry) {
-        output.push({ x: geometry.d1.x, y: geometry.d1.y }, { x: geometry.d2.x, y: geometry.d2.y });
+        pushSnapCandidate(output, geometry.d1.x, geometry.d1.y, 1);
+        pushSnapCandidate(output, geometry.d2.x, geometry.d2.y, 1);
         if (geometry.kind === "angular") {
-          output.push({ x: geometry.vertex.x, y: geometry.vertex.y });
+          pushSnapCandidate(output, geometry.vertex.x, geometry.vertex.y, 0);
         }
       }
     }
@@ -2174,6 +2218,22 @@
     }
     if (entity.type === "line") {
       output.push({ a: { x: entity.x1, y: entity.y1 }, b: { x: entity.x2, y: entity.y2 } });
+      return;
+    }
+    if (entity.type === "circle") {
+      const steps = 36;
+      const radius = Math.max(0, Number(entity.r) || 0);
+      if (radius <= 0) {
+        return;
+      }
+      for (let i = 0; i < steps; i += 1) {
+        const t1 = (i / steps) * Math.PI * 2;
+        const t2 = ((i + 1) / steps) * Math.PI * 2;
+        output.push({
+          a: { x: entity.cx + Math.cos(t1) * radius, y: entity.cy + Math.sin(t1) * radius },
+          b: { x: entity.cx + Math.cos(t2) * radius, y: entity.cy + Math.sin(t2) * radius }
+        });
+      }
       return;
     }
     if (entity.type === "rect") {
@@ -2215,10 +2275,11 @@
     const thresholdSq = thresholdWorld * thresholdWorld;
     let bestPoint = null;
     let bestPointDistSq = thresholdSq;
+    let bestPointScore = Number.POSITIVE_INFINITY;
     let bestIntersection = null;
     let bestIntersectionDistSq = thresholdSq;
     let bestSegment = null;
-    let bestSegmentDistSq = thresholdSq * 0.72;
+    let bestSegmentDistSq = thresholdSq * 0.64;
     const segments = [];
 
     for (const entity of state.entities) {
@@ -2236,7 +2297,13 @@
         const dx = candidate.x - point.x;
         const dy = candidate.y - point.y;
         const distSq = dx * dx + dy * dy;
-        if (distSq <= bestPointDistSq) {
+        if (distSq > thresholdSq) {
+          continue;
+        }
+        const priority = clamp(Math.round(Number(candidate.priority)), 0, 4, 1);
+        const score = distSq + thresholdSq * 0.18 * priority;
+        if (score <= bestPointScore) {
+          bestPointScore = score;
           bestPointDistSq = distSq;
           bestPoint = { x: candidate.x, y: candidate.y };
         }
@@ -2262,15 +2329,42 @@
       }
     }
 
-    const maxSegmentChecks = 280;
-    if (segments.length > 1 && segments.length <= maxSegmentChecks) {
-      for (let i = 0; i < segments.length; i += 1) {
-        for (let j = i + 1; j < segments.length; j += 1) {
+    const nearbySegments = [];
+    const nearbyPadding = thresholdWorld * 1.6;
+    for (const segment of segments) {
+      const minX = Math.min(segment.a.x, segment.b.x) - nearbyPadding;
+      const maxX = Math.max(segment.a.x, segment.b.x) + nearbyPadding;
+      const minY = Math.min(segment.a.y, segment.b.y) - nearbyPadding;
+      const maxY = Math.max(segment.a.y, segment.b.y) + nearbyPadding;
+      if (point.x < minX || point.x > maxX || point.y < minY || point.y > maxY) {
+        continue;
+      }
+      nearbySegments.push(segment);
+    }
+
+    const maxNearbyForIntersection = 80;
+    let segmentsForIntersection = nearbySegments;
+    if (nearbySegments.length > maxNearbyForIntersection) {
+      segmentsForIntersection = [...nearbySegments]
+        .map((segment) => {
+          const projected = closestPointOnSegment(point, segment.a, segment.b);
+          const dx = projected.x - point.x;
+          const dy = projected.y - point.y;
+          return { segment, distSq: dx * dx + dy * dy };
+        })
+        .sort((left, right) => left.distSq - right.distSq)
+        .slice(0, maxNearbyForIntersection)
+        .map((entry) => entry.segment);
+    }
+
+    if (segmentsForIntersection.length > 1) {
+      for (let i = 0; i < segmentsForIntersection.length; i += 1) {
+        for (let j = i + 1; j < segmentsForIntersection.length; j += 1) {
           const intersection = segmentIntersectionPoint(
-            segments[i].a,
-            segments[i].b,
-            segments[j].a,
-            segments[j].b
+            segmentsForIntersection[i].a,
+            segmentsForIntersection[i].b,
+            segmentsForIntersection[j].a,
+            segmentsForIntersection[j].b
           );
           if (!intersection) {
             continue;
@@ -2286,7 +2380,57 @@
       }
     }
 
-    return bestPoint || bestIntersection || bestSegment;
+    const pointBias = bestPoint ? 0 : Number.POSITIVE_INFINITY;
+    const intersectionBias = bestIntersection ? thresholdSq * 0.08 : Number.POSITIVE_INFINITY;
+    const segmentBias = bestSegment ? thresholdSq * 0.34 : Number.POSITIVE_INFINITY;
+    const pointScore = bestPoint ? bestPointScore + pointBias : Number.POSITIVE_INFINITY;
+    const intersectionScore =
+      bestIntersection ? bestIntersectionDistSq + intersectionBias : Number.POSITIVE_INFINITY;
+    const segmentScore = bestSegment ? bestSegmentDistSq + segmentBias : Number.POSITIVE_INFINITY;
+
+    if (pointScore <= intersectionScore && pointScore <= segmentScore) {
+      return bestPoint;
+    }
+    if (intersectionScore <= segmentScore) {
+      return bestIntersection;
+    }
+    return bestSegment;
+  }
+
+  function findEdgeSnapPoint(point) {
+    if (!Array.isArray(state.entities) || state.entities.length === 0) {
+      return null;
+    }
+
+    const thresholdWorld = EDGE_SNAP_THRESHOLD_PX / Math.max(0.05, state.view.scale);
+    const thresholdSq = thresholdWorld * thresholdWorld;
+    let best = null;
+    let bestDistSq = thresholdSq;
+    const segments = [];
+
+    for (const entity of state.entities) {
+      if (!entity || !isEntityVisible(entity)) {
+        continue;
+      }
+      const bounds = getEntityBounds(entity);
+      if (!isPointNearBounds(point, bounds, thresholdWorld * 1.4)) {
+        continue;
+      }
+      collectSnapSegmentsForEntity(entity, segments);
+    }
+
+    for (const segment of segments) {
+      const projected = closestPointOnSegment(point, segment.a, segment.b);
+      const dx = projected.x - point.x;
+      const dy = projected.y - point.y;
+      const distSq = dx * dx + dy * dy;
+      if (distSq <= bestDistSq) {
+        bestDistSq = distSq;
+        best = projected;
+      }
+    }
+
+    return best;
   }
 
   function constrainOrtho(anchor, point, enabled) {
@@ -2471,7 +2615,8 @@
     } else {
       const lengthPreview = String(state.lengthInputBuffer || "").trim();
       const lengthSuffix = lengthPreview ? ` | ${t("Długość", "Length")}: ${lengthPreview}` : "";
-      toolInfoLabel.textContent = `${t("Narzędzie", "Tool")}: ${TOOL_LABELS[state.tool] || state.tool}${lengthSuffix}`;
+      const snapSuffix = state.snap ? " | SNAP: WŁ" : " | SNAP: WYŁ";
+      toolInfoLabel.textContent = `${t("Narzędzie", "Tool")}: ${TOOL_LABELS[state.tool] || state.tool}${lengthSuffix}${snapSuffix}`;
       toolInfoLabel.dataset.icon = TOOL_ICONS[state.tool] || "\u2699";
     }
     if (workspaceStateInfo) {
@@ -2883,7 +3028,7 @@
   }
 
   function setSnapEnabled(value) {
-    state.snap = value;
+    state.snap = Boolean(value);
     syncModeIndicators();
     markDirty();
     queueRender();
@@ -3098,7 +3243,7 @@
         return;
       }
       if (page === undefined) {
-        echoCommand("Użyj: tab główne|wymiarowanie|stal|układ|widok|skróty", true);
+        echoCommand("Użyj: tab główne|wymiarowanie|stal|widok|warstwy|skróty", true);
         return;
       }
       if (page === "design") {
@@ -3532,7 +3677,7 @@
         return;
       }
       setOrthoEnabled(toggle === null ? !state.ortho : toggle);
-      echoCommand(`ORTHO: ${state.ortho ? "WŁ." : "WYŁ."}`);
+      echoCommand(`Poziom/Pion: ${state.ortho ? "WŁ." : "WYŁ."}`);
       return;
     }
 
@@ -4366,6 +4511,58 @@
     ctx.restore();
   }
 
+  function drawSnapIndicator() {
+    if (!state.snap) {
+      return;
+    }
+
+    const raw = state.pointerRawWorld;
+    const snapped = state.pointerWorld;
+    const dxWorld = snapped.x - raw.x;
+    const dyWorld = snapped.y - raw.y;
+    const worldDist = Math.hypot(dxWorld, dyWorld);
+    const hasSnapTarget = worldDist > 0.000001;
+    if (!hasSnapTarget) {
+      return;
+    }
+
+    const marker = worldToScreen(snapped);
+    const modeLabel = "SNAP";
+    const color = cssColor("--preview", "#00d2ff");
+
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = 1.8;
+    ctx.setLineDash([]);
+
+    const radius = 5;
+    ctx.beginPath();
+    ctx.arc(marker.x, marker.y, radius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(marker.x - 8, marker.y);
+    ctx.lineTo(marker.x + 8, marker.y);
+    ctx.moveTo(marker.x, marker.y - 8);
+    ctx.lineTo(marker.x, marker.y + 8);
+    ctx.stroke();
+
+    ctx.font = "11px Segoe UI, sans-serif";
+    const labelW = ctx.measureText(modeLabel).width + 8;
+    const labelH = 16;
+    const labelX = marker.x + 10;
+    const labelY = marker.y - 22;
+    ctx.fillStyle = "rgba(10, 16, 24, 0.82)";
+    ctx.fillRect(labelX, labelY, labelW, labelH);
+    ctx.strokeStyle = color;
+    ctx.strokeRect(labelX, labelY, labelW, labelH);
+    ctx.fillStyle = color;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText(modeLabel, labelX + 4, labelY + labelH / 2);
+    ctx.restore();
+  }
+
   function drawMeasureOverlay(start, end) {
     const a = worldToScreen(start);
     const b = worldToScreen(end);
@@ -4628,6 +4825,7 @@
             </div>
             <div class="layer-actions">
               <button class="layer-set-active has-icon" data-icon="&#9989;" data-layer-id="${layer.id}" title="Ustawia tę warstwę jako aktywną.">Aktywna</button>
+              <button class="layer-move-selection has-icon" data-icon="&#8645;" data-layer-id="${layer.id}" title="Przenosi zaznaczone obiekty na tę warstwę.">Przenieś zazn.</button>
               <button class="layer-delete has-icon" data-icon="&#128465;" data-layer-id="${layer.id}" ${
                 state.layers.length <= 1 ? "disabled" : ""
               } title="Usuwa warstwę i przenosi obiekty do aktywnej warstwy.">Usuń</button>
@@ -4661,6 +4859,7 @@
     drawPreviewEntity();
     drawSelectionWindow();
     drawCrosshair();
+    drawSnapIndicator();
     renderLayerPanel();
     updateStatus();
     syncActionButtonsState();
@@ -5145,7 +5344,7 @@
   function resolvePointerFromEvent(event) {
     const screen = getMouseScreen(event);
     const raw = screenToWorld(screen);
-    const snapped = snapPoint(raw);
+    const snapped = state.snap ? snapPoint(raw) : raw;
     return { screen, raw, snapped };
   }
 
@@ -5161,6 +5360,13 @@
       point = constrainOrtho(anchor, point, true);
     }
     return state.snap ? snapPoint(point) : point;
+  }
+
+  function getDimensionPickPoint(rawPoint, snappedPoint) {
+    if (state.snap) {
+      return snappedPoint;
+    }
+    return rawPoint;
   }
 
   function createLineEntity(start, end) {
@@ -5406,7 +5612,7 @@
     let d2 = null;
     let measureLength = length;
     if (mode === "linear") {
-      const horizontal = Math.abs(dx) >= Math.abs(dy);
+      const horizontal = hasDimPoint ? Math.abs(dimY - midY) >= Math.abs(dimX - midX) : Math.abs(dx) >= Math.abs(dy);
       if (horizontal) {
         nx = 0;
         ny = 1;
@@ -5517,9 +5723,13 @@
       return null;
     }
 
+    const dimensionLayer = ensureLayerByName("Wymiary");
+    ensureLayerVisibleUnlocked(dimensionLayer);
+
     return {
       ...createBaseEntity("dimension"),
       stroke: state.dimensionColor,
+      layerId: dimensionLayer.id,
       x1: geometry.x1,
       y1: geometry.y1,
       x2: geometry.x2,
@@ -5553,9 +5763,13 @@
       return null;
     }
 
+    const dimensionLayer = ensureLayerByName("Wymiary");
+    ensureLayerVisibleUnlocked(dimensionLayer);
+
     return {
       ...createBaseEntity("dimension"),
       stroke: state.dimensionColor,
+      layerId: dimensionLayer.id,
       x1: geometry.vertex.x,
       y1: geometry.vertex.y,
       x2: geometry.x2,
@@ -5712,10 +5926,7 @@
 
       if (dimensionMode === "angular") {
         if (!state.dimensionSecond) {
-          const secondPoint = getConstrainedPoint(state.drawStart, raw, event, {
-            polar: true,
-            polarStep: state.dimensionAngleSnap
-          });
+          const secondPoint = getDimensionPickPoint(raw, snapped);
           const length = Math.hypot(secondPoint.x - state.drawStart.x, secondPoint.y - state.drawStart.y);
           if (length > 0.0001) {
             state.dimensionSecond = secondPoint;
@@ -5726,10 +5937,7 @@
         }
 
         if (!state.dimensionThird) {
-          const thirdPoint = getConstrainedPoint(state.drawStart, raw, event, {
-            polar: true,
-            polarStep: state.dimensionAngleSnap
-          });
+          const thirdPoint = getDimensionPickPoint(raw, snapped);
           const length = Math.hypot(thirdPoint.x - state.drawStart.x, thirdPoint.y - state.drawStart.y);
           if (length > 0.0001) {
             const cross =
@@ -5765,10 +5973,7 @@
       }
 
       if (!state.dimensionSecond) {
-        const secondPoint = getConstrainedPoint(state.drawStart, raw, event, {
-          polar: true,
-          polarStep: state.dimensionAngleSnap
-        });
+        const secondPoint = getDimensionPickPoint(raw, snapped);
         const length = Math.hypot(secondPoint.x - state.drawStart.x, secondPoint.y - state.drawStart.y);
         if (length > 0) {
           state.dimensionSecond = secondPoint;
@@ -5951,20 +6156,14 @@
         const dimensionMode = normalizeDimensionMode(state.dimensionMode);
         if (dimensionMode === "angular") {
           if (!state.dimensionSecond || !state.dimensionThird) {
-            preview = getConstrainedPoint(state.drawStart, raw, event, {
-              polar: true,
-              polarStep: state.dimensionAngleSnap
-            });
+            preview = getDimensionPickPoint(raw, snapped);
           } else {
             preview = state.snap ? snapped : raw;
           }
         } else if (state.dimensionSecond) {
           preview = state.snap ? snapped : raw;
         } else {
-          preview = getConstrainedPoint(state.drawStart, raw, event, {
-            polar: true,
-            polarStep: state.dimensionAngleSnap
-          });
+          preview = getDimensionPickPoint(raw, snapped);
         }
       } else if (state.tool === "line" || state.tool === "measure") {
         preview = getConstrainedPoint(state.drawStart, raw, event);
@@ -6159,6 +6358,9 @@
     state.view.scale = 1;
     state.view.offsetX = 160;
     state.view.offsetY = 80;
+    const geometryLayer = ensureLayerByName("Geometria");
+    ensureLayerByName("Wymiary");
+    state.activeLayerId = geometryLayer.id;
     setTool("select");
     setWorkspaceMode("draw", { persist: false });
     setRibbonPage("home", { persist: false });
@@ -6278,6 +6480,39 @@
     state.activeLayerId = layerId;
     queueRender();
     markDirty();
+  }
+
+  function moveSelectedToLayer(layerId) {
+    const targetLayer = getLayerById(layerId);
+    if (!targetLayer) {
+      return false;
+    }
+    const selectedEntities = getSelectedEntities();
+    if (selectedEntities.length === 0) {
+      return false;
+    }
+    if (selectedEntities.some((entity) => isEntityLocked(entity))) {
+      return false;
+    }
+    const needsMove = selectedEntities.some((entity) => entity.layerId !== targetLayer.id);
+    if (!needsMove) {
+      return false;
+    }
+
+    saveHistory();
+    for (const entity of selectedEntities) {
+      entity.layerId = targetLayer.id;
+    }
+    if (!targetLayer.visible) {
+      const remainingSelectedIds = getSelectionIds().filter((id) => {
+        const selected = getEntityById(id);
+        return selected && selected.layerId !== targetLayer.id;
+      });
+      setSelection(remainingSelectedIds, remainingSelectedIds.length ? remainingSelectedIds[remainingSelectedIds.length - 1] : null);
+    }
+    markDirty();
+    queueRender();
+    return true;
   }
 
   function moveSelectedByNudge(dx, dy) {
@@ -6520,6 +6755,15 @@
     };
     state.layers.push(layer);
     return layer;
+  }
+
+  function ensureDefaultDrawingLayers() {
+    const geometryLayer = ensureLayerByName("Geometria");
+    ensureLayerByName("Wymiary");
+
+    if (!getLayerById(state.activeLayerId)) {
+      state.activeLayerId = geometryLayer.id;
+    }
   }
 
   function ensureLayerVisibleUnlocked(layer) {
@@ -8492,7 +8736,14 @@
     if (event.key === "F8") {
       event.preventDefault();
       setOrthoEnabled(!state.ortho);
-      echoCommand(`ORTHO: ${state.ortho ? "WŁ." : "WYŁ."} (F8)`);
+      echoCommand(`Poziom/Pion: ${state.ortho ? "WŁ." : "WYŁ."} (F8)`);
+      return;
+    }
+
+    if (event.key === "F3") {
+      event.preventDefault();
+      setSnapEnabled(!state.snap);
+      echoCommand(`Przyciąganie: ${state.snap ? "WŁ." : "WYŁ."} (F3)`);
       return;
     }
 
@@ -8539,12 +8790,11 @@
       if (keyRaw === "Escape" && state.lengthInputBuffer.length > 0) {
         state.lengthInputBuffer = "";
         event.preventDefault();
-        queueRender();
-        return;
       }
     }
 
     const key = event.key.toLowerCase();
+
     if (event.ctrlKey || event.metaKey) {
       if (key === "z") {
         event.preventDefault();
@@ -8593,8 +8843,116 @@
         event.preventDefault();
         const payload = buildProjectPayload();
         void saveTextWithFeedback("rysunek.json", JSON.stringify(payload, null, 2), "Zapisano plik: rysunek.json (Ctrl+S).");
+        return;
+      }
+      if (key === "o") {
+        event.preventDefault();
+        loadJsonBtn.click();
+        return;
       }
       return;
+    }
+
+    if (event.altKey) {
+      if (key === "m") {
+        event.preventDefault();
+        moveCmdBtn.click();
+        return;
+      }
+      if (key === "c") {
+        event.preventDefault();
+        copyCmdBtn.click();
+        return;
+      }
+      if (key === "f") {
+        event.preventDefault();
+        offsetCmdBtn.click();
+        return;
+      }
+      if (key === "j") {
+        event.preventDefault();
+        toFrontBtn.click();
+        return;
+      }
+      if (key === "k") {
+        event.preventDefault();
+        toBackBtn.click();
+        return;
+      }
+      if (key === "0") {
+        event.preventDefault();
+        fitViewBtn.click();
+        return;
+      }
+      if (key === "delete" || key === "backspace") {
+        event.preventDefault();
+        clearBtn.click();
+        return;
+      }
+      if (key === "1") {
+        event.preventDefault();
+        dimAlignedBtn.click();
+        return;
+      }
+      if (key === "2") {
+        event.preventDefault();
+        dimLinearBtn.click();
+        return;
+      }
+      if (key === "3") {
+        event.preventDefault();
+        dimRotatedBtn.click();
+        return;
+      }
+      if (key === "4") {
+        event.preventDefault();
+        dimAngularBtn.click();
+        return;
+      }
+      if (key === "n") {
+        event.preventDefault();
+        addLayerBtn.click();
+        return;
+      }
+      if (key === "i") {
+        event.preventDefault();
+        importDxfBtn.click();
+        return;
+      }
+      if (key === "e") {
+        event.preventDefault();
+        exportDxfBtn.click();
+        return;
+      }
+      if (key === "v") {
+        event.preventDefault();
+        exportSvgBtn.click();
+        return;
+      }
+      if (key === "enter") {
+        event.preventDefault();
+        steelGenerateBtn.click();
+        return;
+      }
+      if (key === "g") {
+        event.preventDefault();
+        if (steelGenerateQuickBtn && state.activeRibbonPage === "design") {
+          steelGenerateQuickBtn.click();
+        } else {
+          steelGenerateBtn.click();
+        }
+        return;
+      }
+      if (key === "q") {
+        event.preventDefault();
+        setActiveFlyout("selection", { persist: false });
+        return;
+      }
+      if (key === "s") {
+        event.preventDefault();
+        setFileMenuOpen(!isFileMenuOpen());
+        return;
+      }
     }
 
     if (key === "enter" && state.tool === "polyline") {
@@ -8620,12 +8978,19 @@
         setActiveFlyout(null, { persist: false });
         return;
       }
-      if (cancelActiveCommand({ echo: false })) {
+      const commandCancelled = cancelActiveCommand({ echo: false });
+      state.lengthInputBuffer = "";
+      state.panning = false;
+      state.dragging = false;
+      if (commandCancelled) {
         echoCommand("Polecenie anulowane.");
       }
       clearDrawingPreview();
       finishPolyline();
       clearSelection();
+      if (state.tool !== "select") {
+        setTool("select");
+      }
       queueRender();
       return;
     }
@@ -8924,7 +9289,7 @@
 
     orthoToggle.addEventListener("click", () => {
       setOrthoEnabled(!state.ortho);
-      echoCommand(`ORTHO: ${state.ortho ? "WŁ." : "WYŁ."}`);
+      echoCommand(`Poziom/Pion: ${state.ortho ? "WŁ." : "WYŁ."}`);
     });
 
     gridSizeInput.addEventListener("change", () => {
@@ -9294,6 +9659,17 @@
           echoCommand(`Aktywna warstwa: ${getLayerNameById(id)}.`);
         }
       }
+      if (target.classList.contains("layer-move-selection")) {
+        const id = target.dataset.layerId;
+        if (id) {
+          const moved = moveSelectedToLayer(id);
+          if (moved) {
+            echoCommand(`Przeniesiono zaznaczenie do warstwy: ${getLayerNameById(id)}.`);
+          } else {
+            echoCommand("Nie przeniesiono obiektów (brak zaznaczenia lub obiekty są na zablokowanej warstwie).", true);
+          }
+        }
+      }
       if (target.classList.contains("layer-delete")) {
         const id = target.dataset.layerId;
         if (id) {
@@ -9491,6 +9867,7 @@
     setFileMenuOpen(false);
     ensureActiveLayer();
     ensureEntityLayers();
+    ensureDefaultDrawingLayers();
     const restoredHiddenLayers = ensureVisibleLayersForExistingEntities();
     syncLayoutChrome();
     syncWorkspaceView();
