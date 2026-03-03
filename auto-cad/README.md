@@ -4,21 +4,21 @@ English version: [README.en.md](./README.en.md)
 
 Desktopowa aplikacja CAD 2D (Mac/Windows) MadCAD 2D, z naciskiem na projektowanie konstrukcji stalowych: bramy, ogrodzenia, balkony.
 
-## Wydanie 3.0
+## Wydanie 3.1
 
-Aktualne pliki instalacyjne znajdziesz w release `3.0`:
+Aktualne pliki instalacyjne znajdziesz w release `3.1`:
 
-- macOS (arm64): https://github.com/kamil5646/MadCAD2D/releases/download/3.0/MadCAD.2D-3.0.0-mac-arm64.zip
-- Windows (x64): https://github.com/kamil5646/MadCAD2D/releases/download/3.0/MadCAD.2D-3.0.0-win-x64.exe
-- Strona release: https://github.com/kamil5646/MadCAD2D/releases/tag/3.0
+- macOS (arm64): https://github.com/kamil5646/MadCAD2D/releases/download/3.1/MadCAD.2D-3.1.0-mac-arm64.zip
+- Windows (x64): https://github.com/kamil5646/MadCAD2D/releases/download/3.1/MadCAD.2D-3.1.0-win-x64.exe
+- Strona release: https://github.com/kamil5646/MadCAD2D/releases/tag/3.1
 
-## Release 3.0 (English)
+## Release 3.1 (English)
 
-Current installers are available in release `3.0`:
+Current installers are available in release `3.1`:
 
-- macOS (arm64): https://github.com/kamil5646/MadCAD2D/releases/download/3.0/MadCAD.2D-3.0.0-mac-arm64.zip
-- Windows (x64): https://github.com/kamil5646/MadCAD2D/releases/download/3.0/MadCAD.2D-3.0.0-win-x64.exe
-- Release page: https://github.com/kamil5646/MadCAD2D/releases/tag/3.0
+- macOS (arm64): https://github.com/kamil5646/MadCAD2D/releases/download/3.1/MadCAD.2D-3.1.0-mac-arm64.zip
+- Windows (x64): https://github.com/kamil5646/MadCAD2D/releases/download/3.1/MadCAD.2D-3.1.0-win-x64.exe
+- Release page: https://github.com/kamil5646/MadCAD2D/releases/tag/3.1
 
 Quick start (desktop dev):
 

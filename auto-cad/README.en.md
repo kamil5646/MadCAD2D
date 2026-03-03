@@ -2,13 +2,13 @@
 
 MadCAD 2D is a desktop 2D CAD application (macOS/Windows) focused on steel structure design: gates, fences, and balconies.
 
-## Release 3.0
+## Release 3.1
 
-Current installers are available in release `3.0`:
+Current installers are available in release `3.1`:
 
-- macOS (arm64): https://github.com/kamil5646/MadCAD2D/releases/download/3.0/MadCAD.2D-3.0.0-mac-arm64.zip
-- Windows (x64): https://github.com/kamil5646/MadCAD2D/releases/download/3.0/MadCAD.2D-3.0.0-win-x64.exe
-- Release page: https://github.com/kamil5646/MadCAD2D/releases/tag/3.0
+- macOS (arm64): https://github.com/kamil5646/MadCAD2D/releases/download/3.1/MadCAD.2D-3.1.0-mac-arm64.zip
+- Windows (x64): https://github.com/kamil5646/MadCAD2D/releases/download/3.1/MadCAD.2D-3.1.0-win-x64.exe
+- Release page: https://github.com/kamil5646/MadCAD2D/releases/tag/3.1
 
 ## Quick start (desktop dev)
 
