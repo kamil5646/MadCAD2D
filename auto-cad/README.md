@@ -1,7 +1,5 @@
 # MadCAD 2D Desktop
 
-English version: [README.en.md](./README.en.md)
-
 Desktopowa aplikacja CAD 2D (Mac/Windows) MadCAD 2D, z naciskiem na projektowanie konstrukcji stalowych: bramy, ogrodzenia, balkony.
 
 ## Wydanie 3.1
@@ -151,7 +149,7 @@ xattr -dr com.apple.quarantine "/Applications/MadCAD 2D.app" && open -a "/Applic
 Jeśli instalator jest blokowany, uruchom PowerShell jako administrator i wklej:
 
 ```powershell
-Unblock-File "$env:USERPROFILE\Downloads\MadCAD.2D-3.0.0-win-x64.exe"; Start-Process "$env:USERPROFILE\Downloads\MadCAD.2D-3.0.0-win-x64.exe" -Verb RunAs
+Unblock-File "$env:USERPROFILE\Downloads\MadCAD.2D-3.1.0-win-x64.exe"; Start-Process "$env:USERPROFILE\Downloads\MadCAD.2D-3.1.0-win-x64.exe" -Verb RunAs
 ```
 
 Jeśli SmartScreen nadal pyta, wybierz: `Więcej informacji` -> `Uruchom mimo to`.
