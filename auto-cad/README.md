@@ -138,6 +138,28 @@ Unblock-File "$env:USERPROFILE\Downloads\MadCAD.2D-3.1.1-win-x64.exe"; Start-Pro
 
 Jeśli SmartScreen nadal pyta, wybierz: `Więcej informacji` -> `Uruchom mimo to`.
 
+## Ręczna instalacja ODA (DWG)
+
+Jeśli automatyczna instalacja ODA nie działa (np. problem sieci/DNS), możesz skonfigurować konwerter ręcznie.
+
+1. Otwórz w aplikacji `Zapisz/Drukuj (Alt+S)`.
+2. Kliknij pozycję DWG: `Brakuje dodatku DWG — zainstaluj (...)`.
+3. Wskaż plik wykonywalny `ODAFileConverter`.
+
+### Ścieżki domyślne
+
+- macOS:
+	- `/Applications/ODAFileConverter.app/Contents/MacOS/ODAFileConverter`
+	- `/Applications/ODA File Converter.app/Contents/MacOS/ODAFileConverter`
+- Windows:
+	- `C:\Program Files\ODA\ODAFileConverter\ODAFileConverter.exe`
+	- `C:\Program Files (x86)\ODA\ODAFileConverter\ODAFileConverter.exe`
+
+### Gdy nie masz jeszcze ODA
+
+- Pobierz instalator ze strony ODA File Converter: https://www.opendesign.com/guestfiles/oda_file_converter
+- Zainstaluj ODA, uruchom ponownie MadCAD 2D i ponów wskazanie pliku `ODAFileConverter`.
+
 ## Skróty klawiszowe
 
 - `Z` - Zaznacz
