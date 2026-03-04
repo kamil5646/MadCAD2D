@@ -19,9 +19,11 @@
   const saveJsonBtn = document.getElementById("saveJsonBtn");
   const loadJsonBtn = document.getElementById("loadJsonBtn");
   const exportDxfBtn = document.getElementById("exportDxfBtn");
+  const exportDwgBtn = document.getElementById("exportDwgBtn");
   const exportSvgBtn = document.getElementById("exportSvgBtn");
   const printDrawingBtn = document.getElementById("printDrawingBtn");
   const importDxfBtn = document.getElementById("importDxfBtn");
+  const importDwgBtn = document.getElementById("importDwgBtn");
   const toggleRibbonBtn = document.getElementById("toggleRibbonBtn");
   const fileMenu = document.getElementById("fileMenu");
   const fileMenuBtn = document.getElementById("fileMenuBtn");
@@ -197,7 +199,9 @@
       ["#loadJsonBtn", "Load JSON (Ctrl+O)"],
       ["#saveJsonBtn", "Save JSON (Ctrl+S)"],
       ["#importDxfBtn", "Import DXF (Alt+I)"],
+      ["#importDwgBtn", "Import DWG (Alt+W)"],
       ["#exportDxfBtn", "Export DXF (Alt+E)"],
+      ["#exportDwgBtn", "Export DWG (Alt+R)"],
       ["#exportSvgBtn", "Export SVG (Alt+V)"],
       ["#printDrawingBtn", "Print/PDF (Ctrl+P)"],
       [".ribbon-tab[data-page='home']", "Home"],
@@ -211,6 +215,7 @@
       [".tool-btn[data-tool='polyline']", "Polyline (Y)"],
       [".tool-btn[data-tool='rect']", "Rectangle (P)"],
       [".tool-btn[data-tool='circle']", "Circle (O)"],
+      [".tool-btn[data-tool='paint']", "Paint (B)"],
       [".tool-btn[data-tool='measure']", "Measure (M)"],
       [".tool-btn[data-tool='dimension']", "Dimension (D)"],
       [".tool-btn[data-tool='pan']", "Pan view (H)"],
@@ -362,6 +367,7 @@
     polyline: t("Polilinia", "Polyline"),
     rect: t("Prostokąt", "Rectangle"),
     circle: t("Okrąg", "Circle"),
+    paint: t("Malowanie", "Paint"),
     measure: t("Pomiar", "Measure"),
     dimension: t("Wymiar", "Dimension"),
     pan: t("Pan widoku", "Pan view")
@@ -373,6 +379,7 @@
     polyline: "\u223F",
     rect: "\u25AD",
     circle: "\u25CB",
+    paint: "\uD83C\uDFA8",
     measure: "\uD83D\uDCD0",
     dimension: "\u21A6",
     pan: "\u270B"
@@ -1916,6 +1923,28 @@
           };
         }
 
+        if (entity.type === "fillRegion") {
+          const points = Array.isArray(entity.points)
+            ? entity.points
+                .map((point) => ({ x: Number(point?.x) || 0, y: Number(point?.y) || 0 }))
+                .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y))
+            : [];
+          if (points.length < 3) {
+            return null;
+          }
+          return {
+            ...base,
+            type: "fillRegion",
+            stroke: "none",
+            lineWidth: 1,
+            lineStyle: "solid",
+            points,
+            fill: true,
+            fillColor: entity.fillColor || "#00a9e0",
+            fillAlpha: clamp(Number(entity.fillAlpha), 0, 100, 20)
+          };
+        }
+
         return null;
       })
       .filter(Boolean);
@@ -2740,6 +2769,9 @@
     }
     if (entity.type === "dimension") {
       return "wymiar";
+    }
+    if (entity.type === "fillRegion") {
+      return "wypełnienie";
     }
     return "obiekt";
   }
@@ -3895,10 +3927,25 @@
   }
 
   function updateFillControlsAvailability(selected) {
-    const supportsFill = selected ? selected.type === "rect" || selected.type === "circle" : true;
+    const supportsFill =
+      !selected ||
+      selected.type === "rect" ||
+      selected.type === "circle" ||
+      selected.type === "fillRegion" ||
+      state.tool === "paint" ||
+      state.tool === "rect" ||
+      state.tool === "circle";
     fillToggle.disabled = !supportsFill;
     fillColorInput.disabled = !supportsFill;
     fillAlphaInput.disabled = !supportsFill;
+  }
+
+  function getEditableSelectedFillEntities() {
+    return getSelectedEntities().filter(
+      (entity) =>
+        (entity.type === "rect" || entity.type === "circle" || entity.type === "fillRegion") &&
+        !isEntityLocked(entity)
+    );
   }
 
   function syncShapeConfigControls() {
@@ -3995,7 +4042,7 @@
       dimensionColorInput.value = selected.stroke || state.dimensionColor;
     }
 
-    if (selected.type === "rect" || selected.type === "circle") {
+    if (selected.type === "rect" || selected.type === "circle" || selected.type === "fillRegion") {
       fillToggle.checked = Boolean(selected.fill);
       fillColorInput.value = selected.fillColor || state.fillColor;
       fillAlphaInput.value = String(clamp(Number(selected.fillAlpha), 0, 100, 20));
@@ -4033,6 +4080,15 @@
         `Środek: (${selected.cx.toFixed(2)}, ${selected.cy.toFixed(2)})\n` +
         `Promień: ${selected.r.toFixed(2)}\n` +
         `Wypełnienie: ${selected.fill ? "tak" : "nie"}`;
+      return;
+    }
+
+    if (selected.type === "fillRegion") {
+      selectionInfo.textContent =
+        `Typ: Wypełnienie\n` +
+        `Warstwa: ${layerName}\n` +
+        `Punkty: ${selected.points.length}\n` +
+        `Wypełnienie: tak`;
       return;
     }
 
@@ -4428,6 +4484,29 @@
     ctx.restore();
   }
 
+  function drawFillRegion(entity, isSelected) {
+    if (!Array.isArray(entity.points) || entity.points.length < 3) {
+      return;
+    }
+    ctx.save();
+    ctx.beginPath();
+    entity.points.forEach((point, index) => {
+      const p = worldToScreen(point);
+      if (index === 0) {
+        ctx.moveTo(p.x, p.y);
+      } else {
+        ctx.lineTo(p.x, p.y);
+      }
+    });
+    ctx.closePath();
+    ctx.fillStyle = hexToRgba(entity.fillColor || "#00a9e0", entity.fillAlpha ?? 20);
+    ctx.fill();
+    if (isSelected) {
+      drawSelectionBox(entity);
+    }
+    ctx.restore();
+  }
+
   function getEntityBounds(entity) {
     if (entity.type === "line") {
       return {
@@ -4508,6 +4587,22 @@
         minY: entity.cy - entity.r,
         maxY: entity.cy + entity.r
       };
+    }
+    if (entity.type === "fillRegion") {
+      if (!Array.isArray(entity.points) || entity.points.length < 3) {
+        return null;
+      }
+      let minX = Number.POSITIVE_INFINITY;
+      let minY = Number.POSITIVE_INFINITY;
+      let maxX = Number.NEGATIVE_INFINITY;
+      let maxY = Number.NEGATIVE_INFINITY;
+      entity.points.forEach((point) => {
+        minX = Math.min(minX, point.x);
+        minY = Math.min(minY, point.y);
+        maxX = Math.max(maxX, point.x);
+        maxY = Math.max(maxY, point.y);
+      });
+      return { minX, minY, maxX, maxY };
     }
     return null;
   }
@@ -4959,7 +5054,15 @@
     drawGrid();
 
     for (const entity of state.entities) {
-      if (!isEntityVisible(entity)) {
+      if (!isEntityVisible(entity) || entity.type !== "fillRegion") {
+        continue;
+      }
+      const selected = isEntitySelected(entity.id);
+      drawFillRegion(entity, selected);
+    }
+
+    for (const entity of state.entities) {
+      if (!isEntityVisible(entity) || entity.type === "fillRegion") {
         continue;
       }
       const selected = isEntitySelected(entity.id);
@@ -5009,6 +5112,145 @@
       point.y >= bounds.minY &&
       point.y <= bounds.maxY
     );
+  }
+
+  function pointInPolygon(point, polygon) {
+    if (!Array.isArray(polygon) || polygon.length < 3) {
+      return false;
+    }
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i, i += 1) {
+      const a = polygon[i];
+      const b = polygon[j];
+      if (distanceToSegment(point, a, b) <= 0.001) {
+        return true;
+      }
+      const intersects =
+        (a.y > point.y) !== (b.y > point.y) &&
+        point.x < ((b.x - a.x) * (point.y - a.y)) / ((b.y - a.y) || Number.EPSILON) + a.x;
+      if (intersects) {
+        inside = !inside;
+      }
+    }
+    return inside;
+  }
+
+  function polygonAreaAbs(points) {
+    if (!Array.isArray(points) || points.length < 3) {
+      return 0;
+    }
+    let area2 = 0;
+    for (let i = 0; i < points.length; i += 1) {
+      const a = points[i];
+      const b = points[(i + 1) % points.length];
+      area2 += a.x * b.y - b.x * a.y;
+    }
+    return Math.abs(area2 / 2);
+  }
+
+  function findClosedLineLoopAtPoint(point) {
+    const tolerance = Math.max(0.001, 1 / Math.max(1, state.view.scale));
+    const quantize = (value) => Math.round(value / tolerance);
+    const keyForPoint = (p) => `${quantize(p.x)}:${quantize(p.y)}`;
+
+    const nodes = new Map();
+    const adjacency = new Map();
+
+    function ensureNode(pointValue) {
+      const key = keyForPoint(pointValue);
+      if (!nodes.has(key)) {
+        nodes.set(key, { key, point: { x: pointValue.x, y: pointValue.y } });
+        adjacency.set(key, []);
+      }
+      return key;
+    }
+
+    for (const entity of state.entities) {
+      if (!entity || entity.type !== "line" || !isEntityVisible(entity)) {
+        continue;
+      }
+      const a = { x: Number(entity.x1) || 0, y: Number(entity.y1) || 0 };
+      const b = { x: Number(entity.x2) || 0, y: Number(entity.y2) || 0 };
+      const len = Math.hypot(b.x - a.x, b.y - a.y);
+      if (len <= 0.001) {
+        continue;
+      }
+      const aKey = ensureNode(a);
+      const bKey = ensureNode(b);
+      adjacency.get(aKey).push(bKey);
+      adjacency.get(bKey).push(aKey);
+    }
+
+    const visitedNodes = new Set();
+    const candidates = [];
+
+    for (const [startKey] of nodes) {
+      if (visitedNodes.has(startKey)) {
+        continue;
+      }
+      const stack = [startKey];
+      const component = [];
+      visitedNodes.add(startKey);
+      while (stack.length > 0) {
+        const current = stack.pop();
+        component.push(current);
+        const neighbors = adjacency.get(current) || [];
+        neighbors.forEach((nextKey) => {
+          if (!visitedNodes.has(nextKey)) {
+            visitedNodes.add(nextKey);
+            stack.push(nextKey);
+          }
+        });
+      }
+
+      if (component.length < 3) {
+        continue;
+      }
+      const allDegreeTwo = component.every((key) => (adjacency.get(key) || []).length === 2);
+      if (!allDegreeTwo) {
+        continue;
+      }
+
+      const cycle = [];
+      let current = component[0];
+      let previous = null;
+      const maxSteps = component.length + 2;
+
+      for (let step = 0; step < maxSteps; step += 1) {
+        const node = nodes.get(current);
+        if (!node) {
+          break;
+        }
+        cycle.push({ x: node.point.x, y: node.point.y });
+        const neighbors = adjacency.get(current) || [];
+        const next = neighbors.find((key) => key !== previous);
+        if (!next) {
+          break;
+        }
+        previous = current;
+        current = next;
+        if (current === component[0]) {
+          break;
+        }
+      }
+
+      if (current !== component[0] || cycle.length < 3) {
+        continue;
+      }
+      const area = polygonAreaAbs(cycle);
+      if (area < 0.5) {
+        continue;
+      }
+      if (pointInPolygon(point, cycle)) {
+        candidates.push({ points: cycle, area });
+      }
+    }
+
+    if (candidates.length === 0) {
+      return null;
+    }
+    candidates.sort((a, b) => a.area - b.area);
+    return candidates[0].points;
   }
 
   function boundsIntersect(a, b) {
@@ -5145,6 +5387,13 @@
         } else if (dist < entity.r) {
           pickCandidate(entity, 2, entity.r - dist, i);
         }
+      } else if (entity.type === "fillRegion") {
+        if (!Array.isArray(entity.points) || entity.points.length < 3) {
+          continue;
+        }
+        if (pointInPolygon(worldPoint, entity.points)) {
+          pickCandidate(entity, 3, 0, i);
+        }
       }
     }
 
@@ -5215,6 +5464,11 @@
     } else if (entity.type === "circle") {
       entity.cx += dx;
       entity.cy += dy;
+    } else if (entity.type === "fillRegion" && Array.isArray(entity.points)) {
+      entity.points = entity.points.map((point) => ({
+        x: point.x + dx,
+        y: point.y + dy
+      }));
     }
   }
 
@@ -5958,6 +6212,69 @@
     if (tool === "pan" || event.button === 1) {
       state.panning = true;
       state.panLast = screen;
+      return;
+    }
+
+    if (tool === "paint") {
+      let hit = hitTest(raw);
+      if (!hit && state.snap) {
+        hit = hitTest(snapped);
+      }
+      clearDrawingPreview();
+      if (hit) {
+        const entity = getEntityById(hit);
+        if (!entity) {
+          queueRender();
+          return;
+        }
+
+        setPrimarySelection(entity.id);
+
+        if (entity.type === "rect" || entity.type === "circle" || entity.type === "fillRegion") {
+          if (isEntityLocked(entity)) {
+            echoCommand(t("Nie można malować: obiekt jest na zablokowanej warstwie.", "Cannot paint: object is on a locked layer."), true);
+            queueRender();
+            return;
+          }
+          saveHistory();
+          state.fillEnabled = true;
+          entity.fill = true;
+          entity.fillColor = state.fillColor;
+          entity.fillAlpha = state.fillAlpha;
+          markDirty();
+          queueRender();
+          return;
+        }
+      }
+
+      if (!assertCanDrawOnActiveLayer()) {
+        queueRender();
+        return;
+      }
+
+      const loopPoints = findClosedLineLoopAtPoint(state.snap ? snapped : raw);
+      if (!loopPoints) {
+        echoCommand(t("Brak zamkniętego obszaru do wypełnienia.", "No closed area to fill."), true);
+        queueRender();
+        return;
+      }
+
+      saveHistory();
+      state.fillEnabled = true;
+      const fillRegion = {
+        ...createBaseEntity("fillRegion"),
+        stroke: "none",
+        lineWidth: 1,
+        lineStyle: "solid",
+        points: loopPoints,
+        fill: true,
+        fillColor: state.fillColor,
+        fillAlpha: state.fillAlpha
+      };
+      state.entities.push(fillRegion);
+      setPrimarySelection(fillRegion.id);
+      markDirty();
+      queueRender();
       return;
     }
 
@@ -8313,9 +8630,19 @@
       .replaceAll("'", "&apos;");
   }
 
-  function toSvgText() {
+  function toSvgText(options = {}) {
+    const selectionOnly = Boolean(options.selectionOnly);
     const drawable = state.entities.filter((entity) => isEntityVisible(entity));
-    const entities = drawable.length > 0 ? drawable : state.entities;
+    const selectedVisible = getSelectedEntities().filter((entity) => isEntityVisible(entity));
+    const entitiesRaw = selectionOnly
+      ? selectedVisible
+      : drawable.length > 0
+      ? drawable
+      : state.entities;
+    const entities = [
+      ...entitiesRaw.filter((entity) => entity.type === "fillRegion"),
+      ...entitiesRaw.filter((entity) => entity.type !== "fillRegion")
+    ];
 
     let bounds = null;
     for (const entity of entities) {
@@ -8351,6 +8678,15 @@
 
       if (entity.type === "line") {
         return `<line x1="${entity.x1}" y1="${entity.y1}" x2="${entity.x2}" y2="${entity.y2}" stroke="${stroke}" stroke-width="${strokeWidth}" fill="none"${dashAttr} />`;
+      }
+
+      if (entity.type === "fillRegion") {
+        if (!Array.isArray(entity.points) || entity.points.length < 3) {
+          return "";
+        }
+        const fillOpacity = clamp((entity.fillAlpha ?? 20) / 100, 0, 1, 0.2);
+        const pointsAttr = entity.points.map((point) => `${point.x},${point.y}`).join(" ");
+        return `<polygon points="${pointsAttr}" stroke="none" fill="${entity.fillColor || "#00a9e0"}" fill-opacity="${fillOpacity}" />`;
       }
 
       if (entity.type === "dimension") {
@@ -8453,6 +8789,8 @@
 
   function openPrintPreview() {
     const svgContent = toSvgText();
+    const selectedSvgContent = toSvgText({ selectionOnly: true });
+    const hasSelectionForPrint = getSelectedEntities().some((entity) => isEntityVisible(entity));
     const timestamp = new Date().toLocaleString("pl-PL");
     const documentTitle = "MadCAD 2D - wydruk";
     const html = [
@@ -8462,33 +8800,182 @@
       "<meta charset=\"UTF-8\" />",
       `<title>${documentTitle}</title>`,
       "<style>",
+      ":root { --preview-scale: 1; --print-margin: 10mm; }",
       "html, body { margin: 0; padding: 0; background: #f3f5fa; color: #101418; font-family: 'Segoe UI', Arial, sans-serif; }",
-      ".page { max-width: 1200px; margin: 0 auto; padding: 24px; }",
-      ".header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }",
+      ".page { max-width: 1320px; margin: 0 auto; padding: 16px; }",
+      ".header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; }",
       ".header h1 { margin: 0; font-size: 18px; font-weight: 700; }",
       ".header p { margin: 0; font-size: 12px; color: #3e4a5c; }",
       ".actions { display: flex; gap: 8px; }",
       ".actions button { border: 1px solid #374968; border-radius: 6px; background: #1e2d46; color: #f7faff; padding: 8px 12px; font-size: 12px; cursor: pointer; }",
-      ".sheet { background: #ffffff; border: 1px solid #c6cfdb; border-radius: 10px; box-shadow: 0 8px 18px rgba(16, 20, 30, 0.08); padding: 10px; }",
-      ".sheet svg { width: 100%; height: auto; display: block; }",
+      ".toolbar { display: grid; grid-template-columns: repeat(8, minmax(120px, auto)); gap: 8px; align-items: end; margin-bottom: 10px; }",
+      ".toolbar label { display: grid; gap: 4px; font-size: 11px; color: #2d3a4f; }",
+      ".toolbar input, .toolbar select { height: 30px; border: 1px solid #9db1cc; border-radius: 6px; padding: 0 8px; background: #fff; color: #18263a; }",
+      ".toolbar .check { display: flex; align-items: center; gap: 8px; height: 30px; font-size: 12px; }",
+      ".sheet { background: #ffffff; border: 1px solid #c6cfdb; border-radius: 10px; box-shadow: 0 8px 18px rgba(16, 20, 30, 0.08); padding: 10px; overflow: auto; max-height: calc(100vh - 205px); }",
+      ".sheet.centered { display: flex; justify-content: center; align-items: center; }",
+      ".sheet-inner { transform-origin: top left; transform: scale(var(--preview-scale)); width: calc(100% / var(--preview-scale)); }",
+      ".sheet.centered .sheet-inner { margin: 0 auto; }",
+      ".sheet svg { width: 100%; height: auto; display: block; background: #fff; }",
+      "#printHeader[hidden] { display: none; }",
+      "#printPageStyle { display: none; }",
+      "@page { size: A4 portrait; margin: 10mm; }",
       "@media print {",
       "  html, body { background: #ffffff; }",
       "  .page { max-width: none; margin: 0; padding: 0; }",
-      "  .header { display: none; }",
-      "  .sheet { border: 0; border-radius: 0; box-shadow: none; padding: 0; }",
+      "  .header, .toolbar { display: none; }",
+      "  .sheet { border: 0; border-radius: 0; box-shadow: none; padding: 0; overflow: visible; max-height: none; }",
+      "  .sheet.centered { display: block; }",
+      "  .sheet-inner { transform: none !important; width: 100% !important; }",
+      "  .sheet svg { width: calc(100% * var(--print-scale, 1)); max-width: none; }",
       "}",
       "</style>",
+      "<style id=\"printPageStyle\"></style>",
       "</head>",
       "<body>",
       "<div class=\"page\">",
-      "<div class=\"header\">",
+      "<div id=\"printHeader\" class=\"header\">",
       `<div><h1>${documentTitle}</h1><p>Data: ${timestamp}</p></div>`,
-      "<div class=\"actions\"><button type=\"button\" onclick=\"window.print()\">Drukuj / Zapisz PDF</button><button type=\"button\" onclick=\"window.close()\">Zamknij</button></div>",
+      "<div class=\"actions\"><button id=\"printNowBtn\" type=\"button\">Drukuj / Zapisz PDF</button><button type=\"button\" onclick=\"window.close()\">Zamknij</button></div>",
       "</div>",
-      "<div class=\"sheet\">",
+      "<div class=\"toolbar\">",
+      "<label>Format<select id=\"printSize\"><option value=\"A4\" selected>A4</option><option value=\"A3\">A3</option><option value=\"Letter\">Letter</option><option value=\"Legal\">Legal</option></select></label>",
+      "<label>Orientacja<select id=\"printOrientation\"><option value=\"portrait\" selected>Pion</option><option value=\"landscape\">Poziom</option></select></label>",
+      "<label>Margines [mm]<input id=\"printMargin\" type=\"number\" min=\"0\" max=\"30\" step=\"1\" value=\"10\" /></label>",
+      "<label>Skala [%]<input id=\"printScale\" type=\"number\" min=\"25\" max=\"300\" step=\"5\" value=\"100\" /></label>",
+      `<label class=\"check\"><input id=\"printSelectionOnly\" type=\"checkbox\"${hasSelectionForPrint ? "" : " disabled"} />Tylko zaznaczenie</label>`,
+      "<label class=\"check\"><input id=\"printFitToPage\" type=\"checkbox\" checked />Dopasuj do strony</label>",
+      "<label class=\"check\"><input id=\"printCenterOnPage\" type=\"checkbox\" checked />Wyśrodkuj</label>",
+      "<label class=\"check\"><input id=\"printShowHeader\" type=\"checkbox\" checked />Pokaż nagłówek</label>",
+      "</div>",
+      "<div id=\"printSheet\" class=\"sheet\">",
+      "<div id=\"printCanvas\" class=\"sheet-inner\">",
       svgContent,
       "</div>",
       "</div>",
+      "</div>",
+      "<script>",
+      "(() => {",
+      "  const sizeEl = document.getElementById('printSize');",
+      "  const orientationEl = document.getElementById('printOrientation');",
+      "  const marginEl = document.getElementById('printMargin');",
+      "  const scaleEl = document.getElementById('printScale');",
+      "  const selectionOnlyEl = document.getElementById('printSelectionOnly');",
+      "  const fitToPageEl = document.getElementById('printFitToPage');",
+      "  const centerOnPageEl = document.getElementById('printCenterOnPage');",
+      "  const showHeaderEl = document.getElementById('printShowHeader');",
+      "  const pageStyleEl = document.getElementById('printPageStyle');",
+      "  const headerEl = document.getElementById('printHeader');",
+      "  const sheetEl = document.getElementById('printSheet');",
+      "  const printCanvasEl = document.getElementById('printCanvas');",
+      "  const printNowBtn = document.getElementById('printNowBtn');",
+      `  const hasSelection = ${hasSelectionForPrint ? "true" : "false"};`,
+      `  const fullSvgContent = ${JSON.stringify(svgContent)};`,
+      `  const selectedSvgContent = ${JSON.stringify(selectedSvgContent)};`,
+      "",
+      "  const clamp = (value, min, max, fallback) => {",
+      "    const n = Number(value);",
+      "    if (!Number.isFinite(n)) return fallback;",
+      "    return Math.min(max, Math.max(min, n));",
+      "  };",
+      "",
+      "  const getPaperSize = (size, orientation) => {",
+      "    const map = { A4: [210, 297], A3: [297, 420], Letter: [216, 279], Legal: [216, 356] };",
+      "    const base = map[size] || map.A4;",
+      "    if (orientation === 'landscape') {",
+      "      return { width: base[1], height: base[0] };",
+      "    }",
+      "    return { width: base[0], height: base[1] };",
+      "  };",
+      "",
+      "  const getSvgViewBox = () => {",
+      "    const svg = printCanvasEl ? printCanvasEl.querySelector('svg') : null;",
+      "    if (!svg) return null;",
+      "    const viewBox = svg.getAttribute('viewBox');",
+      "    if (!viewBox) return null;",
+      "    const values = viewBox.trim().split(/\\s+/).map((value) => Number(value));",
+      "    if (values.length !== 4 || values.some((value) => !Number.isFinite(value))) return null;",
+      "    const width = Math.abs(values[2]);",
+      "    const height = Math.abs(values[3]);",
+      "    if (width < 0.0001 || height < 0.0001) return null;",
+      "    return { width, height };",
+      "  };",
+      "",
+      "  const computeAutoScale = (size, orientation, margin) => {",
+      "    const vb = getSvgViewBox();",
+      "    if (!vb) return 100;",
+      "    const paper = getPaperSize(size, orientation);",
+      "    const usableWidth = Math.max(20, paper.width - margin * 2);",
+      "    const usableHeight = Math.max(20, paper.height - margin * 2);",
+      "    const ratio = Math.min(usableWidth / vb.width, usableHeight / vb.height);",
+      "    if (!Number.isFinite(ratio) || ratio <= 0) return 100;",
+      "    return clamp(ratio * 100, 25, 300, 100);",
+      "  };",
+      "",
+      "  const applyCanvasSource = () => {",
+      "    const useSelection = hasSelection && Boolean(selectionOnlyEl && selectionOnlyEl.checked);",
+      "    if (printCanvasEl) {",
+      "      printCanvasEl.innerHTML = useSelection ? selectedSvgContent : fullSvgContent;",
+      "    }",
+      "  };",
+      "",
+      "  const applySettings = () => {",
+      "    const size = String(sizeEl.value || 'A4');",
+      "    const orientation = String(orientationEl.value || 'portrait');",
+      "    const margin = clamp(marginEl.value, 0, 30, 10);",
+      "    const fitToPage = Boolean(fitToPageEl && fitToPageEl.checked);",
+      "    const centerOnPage = Boolean(centerOnPageEl && centerOnPageEl.checked);",
+      "    const showHeader = Boolean(showHeaderEl.checked);",
+      "",
+      "    applyCanvasSource();",
+      "",
+      "    const manualScale = clamp(scaleEl.value, 25, 300, 100);",
+      "    const scale = fitToPage ? computeAutoScale(size, orientation, margin) : manualScale;",
+      "    if (scaleEl) {",
+      "      scaleEl.disabled = fitToPage;",
+      "    }",
+      "",
+      "    marginEl.value = String(Math.round(margin));",
+      "    scaleEl.value = String(Math.round(scale));",
+      "",
+      "    document.documentElement.style.setProperty('--preview-scale', String(scale / 100));",
+      "    document.documentElement.style.setProperty('--print-scale', String(scale / 100));",
+      "    document.documentElement.style.setProperty('--print-margin', `${margin}mm`);",
+      "    pageStyleEl.textContent = `@page { size: ${size} ${orientation}; margin: ${margin}mm; }`;",
+      "    headerEl.hidden = !showHeader;",
+      "    if (sheetEl) {",
+      "      sheetEl.classList.toggle('centered', centerOnPage);",
+      "    }",
+      "  };",
+      "",
+      "  if (selectionOnlyEl && !hasSelection) {",
+      "    selectionOnlyEl.checked = false;",
+      "    selectionOnlyEl.disabled = true;",
+      "  }",
+      "",
+      "  [sizeEl, orientationEl, marginEl, scaleEl, selectionOnlyEl, fitToPageEl, centerOnPageEl, showHeaderEl].forEach((el) => {",
+      "    if (!el) return;",
+      "    el.addEventListener('change', applySettings);",
+      "    el.addEventListener('input', applySettings);",
+      "  });",
+      "",
+      "  const triggerPrint = () => {",
+      "    applySettings();",
+      "    requestAnimationFrame(() => {",
+      "      requestAnimationFrame(() => {",
+      "        window.print();",
+      "      });",
+      "    });",
+      "  };",
+      "",
+      "  if (printNowBtn) {",
+      "    printNowBtn.addEventListener('click', triggerPrint);",
+      "  }",
+      "",
+      "  window.addEventListener('beforeprint', applySettings);",
+      "  applySettings();",
+      "})();",
+      "</script>",
       "</body>",
       "</html>"
     ].join("");
@@ -8533,7 +9020,7 @@
         setTimeout(() => {
           iframe.remove();
         }, 1200);
-      }, 40);
+      }, 180);
       return { ok: true, mode: "iframe" };
     } catch (error) {
       return { ok: false, mode: "none" };
@@ -8560,6 +9047,9 @@
     }
     if (lower.endsWith(".dxf")) {
       return [{ name: "DXF", extensions: ["dxf"] }];
+    }
+    if (lower.endsWith(".dwg")) {
+      return [{ name: "DWG", extensions: ["dwg"] }];
     }
     if (lower.endsWith(".svg")) {
       return [{ name: "SVG", extensions: ["svg"] }];
@@ -8623,6 +9113,252 @@
     return true;
   }
 
+  async function ensureOdaConverterReady(options = {}) {
+    if (!window.desktopApp || typeof window.desktopApp.getOdaStatus !== "function") {
+      return {
+        ok: false,
+        canceled: false,
+        error: "Brak wsparcia ODA w tej wersji aplikacji."
+      };
+    }
+
+    const initialStatus = await window.desktopApp.getOdaStatus();
+    if (initialStatus && initialStatus.ok && initialStatus.installed) {
+      return { ok: true, canceled: false, path: initialStatus.path || null };
+    }
+
+    const interactive = options.interactive !== false;
+    if (!interactive) {
+      return {
+        ok: false,
+        canceled: false,
+        error: "Nie znaleziono ODA File Converter."
+      };
+    }
+
+    const chooseNow = window.confirm(
+      localizeMessageText(
+        "Brak ODA File Converter (wymagane dla DWG). Kliknij OK, aby wskazać plik ODAFileConverter, lub Anuluj, aby otworzyć stronę pobrania."
+      )
+    );
+
+    if (chooseNow && typeof window.desktopApp.chooseOdaConverterPath === "function") {
+      const chosen = await window.desktopApp.chooseOdaConverterPath();
+      if (!chosen || chosen.canceled) {
+        return { ok: false, canceled: true, error: "Wybór ODA anulowany." };
+      }
+      if (!chosen.ok) {
+        return {
+          ok: false,
+          canceled: false,
+          error: chosen.error || "Nie udało się ustawić ścieżki ODA."
+        };
+      }
+      const statusAfterChoose = await window.desktopApp.getOdaStatus();
+      if (statusAfterChoose && statusAfterChoose.ok && statusAfterChoose.installed) {
+        echoCommand("ODA File Converter skonfigurowany poprawnie.");
+        return { ok: true, canceled: false, path: statusAfterChoose.path || null };
+      }
+      return {
+        ok: false,
+        canceled: false,
+        error: "Wybrana ścieżka ODA jest nieprawidłowa."
+      };
+    }
+
+    if (typeof window.desktopApp.openOdaDownload === "function") {
+      await window.desktopApp.openOdaDownload();
+    }
+    return {
+      ok: false,
+      canceled: true,
+      error: "ODA nie jest skonfigurowane."
+    };
+  }
+
+  async function exportDwgWithFeedback() {
+    if (!window.desktopApp || typeof window.desktopApp.convertCadFile !== "function") {
+      echoCommand("Eksport DWG jest dostępny tylko w wersji desktop z konwerterem ODA.", true);
+      return false;
+    }
+    const oda = await ensureOdaConverterReady({ interactive: true });
+    if (!oda.ok) {
+      if (!oda.canceled) {
+        alert(localizeMessageText(oda.error || "Nie znaleziono ODA File Converter."));
+        echoCommand(`Błąd ODA: ${oda.error || "Nie znaleziono ODA File Converter."}`, true);
+      }
+      return false;
+    }
+    const result = await window.desktopApp.convertCadFile({
+      mode: "dxf-text-to-dwg",
+      dxfText: toDxfText(),
+      defaultName: "rysunek.dwg"
+    });
+    if (!result || result.ok !== true) {
+      if (result && result.canceled) {
+        echoCommand("Eksport DWG anulowany.", true, { toast: false });
+        return false;
+      }
+      const errorMessage =
+        result && result.error
+          ? String(result.error)
+          : "Nie udało się wyeksportować pliku DWG.";
+      alert(localizeMessageText(errorMessage));
+      echoCommand(`Błąd eksportu DWG: ${errorMessage}`, true);
+      return false;
+    }
+    const savedPath = result.filePath ? ` (${result.filePath})` : "";
+    echoCommand(`Wyeksportowano plik: rysunek.dwg${savedPath}`);
+    return true;
+  }
+
+  function setDwgExportButtonState(installed) {
+    if (!exportDwgBtn) {
+      return;
+    }
+    if (installed) {
+      exportDwgBtn.dataset.mode = "export-dwg";
+      exportDwgBtn.textContent = t("Eksport DWG (Alt+R)", "Export DWG (Alt+R)");
+      return;
+    }
+    exportDwgBtn.dataset.mode = "install-oda";
+    exportDwgBtn.textContent = t(
+      "Brakuje dodatku DWG — zainstaluj (eksport)",
+      "DWG add-on missing — install (export)"
+    );
+  }
+
+  function setDwgImportButtonState(installed) {
+    if (!importDwgBtn) {
+      return;
+    }
+    if (installed) {
+      importDwgBtn.dataset.mode = "import-dwg";
+      importDwgBtn.textContent = t("Wczytaj DWG (Alt+W)", "Import DWG (Alt+W)");
+      return;
+    }
+    importDwgBtn.dataset.mode = "install-oda";
+    importDwgBtn.textContent = t(
+      "Brakuje dodatku DWG — zainstaluj (import)",
+      "DWG add-on missing — install (import)"
+    );
+  }
+
+  async function refreshDwgExportButtonState() {
+    if (!window.desktopApp || typeof window.desktopApp.getOdaStatus !== "function") {
+      setDwgExportButtonState(false);
+      setDwgImportButtonState(false);
+      return;
+    }
+    try {
+      const status = await window.desktopApp.getOdaStatus();
+      const installed = Boolean(status && status.ok && status.installed);
+      setDwgExportButtonState(installed);
+      setDwgImportButtonState(installed);
+    } catch (_error) {
+      setDwgExportButtonState(false);
+      setDwgImportButtonState(false);
+    }
+  }
+
+  async function installOdaAddonWithFeedback() {
+    if (!window.desktopApp) {
+      echoCommand("Instalacja ODA wymaga wersji desktop aplikacji.", true);
+      return false;
+    }
+    if (typeof window.desktopApp.installOdaAddon !== "function") {
+      echoCommand(
+        "Automatyczna instalacja ODA niedostępna. Wskaż ODAFileConverter ręcznie.",
+        true,
+        { toast: false }
+      );
+      if (typeof window.desktopApp.chooseOdaConverterPath === "function") {
+        const chosen = await window.desktopApp.chooseOdaConverterPath();
+        if (!chosen || chosen.canceled) {
+          return false;
+        }
+        if (chosen.ok) {
+          echoCommand("ODA File Converter skonfigurowany poprawnie.");
+          await refreshDwgExportButtonState();
+          return true;
+        }
+      }
+      if (typeof window.desktopApp.openOdaDownload === "function") {
+        await window.desktopApp.openOdaDownload();
+      }
+      return false;
+    }
+    echoCommand("Instalowanie dodatku ODA (DWG)...", false, { toast: false });
+    const result = await window.desktopApp.installOdaAddon();
+    if (!result || result.ok !== true) {
+      const errorMessage =
+        result && result.error
+          ? String(result.error)
+          : "Nie udało się zainstalować dodatku ODA.";
+      alert(localizeMessageText(errorMessage));
+      echoCommand(`Błąd instalacji ODA: ${errorMessage}`, true);
+      await refreshDwgExportButtonState();
+      return false;
+    }
+    echoCommand("ODA File Converter zainstalowany. Import i eksport DWG są aktywne.");
+    await refreshDwgExportButtonState();
+    return true;
+  }
+
+  async function loadCadFileWithFeedback(file) {
+    const fileName = String((file && file.name) || "").toLowerCase();
+    const isDwg = fileName.endsWith(".dwg");
+    const snapshotBeforeImport = makeSnapshot();
+    let dxfText = "";
+
+    if (isDwg) {
+      if (!window.desktopApp || typeof window.desktopApp.convertCadFile !== "function") {
+        throw new Error("Import DWG jest dostępny tylko w wersji desktop z konwerterem ODA.");
+      }
+      const oda = await ensureOdaConverterReady({ interactive: true });
+      if (!oda.ok) {
+        throw new Error(oda.error || "Nie znaleziono ODA File Converter.");
+      }
+      const sourcePath = String(file.path || "");
+      if (!sourcePath) {
+        throw new Error("Brak ścieżki pliku DWG. Wybierz plik z dysku lokalnego.");
+      }
+      const converted = await window.desktopApp.convertCadFile({
+        mode: "dwg-to-dxf",
+        sourcePath
+      });
+      if (!converted || converted.ok !== true || typeof converted.text !== "string") {
+        throw new Error(
+          converted && converted.error
+            ? String(converted.error)
+            : "Nie udało się przekonwertować DWG do DXF."
+        );
+      }
+      dxfText = converted.text;
+    } else {
+      dxfText = await file.text();
+    }
+
+    const imported = parseDxfText(dxfText);
+    if (imported.length === 0) {
+      throw new Error("Nie znaleziono obsługiwanych encji LINE/CIRCLE/LWPOLYLINE");
+    }
+
+    state.historyUndo.push(snapshotBeforeImport);
+    if (state.historyUndo.length > 250) {
+      state.historyUndo.shift();
+    }
+    state.historyRedo = [];
+    state.entities.push(...imported);
+    setPrimarySelection(imported[imported.length - 1].id);
+    ensureEntityLayers();
+    setWorkspaceMode("draw", { persist: false });
+    setRibbonPage("home", { persist: false });
+    markDirty();
+    queueRender();
+    echoCommand(`Wczytano ${isDwg ? "DWG" : "DXF"}: ${file.name} (${imported.length} obiektów).`);
+  }
+
   function buildProjectPayload() {
     return {
       version: 2,
@@ -8640,7 +9376,9 @@
       loadJsonBtn: "Wczytuje projekt z pliku JSON.",
       saveJsonBtn: "Zapisuje projekt do pliku JSON.",
       importDxfBtn: "Importuje geometrię z pliku DXF.",
+      importDwgBtn: "Importuje geometrię z pliku DWG przez konwerter ODA.",
       exportDxfBtn: "Eksportuje rysunek do pliku DXF.",
+      exportDwgBtn: "Eksportuje rysunek do pliku DWG przez konwerter ODA.",
       exportSvgBtn: "Eksportuje rysunek do pliku SVG.",
       printDrawingBtn: "Otwiera podgląd wydruku i zapis do PDF.",
       undoBtn: "Cofa ostatnią operację.",
@@ -8694,6 +9432,7 @@
       design: "Generator i konfiguracja konstrukcji stalowych.",
       layout: "Przełączanie między modelem i arkuszem.",
       view: "Ustawienia widoku, siatki i paneli.",
+      paint: "Wypełnia zamknięte obszary aktualnym kolorem i kryciem.",
       shortcuts: "Skróty klawiaturowe i szybkie komendy aplikacji."
     };
     document.querySelectorAll(".ribbon-tab[data-page]").forEach((tab) => {
@@ -9053,9 +9792,23 @@
         importDxfBtn.click();
         return;
       }
+      if (key === "w") {
+        event.preventDefault();
+        if (importDwgBtn) {
+          importDwgBtn.click();
+        }
+        return;
+      }
       if (key === "e") {
         event.preventDefault();
         exportDxfBtn.click();
+        return;
+      }
+      if (key === "r") {
+        event.preventDefault();
+        if (exportDwgBtn) {
+          exportDwgBtn.click();
+        }
         return;
       }
       if (key === "v") {
@@ -9164,6 +9917,9 @@
     } else if (key === "o") {
       setTool("circle");
       echoCommand("Skrót O: narzędzie OKRĄG.");
+    } else if (key === "b") {
+      setTool("paint");
+      echoCommand("Skrót B: narzędzie MALOWANIE.");
     } else if (key === "m") {
       setTool("measure");
       echoCommand("Skrót M: narzędzie POMIAR.");
@@ -9469,10 +10225,12 @@
 
     fillToggle.addEventListener("change", () => {
       state.fillEnabled = fillToggle.checked;
-      const selected = getEntityById(state.selectedId);
-      if (selected && (selected.type === "rect" || selected.type === "circle") && !isEntityLocked(selected)) {
+      const selectedFillEntities = getEditableSelectedFillEntities();
+      if (selectedFillEntities.length > 0) {
         saveHistory();
-        selected.fill = state.fillEnabled;
+        selectedFillEntities.forEach((entity) => {
+          entity.fill = state.fillEnabled;
+        });
         markDirty();
       }
       queueRender();
@@ -9480,10 +10238,12 @@
 
     fillColorInput.addEventListener("input", () => {
       state.fillColor = fillColorInput.value;
-      const selected = getEntityById(state.selectedId);
-      if (selected && (selected.type === "rect" || selected.type === "circle") && !isEntityLocked(selected)) {
+      const selectedFillEntities = getEditableSelectedFillEntities();
+      if (selectedFillEntities.length > 0) {
         saveHistory();
-        selected.fillColor = state.fillColor;
+        selectedFillEntities.forEach((entity) => {
+          entity.fillColor = state.fillColor;
+        });
         markDirty();
       }
       queueRender();
@@ -9492,10 +10252,12 @@
     fillAlphaInput.addEventListener("input", () => {
       state.fillAlpha = clamp(Number(fillAlphaInput.value), 0, 100, 20);
       fillAlphaInput.value = String(state.fillAlpha);
-      const selected = getEntityById(state.selectedId);
-      if (selected && (selected.type === "rect" || selected.type === "circle") && !isEntityLocked(selected)) {
+      const selectedFillEntities = getEditableSelectedFillEntities();
+      if (selectedFillEntities.length > 0) {
         saveHistory();
-        selected.fillAlpha = state.fillAlpha;
+        selectedFillEntities.forEach((entity) => {
+          entity.fillAlpha = state.fillAlpha;
+        });
         markDirty();
       }
       queueRender();
@@ -9938,6 +10700,16 @@
       await saveTextWithFeedback("rysunek.dxf", toDxfText(), "Wyeksportowano plik: rysunek.dxf");
     });
 
+    if (exportDwgBtn) {
+      exportDwgBtn.addEventListener("click", async () => {
+        if (exportDwgBtn.dataset.mode === "install-oda") {
+          await installOdaAddonWithFeedback();
+          return;
+        }
+        await exportDwgWithFeedback();
+      });
+    }
+
     exportSvgBtn.addEventListener("click", async () => {
       await saveTextWithFeedback("rysunek.svg", toSvgText(), "Wyeksportowano plik: rysunek.svg");
     });
@@ -9950,36 +10722,30 @@
 
     importDxfBtn.addEventListener("click", () => {
       dxfFileInput.click();
-      echoCommand("Wybierz plik DXF do importu.");
+      echoCommand("Wybierz plik DXF lub DWG do importu.");
     });
+    if (importDwgBtn) {
+      importDwgBtn.addEventListener("click", () => {
+        if (importDwgBtn.dataset.mode === "install-oda") {
+          void installOdaAddonWithFeedback();
+          return;
+        }
+        dxfFileInput.click();
+        echoCommand("Wybierz plik DWG do importu.");
+      });
+    }
     dxfFileInput.addEventListener("change", async () => {
       const [file] = dxfFileInput.files;
       if (!file) {
         return;
       }
       try {
-        const text = await file.text();
-        const snapshotBeforeImport = makeSnapshot();
-        const imported = parseDxfText(text);
-        if (imported.length === 0) {
-          throw new Error("Nie znaleziono obsługiwanych encji LINE/CIRCLE/LWPOLYLINE");
-        }
-        state.historyUndo.push(snapshotBeforeImport);
-        if (state.historyUndo.length > 250) {
-          state.historyUndo.shift();
-        }
-        state.historyRedo = [];
-        state.entities.push(...imported);
-        setPrimarySelection(imported[imported.length - 1].id);
-        ensureEntityLayers();
-        setWorkspaceMode("draw", { persist: false });
-        setRibbonPage("home", { persist: false });
-        markDirty();
-        queueRender();
-        echoCommand(`Wczytano DXF: ${file.name} (${imported.length} obiektów).`);
+        await loadCadFileWithFeedback(file);
       } catch (error) {
-        alert(localizeMessageText(`Nie udało się wczytać DXF: ${error.message}`));
-        echoCommand(`Błąd importu DXF: ${error.message}`, true);
+        const isDwg = String(file.name || "").toLowerCase().endsWith(".dwg");
+        const prefix = isDwg ? "DWG" : "DXF";
+        alert(localizeMessageText(`Nie udało się wczytać ${prefix}: ${error.message}`));
+        echoCommand(`Błąd importu ${prefix}: ${error.message}`, true);
       } finally {
         dxfFileInput.value = "";
       }
@@ -10074,6 +10840,12 @@
     }
     if (!licensedAtBoot) {
       echoCommand("Aktywuj licencję, aby odblokować pracę w MadCAD 2D.", true, { toast: false });
+    }
+    if (window.desktopApp && typeof window.desktopApp.getOdaStatus === "function") {
+      void refreshDwgExportButtonState();
+    } else {
+      setDwgExportButtonState(false);
+      setDwgImportButtonState(false);
     }
     queueRender();
   }

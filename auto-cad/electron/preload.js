@@ -57,5 +57,10 @@ contextBridge.exposeInMainWorld('desktopApp', {
   verifyLicenseSignature: (payloadJson, signatureBase64Url) =>
     verifyLicenseSignature(payloadJson, signatureBase64Url),
   saveTextFile: (payload) => ipcRenderer.invoke('madcad:save-text-file', payload),
+  convertCadFile: (payload) => ipcRenderer.invoke('madcad:convert-cad-file', payload),
+  getOdaStatus: () => ipcRenderer.invoke('madcad:get-oda-status'),
+  installOdaAddon: () => ipcRenderer.invoke('madcad:install-oda-addon'),
+  chooseOdaConverterPath: () => ipcRenderer.invoke('madcad:choose-oda-path'),
+  openOdaDownload: () => ipcRenderer.invoke('madcad:open-oda-download'),
   appendLicenseAudit: (payload) => ipcRenderer.invoke('madcad:append-license-audit', payload)
 });

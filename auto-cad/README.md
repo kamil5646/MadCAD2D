@@ -2,13 +2,13 @@
 
 Desktopowa aplikacja CAD 2D (Mac/Windows) MadCAD 2D, z naciskiem na projektowanie konstrukcji stalowych: bramy, ogrodzenia, balkony.
 
-## Wydanie 3.1
+## Wydanie 3.1.1
 
-Aktualne pliki instalacyjne znajdziesz w release `3.1`:
+Aktualne pliki instalacyjne znajdziesz w release `3.1.1`:
 
-- macOS (arm64): https://github.com/kamil5646/MadCAD2D/releases/download/3.1/MadCAD.2D-3.1.0-mac-arm64.zip
-- Windows (x64): https://github.com/kamil5646/MadCAD2D/releases/download/3.1/MadCAD.2D-3.1.0-win-x64.exe
-- Strona release: https://github.com/kamil5646/MadCAD2D/releases/tag/3.1
+- macOS (arm64): https://github.com/kamil5646/MadCAD2D/releases/download/3.1.1/MadCAD%202D-3.1.1-mac-arm64.zip
+- Windows (x64): https://github.com/kamil5646/MadCAD2D/releases/download/3.1.1/MadCAD%202D-3.1.1-win-x64.exe
+- Strona release: https://github.com/kamil5646/MadCAD2D/releases/tag/3.1.1
 
 ## Struktura repo
 
@@ -133,7 +133,7 @@ xattr -dr com.apple.quarantine "/Applications/MadCAD 2D.app" && open -a "/Applic
 Jeśli instalator jest blokowany, uruchom PowerShell jako administrator i wklej:
 
 ```powershell
-Unblock-File "$env:USERPROFILE\Downloads\MadCAD.2D-3.1.0-win-x64.exe"; Start-Process "$env:USERPROFILE\Downloads\MadCAD.2D-3.1.0-win-x64.exe" -Verb RunAs
+Unblock-File "$env:USERPROFILE\Downloads\MadCAD 2D-3.1.1-win-x64.exe"; Start-Process "$env:USERPROFILE\Downloads\MadCAD 2D-3.1.1-win-x64.exe" -Verb RunAs
 ```
 
 Jeśli SmartScreen nadal pyta, wybierz: `Więcej informacji` -> `Uruchom mimo to`.

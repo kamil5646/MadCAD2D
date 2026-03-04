@@ -83,6 +83,12 @@
                 <button id="printDrawingBtn" class="quick-btn has-icon" data-icon="&#128438;" role="menuitem">
                   Drukuj/PDF (Ctrl+P)
                 </button>
+                <button id="importDwgBtn" class="quick-btn has-icon" data-icon="&#128228;" role="menuitem">
+                  Wczytaj DWG (Alt+W)
+                </button>
+                <button id="exportDwgBtn" class="quick-btn has-icon" data-icon="&#128229;" role="menuitem">
+                  Eksport DWG (Alt+R)
+                </button>
               </div>
             </div>
           </div>
@@ -107,6 +113,7 @@
                   Prostokąt (P)
                 </button>
                 <button class="tool-btn ribbon-btn has-icon" data-icon="&#9711;" data-tool="circle">Okrąg (O)</button>
+                <button class="tool-btn ribbon-btn has-icon" data-icon="&#127912;" data-tool="paint">Malowanie (B)</button>
                 <button class="tool-btn ribbon-btn has-icon" data-icon="&#128208;" data-tool="measure">
                   Pomiar (M)
                 </button>
@@ -265,8 +272,9 @@
           <section class="ribbon-group ribbon-group-shortcuts" data-pages="shortcuts" data-modes="draw,steel">
             <div class="ribbon-panel-body">
               <ul class="ribbon-shortcuts-list">
-                <li><kbd>L</kbd> Linia, <kbd>P</kbd> Prostokąt, <kbd>O</kbd> Okrąg, <kbd>Y</kbd> Polilinia, <kbd>D</kbd> Wymiar</li>
+                <li><kbd>L</kbd> Linia, <kbd>P</kbd> Prostokąt, <kbd>O</kbd> Okrąg, <kbd>B</kbd> Malowanie, <kbd>Y</kbd> Polilinia, <kbd>D</kbd> Wymiar</li>
                 <li><kbd>Ctrl+S</kbd> Zapis JSON, <kbd>Ctrl+P</kbd> Drukuj/PDF, <kbd>Ctrl+Z</kbd> Cofnij, <kbd>Ctrl+Y</kbd> Ponów</li>
+                <li><kbd>Alt+I</kbd> Import DXF, <kbd>Alt+W</kbd> Import DWG, <kbd>Alt+E</kbd> Eksport DXF, <kbd>Alt+R</kbd> Eksport DWG</li>
                 <li><kbd>F2</kbd> Zakładka Skróty, <kbd>F3</kbd> Przyciąganie, <kbd>F4</kbd> Zwiń/Rozwiń wstążkę, <kbd>F6</kbd> Pokaż/Ukryj panele, <kbd>F8</kbd> Poziom/Pion</li>
               </ul>
               <div class="selection-info" style="margin-top:10px; white-space:normal;">
@@ -453,7 +461,7 @@
     </div>
 
     <input id="jsonFileInput" type="file" accept=".json" hidden />
-    <input id="dxfFileInput" type="file" accept=".dxf,.txt" hidden />
+    <input id="dxfFileInput" type="file" accept=".dxf,.dwg,.txt" hidden />
     <div id="toastMessage" class="toast-message has-icon" data-icon="&#10003;" aria-live="assertive"></div>
 
     <div id="shapeContextWindow" class="shape-context-window" hidden>
