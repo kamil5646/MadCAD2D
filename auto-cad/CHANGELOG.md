@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.1.2 (2026-03-06)
+
+### Dodano / zmieniono
+- Ujednolicono zachowanie paska okna dla macOS i Windows (kontrolki natywne, bez zbędnego pustego pasa).
+- Dopracowano układ górnej wstążki tak, aby nie kolidował z kontrolkami okna.
+- Dodano autozapis awaryjny sesji (desktop) i automatyczne przywracanie po nieoczekiwanym zamknięciu.
+
+### Poprawki
+- Aplikacja nie pyta już o zapis przy wyjściu, gdy rysunek jest pusty.
+- Poprawiono logikę podglądu i wydruku PDF: spójna skala między podglądem i finalnym PDF.
+- Usunięto problem pustej drugiej strony przy wydruku.
+
+### Artefakty release
+- `MadCAD 2D-3.1.2-mac-arm64.zip`
+- `MadCAD 2D-3.1.2-win-x64.exe`
+
 ## 3.1.1 (2026-03-04)
 
 ### Dodano / zmieniono

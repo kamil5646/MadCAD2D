@@ -149,7 +149,7 @@
     const exact = {
       "Polecenie anulowane.": "Command canceled.",
       "Brak zaznaczonego obiektu": "No object selected",
-      "Gotowe. Użyj przycisków ze wstążki lub zakładki Skróty.": "Ready. Use ribbon buttons or the Shortcuts tab.",
+      "Gotowe. Użyj przycisków ze wstążki.": "Ready. Use ribbon buttons.",
       "Przywrócono widoczność warstw z istniejącą geometrią.": "Restored visibility for layers with existing geometry.",
       "Aktywuj licencję, aby odblokować pracę w MadCAD 2D.": "Activate a license to unlock work in MadCAD 2D.",
       "Wybierz plik DXF do importu.": "Choose a DXF file to import.",
@@ -209,7 +209,6 @@
       [".ribbon-tab[data-page='design']", "Steel"],
       [".ribbon-tab[data-page='view']", "View"],
       [".ribbon-tab[data-page='layers']", "Layers"],
-      [".ribbon-tab[data-page='shortcuts']", "Shortcuts"],
       [".tool-btn[data-tool='select']", "Select (Z)"],
       [".tool-btn[data-tool='line']", "Line (L)"],
       [".tool-btn[data-tool='polyline']", "Polyline (Y)"],
@@ -358,7 +357,10 @@
     historyUndo: [],
     historyRedo: [],
     persistPending: false,
-    persistTimer: null
+    persistTimer: null,
+    autosavePending: false,
+    autosaveTimer: null,
+    autosaveLastPayload: ""
   };
 
   const TOOL_LABELS = {
@@ -478,12 +480,22 @@
     (window.desktopApp && window.desktopApp.platform === "darwin") ||
     /(Mac|iPhone|iPad|iPod)/i.test(navigator.platform || "") ||
     /Mac OS X/i.test(navigator.userAgent || "");
+  const detectedWindows =
+    (window.desktopApp && window.desktopApp.platform === "win32") ||
+    /Win/i.test(navigator.platform || "") ||
+    /Windows/i.test(navigator.userAgent || "");
 
   if (detectedMac) {
     document.documentElement.classList.add("platform-mac");
-    document.documentElement.style.setProperty("--traffic-space", "76px");
+    document.documentElement.style.setProperty("--traffic-space", "86px");
+    document.documentElement.style.setProperty("--window-controls-space", "0px");
+  } else if (detectedWindows) {
+    document.documentElement.classList.add("platform-win");
+    document.documentElement.style.setProperty("--traffic-space", "0px");
+    document.documentElement.style.setProperty("--window-controls-space", "148px");
   } else {
     document.documentElement.style.setProperty("--traffic-space", "0px");
+    document.documentElement.style.setProperty("--window-controls-space", "0px");
   }
 
   function queueRender() {
@@ -499,10 +511,81 @@
 
   function markDirty() {
     state.persistPending = true;
+    state.autosavePending = true;
     if (state.persistTimer) {
       clearTimeout(state.persistTimer);
     }
     state.persistTimer = setTimeout(persistSession, 500);
+    scheduleAutoSave();
+  }
+
+  function scheduleAutoSave() {
+    if (!window.desktopApp || typeof window.desktopApp.autosaveWrite !== "function") {
+      return;
+    }
+    if (state.autosaveTimer) {
+      clearTimeout(state.autosaveTimer);
+    }
+    state.autosaveTimer = setTimeout(() => {
+      state.autosaveTimer = null;
+      void flushAutoSave();
+    }, 1800);
+  }
+
+  async function flushAutoSave(options = {}) {
+    const force = Boolean(options && options.force);
+    if (!window.desktopApp) {
+      return false;
+    }
+    const canWrite = typeof window.desktopApp.autosaveWrite === "function";
+    if (!canWrite) {
+      return false;
+    }
+    if (!force && !state.autosavePending) {
+      return false;
+    }
+    state.autosavePending = false;
+
+    const hasEntities = Array.isArray(state.entities) && state.entities.length > 0;
+    if (!hasEntities) {
+      if (typeof window.desktopApp.autosaveClear === "function") {
+        await window.desktopApp.autosaveClear().catch(() => {});
+      }
+      state.autosaveLastPayload = "";
+      return true;
+    }
+
+    let runtimeRaw = "";
+    try {
+      runtimeRaw = localStorage.getItem("cad-session-v2") || "";
+    } catch (_error) {
+      runtimeRaw = "";
+    }
+    if (!runtimeRaw) {
+      runtimeRaw = JSON.stringify(
+        {
+          version: 2,
+          entities: state.entities,
+          layers: state.layers,
+          activeLayerId: state.activeLayerId
+        },
+        null,
+        2
+      );
+    }
+    if (!runtimeRaw) {
+      return false;
+    }
+    if (!force && runtimeRaw === state.autosaveLastPayload) {
+      return true;
+    }
+
+    const result = await window.desktopApp.autosaveWrite({ text: runtimeRaw });
+    if (result && result.ok) {
+      state.autosaveLastPayload = runtimeRaw;
+      return true;
+    }
+    return false;
   }
 
   function persistSession() {
@@ -760,6 +843,38 @@
     }
   }
 
+  async function restoreDesktopAutoSaveIfNeeded() {
+    const hasGeometry = Array.isArray(state.entities) && state.entities.length > 0;
+    if (hasGeometry) {
+      return false;
+    }
+    if (!window.desktopApp || typeof window.desktopApp.autosaveRead !== "function") {
+      return false;
+    }
+    const result = await window.desktopApp.autosaveRead();
+    if (!result || result.ok !== true || result.exists !== true || typeof result.text !== "string") {
+      return false;
+    }
+
+    try {
+      const parsed = JSON.parse(result.text);
+      if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.entities)) {
+        throw new Error("Niepoprawny format autozapisu.");
+      }
+      localStorage.setItem("cad-session-v2", JSON.stringify(parsed));
+      restoreSession();
+      state.autosaveLastPayload = JSON.stringify(parsed);
+      echoCommand("Przywrócono autozapis po awaryjnym zamknięciu.");
+      return true;
+    } catch (error) {
+      console.warn("Nie udało się przywrócić autozapisu:", error);
+      if (typeof window.desktopApp.autosaveClear === "function") {
+        await window.desktopApp.autosaveClear().catch(() => {});
+      }
+      return false;
+    }
+  }
+
   function cssColor(variableName, fallback) {
     const value = getComputedStyle(document.documentElement).getPropertyValue(variableName).trim();
     return value || fallback;
@@ -823,6 +938,7 @@
 
     fileMenuPanel.style.left = `${Math.round(left)}px`;
     fileMenuPanel.style.top = `${Math.round(top)}px`;
+    fileMenuPanel.style.maxHeight = `${Math.max(200, window.innerHeight - 110)}px`;
   }
 
   function setFileMenuOpen(value) {
@@ -838,6 +954,7 @@
     } else {
       fileMenuPanel.style.left = "";
       fileMenuPanel.style.top = "";
+      fileMenuPanel.style.maxHeight = "";
     }
   }
 
@@ -881,7 +998,7 @@
       .trim()
       .toLowerCase();
     if (["start", "poczatek", "początek", "startowa", "startowy"].includes(value)) {
-      return "shortcuts";
+      return "home";
     }
     if (["home", "główne", "glowne"].includes(value)) {
       return "home";
@@ -902,7 +1019,7 @@
       return "layers";
     }
     if (["shortcuts", "skr", "skrót", "skrot", "skróty", "skroty"].includes(value)) {
-      return "shortcuts";
+      return "home";
     }
     if (["insert", "wstaw", "wstawianie", "mailings", "mailing", "review", "recenzja", "sprawdzenie"].includes(value)) {
       return "home";
@@ -911,7 +1028,7 @@
   }
 
   function getAvailableRibbonPages() {
-    return ["home", "references", "design", "view", "layers", "shortcuts"];
+    return ["home", "references", "design", "view", "layers"];
   }
 
   function resolveRibbonPageAlias(rawValue) {
@@ -920,7 +1037,7 @@
       return null;
     }
     if (["start", "poczatek", "początek", "startowa", "startowy"].includes(value)) {
-      return "shortcuts";
+      return "home";
     }
     if (["home", "główne", "glowne"].includes(value)) {
       return "home";
@@ -945,7 +1062,7 @@
       return "layers";
     }
     if (["shortcuts", "skr", "skrót", "skrot", "skróty", "skroty"].includes(value)) {
-      return "shortcuts";
+      return "home";
     }
     if (["insert", "wstaw", "wstawianie", "mailings", "mailing", "korespondencja", "review", "recenzja", "sprawdzenie"].includes(value)) {
       return "home";
@@ -969,9 +1086,6 @@
     }
     if (normalized === "layers") {
       return "Warstwy";
-    }
-    if (normalized === "shortcuts") {
-      return "Skróty";
     }
     return "Główne";
   }
@@ -3241,8 +3355,8 @@
       return;
     }
     if (["start", "strona", "hub", "skroty", "skróty"].includes(command)) {
-      setRibbonPage("shortcuts");
-      echoCommand("Zakładka: Skróty.");
+      setRibbonPage("home");
+      echoCommand("Zakładka: Główne.");
       return;
     }
     if (command === "home") {
@@ -3264,8 +3378,8 @@
         return;
       }
       if (requested === "start") {
-        setRibbonPage("shortcuts");
-        echoCommand("Zakładka: Skróty.");
+        setRibbonPage("home");
+        echoCommand("Zakładka: Główne.");
         return;
       }
       if (["draw", "rysunek", "model", "cad"].includes(requested)) {
@@ -3293,7 +3407,7 @@
         return;
       }
       if (page === undefined) {
-        echoCommand("Użyj: tab główne|wymiarowanie|stal|widok|warstwy|skróty", true);
+        echoCommand("Użyj: tab główne|wymiarowanie|stal|widok|warstwy", true);
         return;
       }
       if (page === "design") {
@@ -3773,7 +3887,7 @@
     }
 
     if (["print", "drukuj", "pdf", "plot"].includes(command)) {
-      triggerPrintWithFeedback();
+      void triggerPrintWithFeedback();
       return;
     }
 
@@ -8630,8 +8744,52 @@
       .replaceAll("'", "&apos;");
   }
 
+  function parseHexColor(color) {
+    const value = String(color || "").trim().toLowerCase();
+    const match = value.match(/^#([0-9a-f]{6})$/i);
+    if (!match) {
+      return null;
+    }
+    const hex = match[1];
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    if (![r, g, b].every((v) => Number.isFinite(v))) {
+      return null;
+    }
+    return { r, g, b, hex: `#${hex}` };
+  }
+
+  function getRelativeLuminance(color) {
+    const rgb = parseHexColor(color);
+    if (!rgb) {
+      return null;
+    }
+    return (0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b) / 255;
+  }
+
+  function toPrintStrokeColor(color) {
+    const luminance = getRelativeLuminance(color);
+    if (luminance === null) {
+      return "#1f2d45";
+    }
+    return luminance > 0.72 ? "#1f2d45" : String(color);
+  }
+
+  function toPrintFillColor(color) {
+    const luminance = getRelativeLuminance(color);
+    if (luminance === null) {
+      return "#8ea1ba";
+    }
+    return luminance > 0.82 ? "#8ea1ba" : String(color);
+  }
+
   function toSvgText(options = {}) {
     const selectionOnly = Boolean(options.selectionOnly);
+    const includeXmlDeclaration = options.includeXmlDeclaration !== false;
+    const printFriendly = Boolean(options.printFriendly);
+    const customViewBox =
+      options.viewBox && typeof options.viewBox === "object" ? options.viewBox : null;
     const drawable = state.entities.filter((entity) => isEntityVisible(entity));
     const selectedVisible = getSelectedEntities().filter((entity) => isEntityVisible(entity));
     const entitiesRaw = selectionOnly
@@ -8664,14 +8822,28 @@
       bounds = { minX: 0, minY: 0, maxX: 100, maxY: 100 };
     }
 
-    const margin = 20;
-    const viewX = bounds.minX - margin;
-    const viewY = bounds.minY - margin;
-    const viewW = Math.max(1, bounds.maxX - bounds.minX + margin * 2);
-    const viewH = Math.max(1, bounds.maxY - bounds.minY + margin * 2);
+    let viewX;
+    let viewY;
+    let viewW;
+    let viewH;
+    if (
+      customViewBox &&
+      [customViewBox.x, customViewBox.y, customViewBox.w, customViewBox.h].every((value) => isFiniteNumber(value))
+    ) {
+      viewX = Number(customViewBox.x);
+      viewY = Number(customViewBox.y);
+      viewW = Math.max(1, Number(customViewBox.w));
+      viewH = Math.max(1, Number(customViewBox.h));
+    } else {
+      const margin = 20;
+      viewX = bounds.minX - margin;
+      viewY = bounds.minY - margin;
+      viewW = Math.max(1, bounds.maxX - bounds.minX + margin * 2);
+      viewH = Math.max(1, bounds.maxY - bounds.minY + margin * 2);
+    }
 
     const lines = entities.map((entity) => {
-      const stroke = entity.stroke;
+      const stroke = printFriendly ? toPrintStrokeColor(entity.stroke) : entity.stroke;
       const strokeWidth = entity.lineWidth;
       const dash = dashArrayForSvg(normalizeLineStyle(entity.lineStyle));
       const dashAttr = dash ? ` stroke-dasharray="${dash}"` : "";
@@ -8685,8 +8857,9 @@
           return "";
         }
         const fillOpacity = clamp((entity.fillAlpha ?? 20) / 100, 0, 1, 0.2);
+        const fillColor = printFriendly ? toPrintFillColor(entity.fillColor || "#00a9e0") : entity.fillColor || "#00a9e0";
         const pointsAttr = entity.points.map((point) => `${point.x},${point.y}`).join(" ");
-        return `<polygon points="${pointsAttr}" stroke="none" fill="${entity.fillColor || "#00a9e0"}" fill-opacity="${fillOpacity}" />`;
+        return `<polygon points="${pointsAttr}" stroke="none" fill="${fillColor}" fill-opacity="${fillOpacity}" />`;
       }
 
       if (entity.type === "dimension") {
@@ -8765,13 +8938,13 @@
         const y = Math.min(entity.y, entity.y + entity.h);
         const width = Math.abs(entity.w);
         const height = Math.abs(entity.h);
-        const fill = entity.fill ? entity.fillColor : "none";
+        const fill = entity.fill ? (printFriendly ? toPrintFillColor(entity.fillColor) : entity.fillColor) : "none";
         const fillOpacity = entity.fill ? clamp((entity.fillAlpha ?? 20) / 100, 0, 1, 0.2) : 1;
         return `<rect x="${x}" y="${y}" width="${width}" height="${height}" stroke="${stroke}" stroke-width="${strokeWidth}" fill="${fill}" fill-opacity="${fillOpacity}"${dashAttr} />`;
       }
 
       if (entity.type === "circle") {
-        const fill = entity.fill ? entity.fillColor : "none";
+        const fill = entity.fill ? (printFriendly ? toPrintFillColor(entity.fillColor) : entity.fillColor) : "none";
         const fillOpacity = entity.fill ? clamp((entity.fillAlpha ?? 20) / 100, 0, 1, 0.2) : 1;
         return `<circle cx="${entity.cx}" cy="${entity.cy}" r="${entity.r}" stroke="${stroke}" stroke-width="${strokeWidth}" fill="${fill}" fill-opacity="${fillOpacity}"${dashAttr} />`;
       }
@@ -8779,20 +8952,40 @@
       return "";
     });
 
-    return [
-      `<?xml version="1.0" encoding="UTF-8"?>`,
+    const svgLines = [
       `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewX} ${viewY} ${viewW} ${viewH}">`,
       ...lines,
       `</svg>`
-    ].join("\n");
+    ];
+    if (includeXmlDeclaration) {
+      svgLines.unshift(`<?xml version="1.0" encoding="UTF-8"?>`);
+    }
+    return svgLines.join("\n");
   }
 
-  function openPrintPreview() {
-    const svgContent = toSvgText();
-    const selectedSvgContent = toSvgText({ selectionOnly: true });
+  async function openPrintPreview() {
+    const canvasSize = getCanvasSize();
+    const viewportViewBox = {
+      x: -state.view.offsetX / Math.max(0.0001, state.view.scale),
+      y: -state.view.offsetY / Math.max(0.0001, state.view.scale),
+      w: Math.max(1, canvasSize.width / Math.max(0.0001, state.view.scale)),
+      h: Math.max(1, canvasSize.height / Math.max(0.0001, state.view.scale))
+    };
+    const svgContent = toSvgText({ includeXmlDeclaration: false, printFriendly: true });
+    const viewportSvgContent = toSvgText({
+      includeXmlDeclaration: false,
+      viewBox: viewportViewBox,
+      printFriendly: true
+    });
+    const selectedSvgContent = toSvgText({
+      selectionOnly: true,
+      includeXmlDeclaration: false,
+      printFriendly: true
+    });
     const hasSelectionForPrint = getSelectedEntities().some((entity) => isEntityVisible(entity));
     const timestamp = new Date().toLocaleString("pl-PL");
     const documentTitle = "MadCAD 2D - wydruk";
+    let desktopError = "";
     const html = [
       "<!doctype html>",
       "<html lang=\"pl\">",
@@ -8800,7 +8993,7 @@
       "<meta charset=\"UTF-8\" />",
       `<title>${documentTitle}</title>`,
       "<style>",
-      ":root { --preview-scale: 1; --print-margin: 10mm; }",
+      ":root { --print-margin: 10mm; --paper-w: 210mm; --paper-h: 297mm; --svg-w: 120mm; --svg-h: 80mm; }",
       "html, body { margin: 0; padding: 0; background: #f3f5fa; color: #101418; font-family: 'Segoe UI', Arial, sans-serif; }",
       ".page { max-width: 1320px; margin: 0 auto; padding: 16px; }",
       ".header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; }",
@@ -8808,26 +9001,27 @@
       ".header p { margin: 0; font-size: 12px; color: #3e4a5c; }",
       ".actions { display: flex; gap: 8px; }",
       ".actions button { border: 1px solid #374968; border-radius: 6px; background: #1e2d46; color: #f7faff; padding: 8px 12px; font-size: 12px; cursor: pointer; }",
-      ".toolbar { display: grid; grid-template-columns: repeat(8, minmax(120px, auto)); gap: 8px; align-items: end; margin-bottom: 10px; }",
+      ".toolbar { display: grid; grid-template-columns: repeat(4, minmax(170px, 1fr)); gap: 8px; align-items: end; margin-bottom: 10px; }",
       ".toolbar label { display: grid; gap: 4px; font-size: 11px; color: #2d3a4f; }",
       ".toolbar input, .toolbar select { height: 30px; border: 1px solid #9db1cc; border-radius: 6px; padding: 0 8px; background: #fff; color: #18263a; }",
       ".toolbar .check { display: flex; align-items: center; gap: 8px; height: 30px; font-size: 12px; }",
-      ".sheet { background: #ffffff; border: 1px solid #c6cfdb; border-radius: 10px; box-shadow: 0 8px 18px rgba(16, 20, 30, 0.08); padding: 10px; overflow: auto; max-height: calc(100vh - 205px); }",
-      ".sheet.centered { display: flex; justify-content: center; align-items: center; }",
-      ".sheet-inner { transform-origin: top left; transform: scale(var(--preview-scale)); width: calc(100% / var(--preview-scale)); }",
-      ".sheet.centered .sheet-inner { margin: 0 auto; }",
-      ".sheet svg { width: 100%; height: auto; display: block; background: #fff; }",
+      ".toolbar-note { margin: 0 0 10px; font-size: 12px; color: #36465f; }",
+      ".sheet { background: #e8edf6; border: 1px solid #c6cfdb; border-radius: 10px; box-shadow: 0 8px 18px rgba(16, 20, 30, 0.08); padding: 12px; overflow: auto; max-height: calc(100vh - 205px); display: flex; justify-content: center; align-items: flex-start; }",
+      ".paper { width: var(--paper-w); min-height: var(--paper-h); background: #ffffff; border: 1px solid #d5deeb; box-shadow: 0 6px 16px rgba(17, 26, 44, 0.16); padding: var(--print-margin); }",
+      ".sheet-inner { width: 100%; min-height: calc(var(--paper-h) - (var(--print-margin) * 2)); display: flex; align-items: flex-start; justify-content: flex-start; overflow: hidden; }",
+      ".sheet.centered .sheet-inner { justify-content: center; align-items: center; }",
+      ".sheet svg { width: var(--svg-w); height: var(--svg-h); display: block; background: #fff; max-width: none; }",
       "#printHeader[hidden] { display: none; }",
       "#printPageStyle { display: none; }",
       "@page { size: A4 portrait; margin: 10mm; }",
       "@media print {",
-      "  html, body { background: #ffffff; }",
-      "  .page { max-width: none; margin: 0; padding: 0; }",
-      "  .header, .toolbar { display: none; }",
-      "  .sheet { border: 0; border-radius: 0; box-shadow: none; padding: 0; overflow: visible; max-height: none; }",
-      "  .sheet.centered { display: block; }",
-      "  .sheet-inner { transform: none !important; width: 100% !important; }",
-      "  .sheet svg { width: calc(100% * var(--print-scale, 1)); max-width: none; }",
+      "  html, body { background: #ffffff; width: var(--paper-w); height: var(--paper-h); overflow: hidden; }",
+      "  .page { width: var(--paper-w); height: var(--paper-h); max-width: none; margin: 0; padding: 0; overflow: hidden; }",
+      "  .header, .toolbar, .toolbar-note { display: none; }",
+      "  .sheet { width: 100%; height: 100%; border: 0; border-radius: 0; box-shadow: none; padding: 0; margin: 0; overflow: hidden; max-height: none; background: #fff; display: block; break-inside: avoid; page-break-inside: avoid; }",
+      "  .paper { width: 100%; height: 100%; border: 0; box-shadow: none; padding: var(--print-margin); margin: 0; box-sizing: border-box; break-inside: avoid; page-break-inside: avoid; }",
+      "  .sheet-inner { width: 100%; height: 100%; min-height: 0; overflow: hidden !important; }",
+      "  .sheet svg { width: var(--svg-w) !important; height: var(--svg-h) !important; max-width: none !important; }",
       "}",
       "</style>",
       "<style id=\"printPageStyle\"></style>",
@@ -8839,18 +9033,21 @@
       "<div class=\"actions\"><button id=\"printNowBtn\" type=\"button\">Drukuj / Zapisz PDF</button><button type=\"button\" onclick=\"window.close()\">Zamknij</button></div>",
       "</div>",
       "<div class=\"toolbar\">",
-      "<label>Format<select id=\"printSize\"><option value=\"A4\" selected>A4</option><option value=\"A3\">A3</option><option value=\"Letter\">Letter</option><option value=\"Legal\">Legal</option></select></label>",
-      "<label>Orientacja<select id=\"printOrientation\"><option value=\"portrait\" selected>Pion</option><option value=\"landscape\">Poziom</option></select></label>",
+      "<label>Zakres wydruku<select id=\"printRange\"><option value=\"current\" selected>Bieżący widok</option><option value=\"drawing\">Cały rysunek</option><option value=\"selection\">Tylko zaznaczenie</option></select></label>",
+      "<label>Format strony<select id=\"printSize\"><option value=\"A4\" selected>A4</option><option value=\"A3\">A3</option><option value=\"Letter\">Letter</option><option value=\"Legal\">Legal</option></select></label>",
+      "<label>Orientacja strony<select id=\"printOrientation\"><option value=\"portrait\" selected>Pion</option><option value=\"landscape\">Poziom</option></select></label>",
       "<label>Margines [mm]<input id=\"printMargin\" type=\"number\" min=\"0\" max=\"30\" step=\"1\" value=\"10\" /></label>",
-      "<label>Skala [%]<input id=\"printScale\" type=\"number\" min=\"25\" max=\"300\" step=\"5\" value=\"100\" /></label>",
-      `<label class=\"check\"><input id=\"printSelectionOnly\" type=\"checkbox\"${hasSelectionForPrint ? "" : " disabled"} />Tylko zaznaczenie</label>`,
-      "<label class=\"check\"><input id=\"printFitToPage\" type=\"checkbox\" checked />Dopasuj do strony</label>",
-      "<label class=\"check\"><input id=\"printCenterOnPage\" type=\"checkbox\" checked />Wyśrodkuj</label>",
-      "<label class=\"check\"><input id=\"printShowHeader\" type=\"checkbox\" checked />Pokaż nagłówek</label>",
+      "<label>Skala wydruku [%]<input id=\"printScale\" type=\"number\" min=\"25\" max=\"2000\" step=\"5\" value=\"100\" /></label>",
+      "<label class=\"check\"><input id=\"printFitToPage\" type=\"checkbox\" checked />Skala automatyczna (zalecane)</label>",
+      "<label class=\"check\"><input id=\"printCenterOnPage\" type=\"checkbox\" checked />Wyśrodkuj na stronie</label>",
+      "<label class=\"check\"><input id=\"printShowHeader\" type=\"checkbox\" checked />Pokaż nagłówek podglądu</label>",
       "</div>",
+      "<p id=\"printSummary\" class=\"toolbar-note\"></p>",
       "<div id=\"printSheet\" class=\"sheet\">",
+      "<div id=\"printPaper\" class=\"paper\">",
       "<div id=\"printCanvas\" class=\"sheet-inner\">",
-      svgContent,
+      viewportSvgContent,
+      "</div>",
       "</div>",
       "</div>",
       "</div>",
@@ -8860,17 +9057,20 @@
       "  const orientationEl = document.getElementById('printOrientation');",
       "  const marginEl = document.getElementById('printMargin');",
       "  const scaleEl = document.getElementById('printScale');",
-      "  const selectionOnlyEl = document.getElementById('printSelectionOnly');",
+      "  const rangeEl = document.getElementById('printRange');",
       "  const fitToPageEl = document.getElementById('printFitToPage');",
       "  const centerOnPageEl = document.getElementById('printCenterOnPage');",
       "  const showHeaderEl = document.getElementById('printShowHeader');",
+      "  const summaryEl = document.getElementById('printSummary');",
       "  const pageStyleEl = document.getElementById('printPageStyle');",
       "  const headerEl = document.getElementById('printHeader');",
       "  const sheetEl = document.getElementById('printSheet');",
+      "  const paperEl = document.getElementById('printPaper');",
       "  const printCanvasEl = document.getElementById('printCanvas');",
       "  const printNowBtn = document.getElementById('printNowBtn');",
       `  const hasSelection = ${hasSelectionForPrint ? "true" : "false"};`,
       `  const fullSvgContent = ${JSON.stringify(svgContent)};`,
+      `  const viewportSvgContent = ${JSON.stringify(viewportSvgContent)};`,
       `  const selectedSvgContent = ${JSON.stringify(selectedSvgContent)};`,
       "",
       "  const clamp = (value, min, max, fallback) => {",
@@ -8901,36 +9101,117 @@
       "    return { width, height };",
       "  };",
       "",
-      "  const computeAutoScale = (size, orientation, margin) => {",
-      "    const vb = getSvgViewBox();",
-      "    if (!vb) return 100;",
-      "    const paper = getPaperSize(size, orientation);",
-      "    const usableWidth = Math.max(20, paper.width - margin * 2);",
-      "    const usableHeight = Math.max(20, paper.height - margin * 2);",
-      "    const ratio = Math.min(usableWidth / vb.width, usableHeight / vb.height);",
+      "  const getSvgGeometrySize = () => {",
+      "    const svg = printCanvasEl ? printCanvasEl.querySelector('svg') : null;",
+      "    if (!svg) return null;",
+      "    try {",
+      "      const bbox = svg.getBBox();",
+      "      if (bbox && Number.isFinite(bbox.width) && Number.isFinite(bbox.height) && bbox.width > 0.0001 && bbox.height > 0.0001) {",
+      "        return { width: Math.abs(bbox.width), height: Math.abs(bbox.height) };",
+      "      }",
+      "    } catch (_error) {}",
+      "    return getSvgViewBox();",
+      "  };",
+      "",
+      "  const getPrintableAreaMm = (paper, margin) => {",
+      "    const safeMargin = clamp(margin, 0, 30, 10);",
+      "    return {",
+      "      width: Math.max(10, Number(paper && paper.width) - safeMargin * 2),",
+      "      height: Math.max(10, Number(paper && paper.height) - safeMargin * 2)",
+      "    };",
+      "  };",
+      "",
+      "  const applySvgOutputSize = (geometry, scalePercent, paper, margin, forceFit) => {",
+      "    const source = geometry && geometry.width > 0 && geometry.height > 0 ? geometry : { width: 100, height: 100 };",
+      "    const printable = getPrintableAreaMm(paper, margin);",
+      "    const scaleFactor = Math.max(0.25, Number(scalePercent) / 100);",
+      "    let widthMm = Math.max(1, source.width * scaleFactor);",
+      "    let heightMm = Math.max(1, source.height * scaleFactor);",
+      "    if (forceFit) {",
+      "      const shrink = Math.min(1, printable.width / Math.max(0.0001, widthMm), printable.height / Math.max(0.0001, heightMm));",
+      "      widthMm *= shrink;",
+      "      heightMm *= shrink;",
+      "    }",
+      "    document.documentElement.style.setProperty('--svg-w', `${widthMm}mm`);",
+      "    document.documentElement.style.setProperty('--svg-h', `${heightMm}mm`);",
+      "    return { widthMm, heightMm, printable };",
+      "  };",
+      "",
+      "  const computeAutoScale = (paper, margin) => {",
+      "    const geometry = getSvgGeometrySize();",
+      "    if (!geometry) return 100;",
+      "    const printable = getPrintableAreaMm(paper, margin);",
+      "    const ratio = Math.min(printable.width / geometry.width, printable.height / geometry.height);",
       "    if (!Number.isFinite(ratio) || ratio <= 0) return 100;",
-      "    return clamp(ratio * 100, 25, 300, 100);",
+      "    return clamp(ratio * 100, 25, 2000, 100);",
+      "  };",
+      "",
+      "  const parseSvgMarkup = (markup) => {",
+      "    const parser = new DOMParser();",
+      "    const doc = parser.parseFromString(String(markup || ''), 'image/svg+xml');",
+      "    const svg = doc.documentElement && doc.documentElement.tagName && doc.documentElement.tagName.toLowerCase() === 'svg'",
+      "      ? doc.documentElement",
+      "      : null;",
+      "    return svg ? svg.outerHTML : '<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"></svg>';",
+      "  };",
+      "",
+      "  const svgHasGeometry = (svgMarkup) => {",
+      "    const parser = new DOMParser();",
+      "    const doc = parser.parseFromString(String(svgMarkup || ''), 'image/svg+xml');",
+      "    const svg = doc.documentElement && doc.documentElement.tagName && doc.documentElement.tagName.toLowerCase() === 'svg'",
+      "      ? doc.documentElement",
+      "      : null;",
+      "    if (!svg) return false;",
+      "    return Boolean(svg.querySelector('line,rect,circle,path,polyline,polygon,text,ellipse'));",
+      "  };",
+      "",
+      "  const resolveRange = () => {",
+      "    const requested = String((rangeEl && rangeEl.value) || 'current').toLowerCase();",
+      "    if (requested === 'selection' && !hasSelection) {",
+      "      return 'current';",
+      "    }",
+      "    return requested === 'drawing' || requested === 'selection' ? requested : 'current';",
       "  };",
       "",
       "  const applyCanvasSource = () => {",
-      "    const useSelection = hasSelection && Boolean(selectionOnlyEl && selectionOnlyEl.checked);",
-      "    if (printCanvasEl) {",
-      "      printCanvasEl.innerHTML = useSelection ? selectedSvgContent : fullSvgContent;",
+      "    const range = resolveRange();",
+      "    if (rangeEl && rangeEl.value !== range) {",
+      "      rangeEl.value = range;",
       "    }",
+      "    let effectiveRange = range;",
+      "    let autoFallbackNote = '';",
+      "    let source = viewportSvgContent;",
+      "    if (range === 'drawing') {",
+      "      source = fullSvgContent;",
+      "    } else if (range === 'selection') {",
+      "      source = selectedSvgContent;",
+      "    }",
+      "    if (!svgHasGeometry(source) && range === 'current' && svgHasGeometry(fullSvgContent)) {",
+      "      source = fullSvgContent;",
+      "      effectiveRange = 'drawing';",
+      "      autoFallbackNote = 'W bieżącym widoku nie było obiektów, pokazano cały rysunek.';",
+      "    }",
+      "    if (printCanvasEl) {",
+      "      printCanvasEl.innerHTML = parseSvgMarkup(source);",
+      "    }",
+      "    return { range: effectiveRange, autoFallbackNote };",
       "  };",
       "",
-      "  const applySettings = () => {",
+      "  const applySettings = (options = {}) => {",
+      "    const preserveScale = Boolean(options.preserveScale);",
       "    const size = String(sizeEl.value || 'A4');",
       "    const orientation = String(orientationEl.value || 'portrait');",
       "    const margin = clamp(marginEl.value, 0, 30, 10);",
       "    const fitToPage = Boolean(fitToPageEl && fitToPageEl.checked);",
       "    const centerOnPage = Boolean(centerOnPageEl && centerOnPageEl.checked);",
       "    const showHeader = Boolean(showHeaderEl.checked);",
+      "    const paper = getPaperSize(size, orientation);",
       "",
-      "    applyCanvasSource();",
+      "    const sourceState = applyCanvasSource();",
+      "    const range = sourceState.range;",
       "",
-      "    const manualScale = clamp(scaleEl.value, 25, 300, 100);",
-      "    const scale = fitToPage ? computeAutoScale(size, orientation, margin) : manualScale;",
+      "    const manualScale = clamp(scaleEl.value, 25, 2000, 100);",
+      "    const scale = fitToPage ? (preserveScale ? manualScale : computeAutoScale(paper, margin)) : manualScale;",
       "    if (scaleEl) {",
       "      scaleEl.disabled = fitToPage;",
       "    }",
@@ -8938,29 +9219,46 @@
       "    marginEl.value = String(Math.round(margin));",
       "    scaleEl.value = String(Math.round(scale));",
       "",
-      "    document.documentElement.style.setProperty('--preview-scale', String(scale / 100));",
-      "    document.documentElement.style.setProperty('--print-scale', String(scale / 100));",
       "    document.documentElement.style.setProperty('--print-margin', `${margin}mm`);",
-      "    pageStyleEl.textContent = `@page { size: ${size} ${orientation}; margin: ${margin}mm; }`;",
+      "    document.documentElement.style.setProperty('--paper-w', `${paper.width}mm`);",
+      "    document.documentElement.style.setProperty('--paper-h', `${paper.height}mm`);",
+      "    pageStyleEl.textContent = `@page { size: ${size} ${orientation}; margin: 0; }`;",
+      "    if (paperEl) {",
+      "      paperEl.style.padding = `${margin}mm`;",
+      "    }",
+      "    const geometry = getSvgGeometrySize();",
+      "    const output = applySvgOutputSize(geometry, scale, paper, margin, fitToPage);",
       "    headerEl.hidden = !showHeader;",
       "    if (sheetEl) {",
       "      sheetEl.classList.toggle('centered', centerOnPage);",
       "    }",
+      "    if (summaryEl) {",
+      "      const rangeLabel = range === 'drawing' ? 'Cały rysunek' : range === 'selection' ? 'Tylko zaznaczenie' : 'Bieżący widok';",
+      "      const rangeInfo = range === 'current' ? 'to, co widzisz na ekranie' : range === 'drawing' ? 'cała geometria projektu' : 'tylko aktualne zaznaczenie';",
+      "      const fallbackPart = sourceState.autoFallbackNote ? ` | ${sourceState.autoFallbackNote}` : '';",
+      "      const scaleLabel = fitToPage ? `Auto (${Math.round(scale)}%)` : `${Math.round(scale)}%`;",
+      "      summaryEl.textContent = `Zakres: ${rangeLabel} (${rangeInfo}) | Format: ${size} ${orientation === 'landscape' ? 'poziom' : 'pion'} | Skala: ${scaleLabel} | Margines: ${Math.round(margin)} mm | Rysunek: ${Math.round(output.widthMm)}×${Math.round(output.heightMm)} mm${fallbackPart}`;",
+      "    }",
       "  };",
       "",
-      "  if (selectionOnlyEl && !hasSelection) {",
-      "    selectionOnlyEl.checked = false;",
-      "    selectionOnlyEl.disabled = true;",
+      "  if (rangeEl && !hasSelection) {",
+      "    const option = rangeEl.querySelector('option[value=\"selection\"]');",
+      "    if (option) {",
+      "      option.disabled = true;",
+      "    }",
+      "    if (rangeEl.value === 'selection') {",
+      "      rangeEl.value = 'current';",
+      "    }",
       "  }",
       "",
-      "  [sizeEl, orientationEl, marginEl, scaleEl, selectionOnlyEl, fitToPageEl, centerOnPageEl, showHeaderEl].forEach((el) => {",
+      "  [rangeEl, sizeEl, orientationEl, marginEl, scaleEl, fitToPageEl, centerOnPageEl, showHeaderEl].forEach((el) => {",
       "    if (!el) return;",
-      "    el.addEventListener('change', applySettings);",
-      "    el.addEventListener('input', applySettings);",
+      "    el.addEventListener('change', () => applySettings());",
+      "    el.addEventListener('input', () => applySettings());",
       "  });",
       "",
       "  const triggerPrint = () => {",
-      "    applySettings();",
+      "    applySettings({ preserveScale: false });",
       "    requestAnimationFrame(() => {",
       "      requestAnimationFrame(() => {",
       "        window.print();",
@@ -8972,13 +9270,36 @@
       "    printNowBtn.addEventListener('click', triggerPrint);",
       "  }",
       "",
-      "  window.addEventListener('beforeprint', applySettings);",
+      "  window.addEventListener('beforeprint', () => {",
+      "    applySettings({ preserveScale: true });",
+      "  });",
       "  applySettings();",
       "})();",
       "</script>",
       "</body>",
       "</html>"
     ].join("");
+    if (
+      window.desktopApp &&
+      window.desktopApp.isDesktop &&
+      typeof window.desktopApp.openPrintPreviewWindow === "function"
+    ) {
+      try {
+        const desktopResult = await window.desktopApp.openPrintPreviewWindow({
+          html,
+          title: documentTitle
+        });
+        if (desktopResult && desktopResult.ok) {
+          return { ok: true, mode: "desktop-window" };
+        }
+        if (desktopResult && desktopResult.error) {
+          desktopError = String(desktopResult.error);
+        }
+      } catch (error) {
+        desktopError = error && error.message ? String(error.message) : "Błąd desktopowego podglądu.";
+      }
+    }
+
     let printWindow = null;
     try {
       printWindow = window.open("", "_blank", "width=1200,height=860");
@@ -9011,7 +9332,12 @@
       iframeDoc.open();
       iframeDoc.write(html);
       iframeDoc.close();
-      setTimeout(() => {
+      let didPrint = false;
+      const printOnce = () => {
+        if (didPrint) {
+          return;
+        }
+        didPrint = true;
         const iframeWindow = iframe.contentWindow;
         if (iframeWindow) {
           iframeWindow.focus();
@@ -9020,21 +9346,27 @@
         setTimeout(() => {
           iframe.remove();
         }, 1200);
-      }, 180);
+      };
+      iframe.addEventListener("load", printOnce, { once: true });
+      setTimeout(printOnce, 220);
       return { ok: true, mode: "iframe" };
     } catch (error) {
-      return { ok: false, mode: "none" };
+      const iframeError = error && error.message ? String(error.message) : "";
+      const finalError = [desktopError, iframeError].filter(Boolean).join(" | ");
+      return { ok: false, mode: "none", error: finalError || "Nie udało się otworzyć podglądu wydruku." };
     }
   }
 
-  function triggerPrintWithFeedback() {
-    const printed = openPrintPreview();
+  async function triggerPrintWithFeedback() {
+    const printed = await openPrintPreview();
     echoCommand(
       printed.ok
         ? printed.mode === "window"
           ? "Otwarto podgląd wydruku. W nowym oknie wybierz Drukuj lub Zapisz jako PDF."
+          : printed.mode === "desktop-window"
+          ? "Otwarto podgląd wydruku w oknie aplikacji. Użyj Drukuj/Zapisz PDF."
           : "Otwarto okno systemowe druku (tryb awaryjny bez popupu)."
-        : "Nie udało się otworzyć podglądu wydruku (sprawdź blokadę popup).",
+        : `Nie udało się otworzyć podglądu wydruku${printed.error ? `: ${printed.error}` : " (sprawdź blokadę popup)."}`,
       !printed.ok
     );
     return printed.ok;
@@ -9432,8 +9764,7 @@
       design: "Generator i konfiguracja konstrukcji stalowych.",
       layout: "Przełączanie między modelem i arkuszem.",
       view: "Ustawienia widoku, siatki i paneli.",
-      paint: "Wypełnia zamknięte obszary aktualnym kolorem i kryciem.",
-      shortcuts: "Skróty klawiaturowe i szybkie komendy aplikacji."
+      paint: "Wypełnia zamknięte obszary aktualnym kolorem i kryciem."
     };
     document.querySelectorAll(".ribbon-tab[data-page]").forEach((tab) => {
       const key = String(tab.dataset.page || "").trim().toLowerCase();
@@ -9589,8 +9920,8 @@
 
     if (event.key === "F2") {
       event.preventDefault();
-      setRibbonPage("shortcuts");
-      echoCommand("Zakładka: Skróty.");
+      setRibbonPage("home");
+      echoCommand("Zakładka: Główne.");
       return;
     }
 
@@ -9709,7 +10040,7 @@
       }
       if (key === "p") {
         event.preventDefault();
-        triggerPrintWithFeedback();
+        void triggerPrintWithFeedback();
         return;
       }
       if (key === "s") {
@@ -9970,6 +10301,7 @@
       const toggleFileMenu = () => {
         setFileMenuOpen(!isFileMenuOpen());
       };
+      let pointerHandled = false;
 
       fileMenuBtn.addEventListener("pointerdown", (event) => {
         if (event.button !== 0) {
@@ -9978,11 +10310,17 @@
         event.preventDefault();
         event.stopPropagation();
         toggleFileMenu();
+        pointerHandled = true;
       });
 
       fileMenuBtn.addEventListener("click", (event) => {
         event.preventDefault();
         event.stopPropagation();
+        if (pointerHandled) {
+          pointerHandled = false;
+          return;
+        }
+        toggleFileMenu();
       });
 
       fileMenuPanel.addEventListener("click", (event) => {
@@ -10716,7 +11054,7 @@
 
     if (printDrawingBtn) {
       printDrawingBtn.addEventListener("click", () => {
-        triggerPrintWithFeedback();
+        void triggerPrintWithFeedback();
       });
     }
 
@@ -10809,12 +11147,13 @@
     });
   }
 
-  function bootstrap() {
+  async function bootstrap() {
     localizeStaticUi();
     applyTheme("dark");
     const licensedAtBoot = initializeLicenseManager();
 
     restoreSession();
+    await restoreDesktopAutoSaveIfNeeded();
     state.ribbonCollapsed = false;
     state.activeFlyout = null;
     setWorkspaceView("model", { mode: "draw", force: true, persist: false });
@@ -10834,7 +11173,7 @@
     updateToastAnchor();
     resizeCanvas();
     updateStatus({ x: 0, y: 0 });
-    echoCommand("Gotowe. Użyj przycisków ze wstążki lub zakładki Skróty.", false, { toast: false });
+    echoCommand("Gotowe. Użyj przycisków ze wstążki.", false, { toast: false });
     if (restoredHiddenLayers) {
       echoCommand("Przywrócono widoczność warstw z istniejącą geometrią.");
     }
@@ -10854,6 +11193,14 @@
     return JSON.stringify(buildProjectPayload(), null, 2);
   };
 
+  window.__madcadHasDrawableContent = () => {
+    try {
+      return Array.isArray(state.entities) && state.entities.length > 0;
+    } catch (_error) {
+      return false;
+    }
+  };
+
   window.__madcadClearRuntimeSession = () => {
     try {
       localStorage.removeItem("cad-session-v2");
@@ -10862,11 +11209,20 @@
         clearTimeout(state.persistTimer);
         state.persistTimer = null;
       }
+      state.autosavePending = false;
+      state.autosaveLastPayload = "";
+      if (state.autosaveTimer) {
+        clearTimeout(state.autosaveTimer);
+        state.autosaveTimer = null;
+      }
+      if (window.desktopApp && typeof window.desktopApp.autosaveClear === "function") {
+        void window.desktopApp.autosaveClear();
+      }
       return true;
     } catch (_error) {
       return false;
     }
   };
 
-  bootstrap();
+  void bootstrap();
 })();

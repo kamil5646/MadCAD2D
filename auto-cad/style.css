@@ -61,6 +61,7 @@
   --ui-font-family: "SF Pro Text", "Avenir Next", "Segoe UI Variable", "Segoe UI", "Trebuchet MS", sans-serif;
   --ui-control-h: 28px;
   --traffic-space: 0px;
+  --window-controls-space: 0px;
 }
 
 :root[data-theme="light"] {
@@ -207,6 +208,9 @@ select {
   background: linear-gradient(180deg, var(--office-top), var(--office-top-deep));
   box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.14);
   -webkit-app-region: no-drag;
+  position: relative;
+  z-index: 200;
+  overflow: visible;
 }
 
 .top-quickbar {
@@ -328,24 +332,60 @@ select {
   position: fixed;
   top: 0;
   left: 0;
-  min-width: 196px;
+  min-width: 268px;
+  max-width: min(420px, calc(100vw - 20px));
   display: grid;
-  gap: var(--ui-gap-xs);
-  padding: 6px;
-  border: 1px solid #8fa9d0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent), #294165;
-  box-shadow: 0 10px 22px rgba(8, 14, 24, 0.42);
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #9ab1d7;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.03)), #2a4368;
+  box-shadow: 0 14px 30px rgba(8, 14, 24, 0.48);
   z-index: 100000;
+  overflow: auto;
 }
 
 .file-tab-panel {
   top: 0;
   left: 0;
+  right: auto;
 }
 
 .file-menu-panel .quick-btn {
   width: 100%;
   justify-content: flex-start;
+  min-height: 30px;
+  border-color: rgba(153, 178, 220, 0.42);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
+  font-size: 12px;
+  color: #eaf3ff;
+}
+
+.file-menu-panel .quick-btn:hover {
+  border-color: rgba(183, 204, 240, 0.8);
+  background: linear-gradient(180deg, rgba(126, 169, 236, 0.36), rgba(80, 128, 205, 0.3));
+}
+
+.file-menu-section {
+  display: grid;
+  gap: 5px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(191, 208, 238, 0.22);
+}
+
+.file-menu-section:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.file-menu-section-title {
+  margin: 0 0 2px;
+  padding: 0 2px;
+  color: #c7d9f7;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .category-menu-panel {
@@ -688,7 +728,7 @@ select {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 64px;
+  min-width: 56px;
   transition:
     background 0.14s ease,
     border-color 0.14s ease,
@@ -769,14 +809,18 @@ select {
 }
 
 .platform-mac .top-quickbar {
-  display: block;
-  min-height: 20px;
+  display: none;
+  min-height: 0;
   border-bottom: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+  background: transparent;
 }
 
 .platform-mac .cad-header {
-  -webkit-app-region: no-drag;
+  -webkit-app-region: drag;
+}
+
+.platform-win .cad-header {
+  -webkit-app-region: drag;
 }
 
 .platform-mac .ribbon-tabs,
@@ -790,14 +834,37 @@ select {
   -webkit-app-region: no-drag;
 }
 
+.platform-win .ribbon-tabs,
+.platform-win .ribbon,
+.platform-win .ribbon *,
+.platform-win .file-menu-panel,
+.platform-win button,
+.platform-win input,
+.platform-win select,
+.platform-win textarea {
+  -webkit-app-region: no-drag;
+}
+
 .platform-mac .ribbon-tabs {
-  padding-left: calc(8px + var(--traffic-space));
+  padding-left: calc(10px + var(--traffic-space));
   min-height: 28px;
+}
+
+.platform-win .ribbon-tabs {
+  padding-right: calc(8px + var(--window-controls-space));
 }
 
 .platform-mac #fileMenu,
 .platform-mac #fileMenuBtn,
 .platform-mac #fileMenuPanel {
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
+  z-index: 2600;
+}
+
+.platform-win #fileMenu,
+.platform-win #fileMenuBtn,
+.platform-win #fileMenuPanel {
   pointer-events: auto;
   -webkit-app-region: no-drag;
   z-index: 2600;

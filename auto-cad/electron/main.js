@@ -33,9 +33,19 @@ function resolveAppLanguage() {
 
 const t = (pl, en) => (resolveAppLanguage() === 'en' ? en : pl);
 const appLanguage = resolveAppLanguage();
+const transientWindows = new Set();
 
 function getCadConfigPath() {
   return path.join(app.getPath('userData'), 'private', 'cad-config.json');
+}
+
+function getAutoSavePath() {
+  return path.join(app.getPath('userData'), 'autosave', 'latest-session.json');
+}
+
+async function clearAutoSaveSnapshot() {
+  const autoSavePath = getAutoSavePath();
+  await fs.rm(autoSavePath, { force: true }).catch(() => {});
 }
 
 async function readCadConfig() {
@@ -664,6 +674,43 @@ async function findFirstWithExtension(dirPath, extension) {
 }
 
 async function handleSavePromptBeforeExit(win) {
+  let hasDrawableContent = true;
+  try {
+    hasDrawableContent = await win.webContents.executeJavaScript(
+      `
+      (() => {
+        if (typeof window.__madcadHasDrawableContent === 'function') {
+          return !!window.__madcadHasDrawableContent();
+        }
+        if (typeof window.__madcadGetSessionExport === 'function') {
+          try {
+            const raw = window.__madcadGetSessionExport();
+            const parsed = JSON.parse(raw || '{}');
+            return Array.isArray(parsed.entities) && parsed.entities.length > 0;
+          } catch (_error) {
+            return true;
+          }
+        }
+        return true;
+      })();
+      `,
+      true
+    );
+  } catch (_error) {
+    hasDrawableContent = true;
+  }
+
+  if (!hasDrawableContent) {
+    try {
+      await win.webContents.executeJavaScript(
+        'window.__madcadClearRuntimeSession && window.__madcadClearRuntimeSession();',
+        true
+      );
+    } catch (_error) {}
+    await clearAutoSaveSnapshot();
+    return true;
+  }
+
   const response = await dialog.showMessageBox(win, {
     type: 'question',
     buttons: [t('Zapisz i wyjdź', 'Save and Exit'), t('Wyjdź bez zapisu', 'Exit Without Saving'), t('Anuluj', 'Cancel')],
@@ -724,6 +771,7 @@ async function handleSavePromptBeforeExit(win) {
       true
     );
   } catch (_error) {}
+  await clearAutoSaveSnapshot();
 
   return true;
 }
@@ -738,9 +786,20 @@ function createMainWindow() {
     backgroundColor: '#111b29',
     title: appLanguage === 'en' ? 'MadCAD 2D EN' : 'MadCAD 2D PL',
     icon: appIconPng,
+    autoHideMenuBar: !isMac,
     ...(isMac
       ? {
-          titleBarStyle: 'hiddenInset'
+          titleBarStyle: 'hidden',
+          trafficLightPosition: { x: 14, y: 12 }
+        }
+      : isWindows
+      ? {
+          titleBarStyle: 'hidden',
+          titleBarOverlay: {
+            color: '#1f3048',
+            symbolColor: '#dbe7ff',
+            height: 34
+          }
         }
       : {}),
     webPreferences: {
@@ -767,6 +826,10 @@ function createMainWindow() {
     win.webContents.openDevTools({ mode: 'detach' });
   }
 
+  if (!isMac) {
+    win.setMenuBarVisibility(false);
+  }
+
   let closeApproved = false;
   win.on('close', (event) => {
     if (closeApproved) {
@@ -787,6 +850,16 @@ function createMainWindow() {
   });
 
   return win;
+}
+
+function retainWindow(win) {
+  if (!win) {
+    return;
+  }
+  transientWindows.add(win);
+  win.on('closed', () => {
+    transientWindows.delete(win);
+  });
 }
 
 function createMenu() {
@@ -912,6 +985,138 @@ ipcMain.handle('madcad:save-text-file', async (event, payload) => {
       ok: false,
       canceled: false,
       error: error && error.message ? String(error.message) : t('Nieznany błąd zapisu', 'Unknown save error')
+    };
+  }
+});
+
+ipcMain.handle('madcad:autosave-write', async (_event, payload) => {
+  try {
+    const text = payload && typeof payload.text === 'string' ? payload.text : '';
+    if (!text.trim()) {
+      return {
+        ok: false,
+        error: t('Brak danych autozapisu.', 'Missing autosave payload.')
+      };
+    }
+    const autoSavePath = getAutoSavePath();
+    await fs.mkdir(path.dirname(autoSavePath), { recursive: true });
+    await fs.writeFile(autoSavePath, text, 'utf8');
+    return {
+      ok: true,
+      filePath: autoSavePath,
+      savedAt: new Date().toISOString()
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error && error.message ? String(error.message) : t('Nie udało się zapisać autozapisu.', 'Autosave write failed.')
+    };
+  }
+});
+
+ipcMain.handle('madcad:autosave-read', async () => {
+  try {
+    const autoSavePath = getAutoSavePath();
+    let stat = null;
+    try {
+      stat = await fs.stat(autoSavePath);
+    } catch (_error) {
+      return { ok: true, exists: false, filePath: autoSavePath };
+    }
+    const text = await fs.readFile(autoSavePath, 'utf8');
+    return {
+      ok: true,
+      exists: true,
+      filePath: autoSavePath,
+      text,
+      updatedAt: stat && stat.mtime ? stat.mtime.toISOString() : null
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      exists: false,
+      error:
+        error && error.message ? String(error.message) : t('Nie udało się odczytać autozapisu.', 'Autosave read failed.')
+    };
+  }
+});
+
+ipcMain.handle('madcad:autosave-clear', async () => {
+  try {
+    await clearAutoSaveSnapshot();
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error && error.message ? String(error.message) : t('Nie udało się usunąć autozapisu.', 'Autosave clear failed.')
+    };
+  }
+});
+
+ipcMain.handle('madcad:open-print-preview', async (event, payload) => {
+  try {
+    const html = payload && typeof payload.html === 'string' ? payload.html : '';
+    const windowTitle =
+      payload && typeof payload.title === 'string' && payload.title.trim()
+        ? payload.title.trim()
+        : t('MadCAD 2D - wydruk', 'MadCAD 2D - print');
+
+    if (!html || html.length < 32) {
+      return { ok: false, error: t('Brak danych podglądu wydruku.', 'Missing print preview data.') };
+    }
+    if (html.length > 8_000_000) {
+      return { ok: false, error: t('Podgląd wydruku jest zbyt duży.', 'Print preview payload is too large.') };
+    }
+
+    const previewWindow = new BrowserWindow({
+      width: 1220,
+      height: 900,
+      minWidth: 900,
+      minHeight: 640,
+      show: false,
+      backgroundColor: '#f3f5fa',
+      title: windowTitle,
+      autoHideMenuBar: true,
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true
+      }
+    });
+    retainWindow(previewWindow);
+
+    if (!isMac) {
+      previewWindow.removeMenu();
+    }
+
+    const previewDir = path.join(app.getPath('temp'), 'madcad-print-preview');
+    await fs.mkdir(previewDir, { recursive: true });
+    const previewPath = path.join(
+      previewDir,
+      `preview-${Date.now()}-${Math.random().toString(36).slice(2, 10)}.html`
+    );
+    await fs.writeFile(previewPath, html, 'utf8');
+    previewWindow.on('closed', () => {
+      void fs.unlink(previewPath).catch(() => {});
+    });
+    await previewWindow.loadFile(previewPath);
+    previewWindow.once('ready-to-show', () => {
+      if (!previewWindow.isDestroyed()) {
+        previewWindow.show();
+        previewWindow.focus();
+      }
+    });
+    if (!previewWindow.isDestroyed()) {
+      previewWindow.show();
+      previewWindow.focus();
+    }
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error && error.message ? String(error.message) : t('Nie udało się otworzyć podglądu.', 'Cannot open preview.')
     };
   }
 });

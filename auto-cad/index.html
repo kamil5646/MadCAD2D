@@ -20,7 +20,6 @@
             <button class="ribbon-tab has-icon" data-icon="&#127959;" data-page="design">Stal</button>
             <button class="ribbon-tab has-icon" data-icon="&#128065;" data-page="view">Widok</button>
             <button class="ribbon-tab has-icon" data-icon="&#128209;" data-page="layers">Warstwy</button>
-            <button class="ribbon-tab has-icon" data-icon="&#9000;" data-page="shortcuts">Skróty</button>
           </div>
           <div class="ribbon-actions">
             <button id="undoBtn" class="ribbon-action-btn has-icon" data-icon="&#8630;" data-pages="home" title="Cofnij">Cofnij (Ctrl+Z)</button>
@@ -56,7 +55,8 @@
             <div id="fileMenu" class="file-menu file-tab-menu file-tab-menu-right">
               <button
                 id="fileMenuBtn"
-                class="ribbon-tab ribbon-tab-file"
+                class="ribbon-tab ribbon-tab-file has-icon"
+                data-icon="&#128190;"
                 aria-haspopup="true"
                 aria-expanded="false"
                 aria-controls="fileMenuPanel"
@@ -65,30 +65,39 @@
                 Zapisz/Drukuj (Alt+S)
               </button>
               <div id="fileMenuPanel" class="file-menu-panel file-tab-panel" role="menu" hidden>
-                <button id="loadJsonBtn" class="quick-btn has-icon" data-icon="&#128194;" role="menuitem">
-                  Wczytaj JSON (Ctrl+O)
-                </button>
-                <button id="saveJsonBtn" class="quick-btn has-icon" data-icon="&#128190;" role="menuitem">
-                  Zapisz JSON (Ctrl+S)
-                </button>
-                <button id="importDxfBtn" class="quick-btn has-icon" data-icon="&#128228;" role="menuitem">
-                  Wczytaj DXF (Alt+I)
-                </button>
-                <button id="exportDxfBtn" class="quick-btn has-icon" data-icon="&#128229;" role="menuitem">
-                  Eksport DXF (Alt+E)
-                </button>
-                <button id="exportSvgBtn" class="quick-btn has-icon" data-icon="&#128196;" role="menuitem">
-                  Eksport SVG (Alt+V)
-                </button>
-                <button id="printDrawingBtn" class="quick-btn has-icon" data-icon="&#128438;" role="menuitem">
-                  Drukuj/PDF (Ctrl+P)
-                </button>
-                <button id="importDwgBtn" class="quick-btn has-icon" data-icon="&#128228;" role="menuitem">
-                  Wczytaj DWG (Alt+W)
-                </button>
-                <button id="exportDwgBtn" class="quick-btn has-icon" data-icon="&#128229;" role="menuitem">
-                  Eksport DWG (Alt+R)
-                </button>
+                <div class="file-menu-section">
+                  <p class="file-menu-section-title">Projekt</p>
+                  <button id="loadJsonBtn" class="quick-btn has-icon" data-icon="&#128194;" role="menuitem">
+                    Wczytaj JSON (Ctrl+O)
+                  </button>
+                  <button id="saveJsonBtn" class="quick-btn has-icon" data-icon="&#128190;" role="menuitem">
+                    Zapisz JSON (Ctrl+S)
+                  </button>
+                </div>
+                <div class="file-menu-section">
+                  <p class="file-menu-section-title">CAD</p>
+                  <button id="importDxfBtn" class="quick-btn has-icon" data-icon="&#128228;" role="menuitem">
+                    Wczytaj DXF (Alt+I)
+                  </button>
+                  <button id="importDwgBtn" class="quick-btn has-icon" data-icon="&#128228;" role="menuitem">
+                    Wczytaj DWG (Alt+W)
+                  </button>
+                  <button id="exportDxfBtn" class="quick-btn has-icon" data-icon="&#128229;" role="menuitem">
+                    Eksport DXF (Alt+E)
+                  </button>
+                  <button id="exportDwgBtn" class="quick-btn has-icon" data-icon="&#128229;" role="menuitem">
+                    Eksport DWG (Alt+R)
+                  </button>
+                  <button id="exportSvgBtn" class="quick-btn has-icon" data-icon="&#128196;" role="menuitem">
+                    Eksport SVG (Alt+V)
+                  </button>
+                </div>
+                <div class="file-menu-section">
+                  <p class="file-menu-section-title">Wydruk</p>
+                  <button id="printDrawingBtn" class="quick-btn has-icon" data-icon="&#128438;" role="menuitem">
+                    Drukuj/PDF (Ctrl+P)
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -267,22 +276,6 @@
               <div id="layerList" class="layer-list layer-list-ribbon"></div>
             </div>
             <h2 class="has-icon" data-icon="&#128209;">Warstwy</h2>
-          </section>
-
-          <section class="ribbon-group ribbon-group-shortcuts" data-pages="shortcuts" data-modes="draw,steel">
-            <div class="ribbon-panel-body">
-              <ul class="ribbon-shortcuts-list">
-                <li><kbd>L</kbd> Linia, <kbd>P</kbd> Prostokąt, <kbd>O</kbd> Okrąg, <kbd>B</kbd> Malowanie, <kbd>Y</kbd> Polilinia, <kbd>D</kbd> Wymiar</li>
-                <li><kbd>Ctrl+S</kbd> Zapis JSON, <kbd>Ctrl+P</kbd> Drukuj/PDF, <kbd>Ctrl+Z</kbd> Cofnij, <kbd>Ctrl+Y</kbd> Ponów</li>
-                <li><kbd>Alt+I</kbd> Import DXF, <kbd>Alt+W</kbd> Import DWG, <kbd>Alt+E</kbd> Eksport DXF, <kbd>Alt+R</kbd> Eksport DWG</li>
-                <li><kbd>F2</kbd> Zakładka Skróty, <kbd>F3</kbd> Przyciąganie, <kbd>F4</kbd> Zwiń/Rozwiń wstążkę, <kbd>F6</kbd> Pokaż/Ukryj panele, <kbd>F8</kbd> Poziom/Pion</li>
-              </ul>
-              <div class="selection-info" style="margin-top:10px; white-space:normal;">
-                <strong>English:</strong> Download links for Windows and macOS are available on the
-                <a href="https://github.com/kamil5646/MadCAD2D/releases/tag/3.1" target="_blank" rel="noopener">Release 3.1 page</a>.
-              </div>
-            </div>
-            <h2 class="has-icon" data-icon="&#9000;">Szybkie skróty</h2>
           </section>
 
           <section

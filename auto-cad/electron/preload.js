@@ -57,6 +57,10 @@ contextBridge.exposeInMainWorld('desktopApp', {
   verifyLicenseSignature: (payloadJson, signatureBase64Url) =>
     verifyLicenseSignature(payloadJson, signatureBase64Url),
   saveTextFile: (payload) => ipcRenderer.invoke('madcad:save-text-file', payload),
+  autosaveWrite: (payload) => ipcRenderer.invoke('madcad:autosave-write', payload),
+  autosaveRead: () => ipcRenderer.invoke('madcad:autosave-read'),
+  autosaveClear: () => ipcRenderer.invoke('madcad:autosave-clear'),
+  openPrintPreviewWindow: (payload) => ipcRenderer.invoke('madcad:open-print-preview', payload),
   convertCadFile: (payload) => ipcRenderer.invoke('madcad:convert-cad-file', payload),
   getOdaStatus: () => ipcRenderer.invoke('madcad:get-oda-status'),
   installOdaAddon: () => ipcRenderer.invoke('madcad:install-oda-addon'),
