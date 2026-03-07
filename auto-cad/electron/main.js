@@ -300,28 +300,78 @@ function downloadFileWithRedirects(url, destinationPath, redirectCount = 0) {
 
 async function scheduleMacZipInstall(zipPath) {
   const appPath = path.resolve(process.execPath, '..', '..', '..');
+  const executablePath = process.execPath;
   const scriptPath = path.join(app.getPath('temp'), `madcad-update-${Date.now()}.sh`);
+  const logPath = path.join(app.getPath('temp'), `madcad-update-${Date.now()}.log`);
   const scriptSource = `#!/bin/bash
-set -e
+set -u
 ZIP_PATH="$1"
 TARGET_APP="$2"
-sleep 2
+LOG_PATH="$3"
+APP_EXECUTABLE="$4"
+
+exec >>"$LOG_PATH" 2>&1
+
+echo "== MadCAD updater start: $(date) =="
+echo "ZIP_PATH=$ZIP_PATH"
+echo "TARGET_APP=$TARGET_APP"
+echo "APP_EXECUTABLE=$APP_EXECUTABLE"
+
+sleep 1
 TMP_DIR="$(mktemp -d /tmp/madcad-update-XXXXXX)"
-/usr/bin/ditto -x -k "$ZIP_PATH" "$TMP_DIR"
-NEW_APP="$(/usr/bin/find "$TMP_DIR" -maxdepth 1 -name "*.app" -print -quit)"
-if [ -z "$NEW_APP" ]; then
+echo "TMP_DIR=$TMP_DIR"
+
+if ! /usr/bin/ditto -x -k "$ZIP_PATH" "$TMP_DIR"; then
+  echo "ERROR: unzip failed"
   exit 1
 fi
-/usr/bin/rm -rf "$TARGET_APP"
-/usr/bin/ditto "$NEW_APP" "$TARGET_APP"
-/usr/bin/open "$TARGET_APP"
+
+NEW_APP="$(/usr/bin/find "$TMP_DIR" -name "*.app" -type d -print -quit)"
+echo "NEW_APP=$NEW_APP"
+if [ -z "$NEW_APP" ]; then
+  echo "ERROR: extracted app not found"
+  exit 1
+fi
+
+for attempt in $(seq 1 60); do
+  if ! /usr/bin/pgrep -f "$APP_EXECUTABLE" >/dev/null 2>&1; then
+    echo "App process closed after attempt $attempt"
+    break
+  fi
+  sleep 0.5
+done
+
+for attempt in $(seq 1 20); do
+  echo "Remove target attempt $attempt"
+  /bin/rm -rf "$TARGET_APP" >/dev/null 2>&1 || true
+  if [ ! -e "$TARGET_APP" ]; then
+    break
+  fi
+  sleep 0.5
+done
+
+if [ -e "$TARGET_APP" ]; then
+  echo "ERROR: target app still exists after retries"
+  exit 1
+fi
+
+if ! /usr/bin/ditto "$NEW_APP" "$TARGET_APP"; then
+  echo "ERROR: copy app failed"
+  exit 1
+fi
+
+/usr/bin/xattr -dr com.apple.quarantine "$TARGET_APP" >/dev/null 2>&1 || true
+echo "Opening installed app"
+/usr/bin/open -n "$TARGET_APP"
+echo "== MadCAD updater done: $(date) =="
 `;
   await fs.writeFile(scriptPath, scriptSource, { mode: 0o755 });
-  const child = spawn('/bin/bash', [scriptPath, zipPath, appPath], {
+  const child = spawn('/bin/bash', [scriptPath, zipPath, appPath, logPath, executablePath], {
     detached: true,
     stdio: 'ignore'
   });
   child.unref();
+  return { logPath, scriptPath };
 }
 
 function launchWindowsInstaller(installerPath) {
@@ -1407,8 +1457,9 @@ ipcMain.handle('madcad:download-and-install-update', async (_event, payload) => 
     const downloadedPath = path.join(updateDir, `${Date.now()}-${fileBase}`);
     await downloadFileWithRedirects(downloadUrl, downloadedPath);
 
+    let installerMeta = null;
     if (isMac) {
-      await scheduleMacZipInstall(downloadedPath);
+      installerMeta = await scheduleMacZipInstall(downloadedPath);
     } else if (isWindows) {
       launchWindowsInstaller(downloadedPath);
     } else {
@@ -1428,7 +1479,8 @@ ipcMain.handle('madcad:download-and-install-update', async (_event, payload) => 
       ok: true,
       installing: true,
       downloadedPath,
-      latestVersion: latestVersion || null
+      latestVersion: latestVersion || null,
+      logPath: installerMeta && installerMeta.logPath ? installerMeta.logPath : null
     };
   } catch (error) {
     forceCloseForUpdate = false;

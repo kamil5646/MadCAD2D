@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.1.4 (2026-03-07)
+
+- Wzmocniono instalator aktualizacji na macOS.
+- Dodano log plikowy aktualizatora, oczekiwanie na pełne zamknięcie procesu oraz ponawianie podmiany aplikacji.
+- Usprawniono ponowne otwarcie aplikacji po udanej aktualizacji.
+
 ## 3.1.3 (2026-03-07)
 
 - Usprawniono aktualizator aplikacji i dodano automatyczne sprawdzanie przy starcie.
