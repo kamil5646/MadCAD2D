@@ -60,6 +60,8 @@ contextBridge.exposeInMainWorld('desktopApp', {
   autosaveWrite: (payload) => ipcRenderer.invoke('madcad:autosave-write', payload),
   autosaveRead: () => ipcRenderer.invoke('madcad:autosave-read'),
   autosaveClear: () => ipcRenderer.invoke('madcad:autosave-clear'),
+  checkForUpdates: () => ipcRenderer.invoke('madcad:check-for-updates'),
+  downloadAndInstallUpdate: (payload) => ipcRenderer.invoke('madcad:download-and-install-update', payload),
   openPrintPreviewWindow: (payload) => ipcRenderer.invoke('madcad:open-print-preview', payload),
   convertCadFile: (payload) => ipcRenderer.invoke('madcad:convert-cad-file', payload),
   getOdaStatus: () => ipcRenderer.invoke('madcad:get-oda-status'),

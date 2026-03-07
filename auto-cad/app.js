@@ -25,6 +25,7 @@
   const importDxfBtn = document.getElementById("importDxfBtn");
   const importDwgBtn = document.getElementById("importDwgBtn");
   const toggleRibbonBtn = document.getElementById("toggleRibbonBtn");
+  const updateAppBtn = document.getElementById("updateAppBtn");
   const fileMenu = document.getElementById("fileMenu");
   const fileMenuBtn = document.getElementById("fileMenuBtn");
   const fileMenuPanel = document.getElementById("fileMenuPanel");
@@ -195,6 +196,7 @@
       ["#steelGenerateQuickBtn", "Generate (Alt+G)"],
       ["#flyoutSelectionBtn", "Selection (Alt+Q)"],
       ["#toggleRibbonBtn", "Collapse ribbon (F4)"],
+      ["#updateAppBtn", "Updates"],
       ["#fileMenuBtn", "Save/Print (Alt+S)"],
       ["#loadJsonBtn", "Load JSON (Ctrl+O)"],
       ["#saveJsonBtn", "Save JSON (Ctrl+S)"],
@@ -243,6 +245,7 @@
     const titleEntries = [
       ["#undoBtn", "Undo"],
       ["#redoBtn", "Redo"],
+      ["#updateAppBtn", "Check and install app updates"],
       ["#licenseCategoryBtn", "License management"]
     ];
     for (const [selector, text] of titleEntries) {
@@ -258,6 +261,14 @@
     token: "",
     payload: null,
     deviceId: ""
+  };
+
+  const appUpdateState = {
+    busy: false,
+    installing: false,
+    payload: null,
+    available: false,
+    startupPromptShown: false
   };
 
   const baseLayerId = createId();
@@ -956,6 +967,253 @@
       fileMenuPanel.style.top = "";
       fileMenuPanel.style.maxHeight = "";
     }
+  }
+
+  function setUpdateButtonUi(mode, payload) {
+    if (!updateAppBtn) {
+      return;
+    }
+    const t = (pl, en) => (APP_LANGUAGE === "en" ? en : pl);
+    const normalizedMode = String(mode || "idle").toLowerCase();
+    updateAppBtn.classList.remove("update-available", "update-busy");
+    updateAppBtn.disabled = false;
+
+    if (normalizedMode === "checking") {
+      updateAppBtn.classList.add("update-busy");
+      updateAppBtn.disabled = true;
+      updateAppBtn.textContent = t("Sprawdzam...", "Checking...");
+      updateAppBtn.title = t("Trwa sprawdzanie najnowszej wersji.", "Checking latest release.");
+      return;
+    }
+
+    if (normalizedMode === "installing") {
+      updateAppBtn.classList.add("update-busy");
+      updateAppBtn.disabled = true;
+      updateAppBtn.textContent = t("Instaluję...", "Installing...");
+      updateAppBtn.title = t("Trwa pobieranie i instalacja aktualizacji.", "Downloading and installing update.");
+      return;
+    }
+
+    if (normalizedMode === "available") {
+      const versionText =
+        payload && payload.latestVersion ? `v${String(payload.latestVersion).trim()}` : t("nowa", "new");
+      updateAppBtn.classList.add("update-available");
+      updateAppBtn.textContent = t(`Aktualizuj ${versionText}`, `Update ${versionText}`);
+      updateAppBtn.title = t(
+        "Dostępna nowa wersja. Kliknij, aby pobrać i zainstalować.",
+        "New version available. Click to download and install."
+      );
+      return;
+    }
+
+    if (normalizedMode === "current") {
+      const versionText =
+        payload && payload.currentVersion ? `v${String(payload.currentVersion).trim()}` : "";
+      updateAppBtn.textContent = versionText ? t(`Aktualne ${versionText}`, `Up to date ${versionText}`) : t("Aktualne", "Up to date");
+      updateAppBtn.title = t("Masz najnowszą wersję aplikacji.", "You have the latest app version.");
+      return;
+    }
+
+    if (normalizedMode === "unsupported") {
+      updateAppBtn.textContent = t("Aktualizacje: ręcznie", "Updates: manual");
+      updateAppBtn.title = t(
+        "Automatyczna aktualizacja nie jest dostępna w tym trybie.",
+        "Automatic update is not available in this mode."
+      );
+      return;
+    }
+
+    if (normalizedMode === "offline") {
+      updateAppBtn.textContent = t("Aktualizacje: offline", "Updates: offline");
+      updateAppBtn.title = t(
+        "Brak połączenia z internetem lub GitHub. Sprawdź połączenie i spróbuj ponownie.",
+        "No internet or GitHub connection. Check connection and try again."
+      );
+      return;
+    }
+
+    updateAppBtn.textContent = t("Aktualizacje", "Updates");
+    updateAppBtn.title = t("Sprawdza i instaluje aktualizacje aplikacji.", "Checks and installs app updates.");
+  }
+
+  async function checkForAppUpdates(options) {
+    const silent = Boolean(options && options.silent);
+    if (!updateAppBtn) {
+      return null;
+    }
+    if (
+      !window.desktopApp ||
+      typeof window.desktopApp.checkForUpdates !== "function" ||
+      typeof window.desktopApp.downloadAndInstallUpdate !== "function"
+    ) {
+      setUpdateButtonUi("unsupported");
+      return null;
+    }
+    if (appUpdateState.busy || appUpdateState.installing) {
+      return appUpdateState.payload;
+    }
+
+    appUpdateState.busy = true;
+    setUpdateButtonUi("checking");
+    let result = null;
+    try {
+      result = await window.desktopApp.checkForUpdates();
+    } catch (error) {
+      result = {
+        ok: false,
+        error: error && error.message ? String(error.message) : "Błąd sprawdzania aktualizacji."
+      };
+    }
+    appUpdateState.busy = false;
+
+    if (!result || result.ok !== true) {
+      appUpdateState.payload = null;
+      appUpdateState.available = false;
+      const isOffline = Boolean(
+        result && (String(result.code || "").toUpperCase() === "NETWORK" || String(result.code || "").toUpperCase() === "ENOTFOUND")
+      );
+      setUpdateButtonUi(silent ? "idle" : isOffline ? "offline" : "idle");
+      if (!silent) {
+        echoCommand(
+          isOffline
+            ? "Aktualizacje chwilowo niedostępne (brak połączenia z serwerem)."
+            : `Nie udało się sprawdzić aktualizacji${result && result.error ? `: ${result.error}` : "."}`,
+          true,
+          { toast: false }
+        );
+      }
+      return null;
+    }
+
+    appUpdateState.payload = result;
+    appUpdateState.available = Boolean(result.available);
+    if (result.available) {
+      setUpdateButtonUi("available", result);
+      if (!silent) {
+        echoCommand(
+          `Dostępna aktualizacja v${result.latestVersion || "?"}. Kliknij przycisk Aktualizacje, aby zainstalować.`
+        );
+      }
+      return result;
+    }
+
+    if (result.supported === false) {
+      setUpdateButtonUi("unsupported");
+      if (!silent && result.error) {
+        echoCommand(result.error, true, { toast: false });
+      }
+      return result;
+    }
+
+    setUpdateButtonUi("current", result);
+    if (!silent) {
+      echoCommand(`MadCAD 2D jest aktualny (v${result.currentVersion || "?"}).`);
+    }
+    return result;
+  }
+
+  async function installAvailableUpdate(payload) {
+    if (
+      !window.desktopApp ||
+      typeof window.desktopApp.downloadAndInstallUpdate !== "function"
+    ) {
+      echoCommand("Automatyczny aktualizator nie jest dostępny w tej wersji.", true);
+      return null;
+    }
+    if (appUpdateState.busy || appUpdateState.installing) {
+      return null;
+    }
+    const source =
+      payload && typeof payload === "object"
+        ? payload
+        : appUpdateState.payload && typeof appUpdateState.payload === "object"
+          ? appUpdateState.payload
+          : null;
+    if (!source || !source.available) {
+      return checkForAppUpdates({ silent: false });
+    }
+
+    appUpdateState.busy = true;
+    appUpdateState.installing = true;
+    setUpdateButtonUi("installing");
+    echoCommand("Pobieranie aktualizacji. Po chwili aplikacja uruchomi instalator.");
+
+    let result = null;
+    try {
+      result = await window.desktopApp.downloadAndInstallUpdate({
+        downloadUrl: source.downloadUrl || "",
+        assetName: source.assetName || "",
+        latestVersion: source.latestVersion || ""
+      });
+    } catch (error) {
+      result = {
+        ok: false,
+        installing: false,
+        error: error && error.message ? String(error.message) : "Błąd aktualizacji."
+      };
+    }
+
+    if (result && result.ok && result.installing) {
+      echoCommand("Aktualizacja uruchomiona. Aplikacja zamknie się i zainstaluje nową wersję.");
+      return result;
+    }
+
+    appUpdateState.busy = false;
+    appUpdateState.installing = false;
+
+    if (result && result.ok && result.upToDate) {
+      appUpdateState.available = false;
+      appUpdateState.payload = {
+        ...source,
+        available: false,
+        currentVersion: result.currentVersion || source.currentVersion,
+        latestVersion: result.latestVersion || source.latestVersion
+      };
+      setUpdateButtonUi("current", appUpdateState.payload);
+      echoCommand("Masz już najnowszą wersję programu.");
+      return result;
+    }
+
+    setUpdateButtonUi(appUpdateState.available ? "available" : "idle", appUpdateState.payload);
+    echoCommand(
+      `Nie udało się zainstalować aktualizacji${result && result.error ? `: ${result.error}` : "."}`,
+      true,
+      { toast: false }
+    );
+    return result;
+  }
+
+  async function promptForStartupUpdateIfNeeded(updateResult) {
+    if (appUpdateState.startupPromptShown) {
+      return;
+    }
+    appUpdateState.startupPromptShown = true;
+    if (!updateResult || updateResult.ok !== true || !updateResult.available) {
+      return;
+    }
+
+    const t = (pl, en) => (APP_LANGUAGE === "en" ? en : pl);
+    const versionText = updateResult.latestVersion ? `v${String(updateResult.latestVersion).trim()}` : t("nowsza wersja", "newer version");
+    const ask = window.confirm(
+      t(
+        `Dostępna jest aktualizacja ${versionText}.\n\nCzy chcesz zainstalować ją teraz?`,
+        `Update ${versionText} is available.\n\nDo you want to install it now?`
+      )
+    );
+
+    if (ask) {
+      await installAvailableUpdate(updateResult);
+      return;
+    }
+
+    echoCommand(
+      t(
+        `Aktualizacja ${versionText} jest dostępna. Możesz uruchomić ją później przyciskiem Aktualizacje.`,
+        `Update ${versionText} is available. You can install it later using the Updates button.`
+      ),
+      false,
+      { toast: false }
+    );
   }
 
   function updateToastAnchor() {
@@ -9704,6 +9962,7 @@
   function applyHoverHelpTooltips() {
     const tooltipById = {
       fileMenuBtn: "Menu zapisu i druku: otwieranie, zapis, import i eksport rysunków.",
+      updateAppBtn: "Sprawdza i instaluje aktualizacje aplikacji.",
       licenseCategoryBtn: "Otwiera panel informacji o licencji i aktywacji tokenu.",
       loadJsonBtn: "Wczytuje projekt z pliku JSON.",
       saveJsonBtn: "Zapisuje projekt do pliku JSON.",
@@ -10330,6 +10589,23 @@
         }
         if (target.closest("button")) {
           setFileMenuOpen(false);
+        }
+      });
+    }
+
+    if (updateAppBtn) {
+      updateAppBtn.addEventListener("click", async () => {
+        if (appUpdateState.busy || appUpdateState.installing) {
+          return;
+        }
+        const knownUpdate = appUpdateState.payload && appUpdateState.payload.available;
+        if (knownUpdate) {
+          await installAvailableUpdate(appUpdateState.payload);
+          return;
+        }
+        const checked = await checkForAppUpdates({ silent: false });
+        if (checked && checked.available) {
+          await installAvailableUpdate(checked);
         }
       });
     }
@@ -11140,6 +11416,14 @@
       resetTransientInputState();
       setFileMenuOpen(false);
     });
+    window.addEventListener("online", () => {
+      void checkForAppUpdates({ silent: true });
+    });
+    window.addEventListener("offline", () => {
+      appUpdateState.payload = null;
+      appUpdateState.available = false;
+      setUpdateButtonUi("idle");
+    });
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
         resetTransientInputState();
@@ -11168,6 +11452,7 @@
     setPaletteWidth(state.paletteWidth, { persist: false });
     syncDocumentControls();
     applyHoverHelpTooltips();
+    setUpdateButtonUi("idle");
     initializeEvents();
     initializeLayoutObservers();
     updateToastAnchor();
@@ -11186,6 +11471,8 @@
       setDwgExportButtonState(false);
       setDwgImportButtonState(false);
     }
+    const startupUpdateResult = await checkForAppUpdates({ silent: true });
+    await promptForStartupUpdateIfNeeded(startupUpdateResult);
     queueRender();
   }
 

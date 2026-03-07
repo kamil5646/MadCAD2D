@@ -44,6 +44,15 @@
             </button>
             <button id="toggleRibbonBtn" class="has-icon" data-icon="&#9660;" data-pages="view">Zwiń wstążkę (F4)</button>
             <button
+              id="updateAppBtn"
+              class="ribbon-action-btn has-icon"
+              data-icon="&#128260;"
+              type="button"
+              title="Sprawdza i instaluje aktualizacje aplikacji"
+            >
+              Aktualizacje
+            </button>
+            <button
               id="licenseCategoryBtn"
               class="license-summary-chip has-icon"
               data-icon="&#128274;"
@@ -65,8 +74,12 @@
                 Zapisz/Drukuj (Alt+S)
               </button>
               <div id="fileMenuPanel" class="file-menu-panel file-tab-panel" role="menu" hidden>
+                <div class="file-menu-header has-icon" data-icon="&#128190;">
+                  <strong>Zapisz / Drukuj</strong>
+                  <span>Projekt, import/eksport CAD i podgląd wydruku</span>
+                </div>
                 <div class="file-menu-section">
-                  <p class="file-menu-section-title">Projekt</p>
+                  <p class="file-menu-section-title has-icon" data-icon="&#128193;">Projekt</p>
                   <button id="loadJsonBtn" class="quick-btn has-icon" data-icon="&#128194;" role="menuitem">
                     Wczytaj JSON (Ctrl+O)
                   </button>
@@ -75,7 +88,7 @@
                   </button>
                 </div>
                 <div class="file-menu-section">
-                  <p class="file-menu-section-title">CAD</p>
+                  <p class="file-menu-section-title has-icon" data-icon="&#128736;">CAD</p>
                   <button id="importDxfBtn" class="quick-btn has-icon" data-icon="&#128228;" role="menuitem">
                     Wczytaj DXF (Alt+I)
                   </button>
@@ -93,7 +106,7 @@
                   </button>
                 </div>
                 <div class="file-menu-section">
-                  <p class="file-menu-section-title">Wydruk</p>
+                  <p class="file-menu-section-title has-icon" data-icon="&#128438;">Wydruk</p>
                   <button id="printDrawingBtn" class="quick-btn has-icon" data-icon="&#128438;" role="menuitem">
                     Drukuj/PDF (Ctrl+P)
                   </button>

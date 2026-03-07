@@ -2,7 +2,7 @@ const path = require('path');
 const fsRaw = require('fs');
 const fs = require('fs/promises');
 const https = require('https');
-const { execFile } = require('child_process');
+const { execFile, spawn } = require('child_process');
 const { promisify } = require('util');
 const { app, BrowserWindow, Menu, shell, nativeImage, dialog, ipcMain } = require('electron');
 
@@ -13,6 +13,10 @@ const isWindows = process.platform === 'win32';
 const appIconPng = path.join(__dirname, '..', 'assets', 'icons', 'madcad-512.png');
 const ODA_DOWNLOAD_URL = 'https://www.opendesign.com/guestfiles/oda_file_converter';
 const ODA_DOWNLOAD_PAGE_HOST = 'www.opendesign.com';
+const MADCAD_RELEASE_API_URL = 'https://api.github.com/repos/kamil5646/MadCAD2D/releases/latest';
+const MADCAD_RELEASE_LATEST_PAGE_URL = 'https://github.com/kamil5646/MadCAD2D/releases/latest';
+const MADCAD_UPDATE_USER_AGENT = 'MadCAD2D-Updater/1.0';
+let forceCloseForUpdate = false;
 
 function resolveAppLanguage() {
   if (process.env.APP_LANG === 'en') {
@@ -123,6 +127,314 @@ function httpsGetBuffer(url) {
       request.destroy(new Error('Timeout pobierania.'));
     });
   });
+}
+
+function normalizeVersionText(value) {
+  return String(value || '')
+    .trim()
+    .replace(/^v/i, '');
+}
+
+function parseVersionTuple(versionText) {
+  const parts = normalizeVersionText(versionText)
+    .split('.')
+    .map((part) => parseInt(part, 10));
+  while (parts.length < 3) {
+    parts.push(0);
+  }
+  return parts.slice(0, 3).map((part) => (Number.isFinite(part) ? part : 0));
+}
+
+function isVersionGreater(candidate, current) {
+  const a = parseVersionTuple(candidate);
+  const b = parseVersionTuple(current);
+  for (let i = 0; i < 3; i += 1) {
+    if (a[i] > b[i]) {
+      return true;
+    }
+    if (a[i] < b[i]) {
+      return false;
+    }
+  }
+  return false;
+}
+
+function selectReleaseAssetForPlatform(assets) {
+  const list = Array.isArray(assets) ? assets : [];
+  const normalized = list
+    .map((asset) => {
+      const name = String(asset && asset.name ? asset.name : '');
+      return {
+        raw: asset,
+        name,
+        lower: name.toLowerCase(),
+        url: String(asset && asset.browser_download_url ? asset.browser_download_url : '')
+      };
+    })
+    .filter((item) => item.name && item.url);
+
+  if (isMac && process.arch === 'arm64') {
+    return (
+      normalized.find(
+        (item) => item.lower.includes('mac') && item.lower.includes('arm64') && item.lower.endsWith('.zip')
+      ) || null
+    );
+  }
+  if (isMac) {
+    return (
+      normalized.find((item) => item.lower.includes('mac') && item.lower.endsWith('.zip')) || null
+    );
+  }
+  if (isWindows) {
+    return (
+      normalized.find(
+        (item) => item.lower.includes('win') && item.lower.includes('x64') && item.lower.endsWith('.exe')
+      ) || null
+    );
+  }
+  return null;
+}
+
+function httpsGetJson(url) {
+  return new Promise((resolve, reject) => {
+    const request = https.get(
+      url,
+      {
+        headers: {
+          'User-Agent': MADCAD_UPDATE_USER_AGENT,
+          Accept: 'application/vnd.github+json'
+        }
+      },
+      (response) => {
+        const status = Number(response.statusCode) || 0;
+        const location = response.headers.location;
+        if ([301, 302, 303, 307, 308].includes(status) && location) {
+          response.resume();
+          const nextUrl = location.startsWith('http') ? location : new URL(location, url).toString();
+          resolve(httpsGetJson(nextUrl));
+          return;
+        }
+        if (status < 200 || status >= 300) {
+          response.resume();
+          reject(new Error(`HTTP ${status}`));
+          return;
+        }
+        const chunks = [];
+        response.on('data', (chunk) => chunks.push(chunk));
+        response.on('end', () => {
+          try {
+            const payload = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+            resolve(payload);
+          } catch (error) {
+            reject(error);
+          }
+        });
+      }
+    );
+    request.on('error', reject);
+    request.setTimeout(30000, () => {
+      request.destroy(new Error('Timeout pobierania JSON.'));
+    });
+  });
+}
+
+function sanitizeFileName(name, fallback) {
+  const safeFallback = fallback || 'madcad-update.bin';
+  const value = String(name || '').trim();
+  if (!value) {
+    return safeFallback;
+  }
+  return value.replace(/[<>:"/\\|?*\x00-\x1F]/g, '_');
+}
+
+function downloadFileWithRedirects(url, destinationPath, redirectCount = 0) {
+  return new Promise((resolve, reject) => {
+    if (redirectCount > 8) {
+      reject(new Error('Zbyt wiele przekierowań podczas pobierania aktualizacji.'));
+      return;
+    }
+    const request = https.get(
+      url,
+      {
+        headers: {
+          'User-Agent': MADCAD_UPDATE_USER_AGENT,
+          Accept: '*/*'
+        }
+      },
+      (response) => {
+        const status = Number(response.statusCode) || 0;
+        const location = response.headers.location;
+        if ([301, 302, 303, 307, 308].includes(status) && location) {
+          response.resume();
+          const nextUrl = location.startsWith('http') ? location : new URL(location, url).toString();
+          resolve(downloadFileWithRedirects(nextUrl, destinationPath, redirectCount + 1));
+          return;
+        }
+        if (status < 200 || status >= 300) {
+          response.resume();
+          reject(new Error(`HTTP ${status}`));
+          return;
+        }
+
+        const stream = fsRaw.createWriteStream(destinationPath);
+        response.pipe(stream);
+        stream.on('finish', () => {
+          stream.close(() => resolve(destinationPath));
+        });
+        stream.on('error', async (error) => {
+          response.destroy();
+          await fs.rm(destinationPath, { force: true }).catch(() => {});
+          reject(error);
+        });
+      }
+    );
+    request.on('error', async (error) => {
+      await fs.rm(destinationPath, { force: true }).catch(() => {});
+      reject(error);
+    });
+    request.setTimeout(180000, () => {
+      request.destroy(new Error('Timeout pobierania pliku aktualizacji.'));
+    });
+  });
+}
+
+async function scheduleMacZipInstall(zipPath) {
+  const appPath = path.resolve(process.execPath, '..', '..', '..');
+  const scriptPath = path.join(app.getPath('temp'), `madcad-update-${Date.now()}.sh`);
+  const scriptSource = `#!/bin/bash
+set -e
+ZIP_PATH="$1"
+TARGET_APP="$2"
+sleep 2
+TMP_DIR="$(mktemp -d /tmp/madcad-update-XXXXXX)"
+/usr/bin/ditto -x -k "$ZIP_PATH" "$TMP_DIR"
+NEW_APP="$(/usr/bin/find "$TMP_DIR" -maxdepth 1 -name "*.app" -print -quit)"
+if [ -z "$NEW_APP" ]; then
+  exit 1
+fi
+/usr/bin/rm -rf "$TARGET_APP"
+/usr/bin/ditto "$NEW_APP" "$TARGET_APP"
+/usr/bin/open "$TARGET_APP"
+`;
+  await fs.writeFile(scriptPath, scriptSource, { mode: 0o755 });
+  const child = spawn('/bin/bash', [scriptPath, zipPath, appPath], {
+    detached: true,
+    stdio: 'ignore'
+  });
+  child.unref();
+}
+
+function launchWindowsInstaller(installerPath) {
+  const child = spawn(installerPath, [], {
+    detached: true,
+    stdio: 'ignore'
+  });
+  child.unref();
+}
+
+async function fetchLatestMadcadRelease() {
+  try {
+    const release = await httpsGetJson(MADCAD_RELEASE_API_URL);
+    const latestVersion = normalizeVersionText(String((release && (release.tag_name || release.name)) || ''));
+    if (!latestVersion) {
+      throw new Error(
+        t(
+          'Nie udało się odczytać wersji aktualizacji z GitHub Releases.',
+          'Cannot read update version from GitHub Releases.'
+        )
+      );
+    }
+    const asset = selectReleaseAssetForPlatform(release && release.assets);
+    return {
+      latestVersion,
+      asset,
+      releaseUrl: String((release && release.html_url) || '')
+    };
+  } catch (apiError) {
+    // Fallback: jeżeli API GitHub jest blokowane (DNS/proxy), próbujemy odczytu ze strony release.
+    try {
+      const html = (await httpsGetBuffer(MADCAD_RELEASE_LATEST_PAGE_URL)).toString('utf8');
+      const tagMatch = html.match(/\/releases\/tag\/v?(\d+\.\d+\.\d+)/i);
+      const latestVersion = normalizeVersionText((tagMatch && tagMatch[1]) || '');
+      if (!latestVersion) {
+        throw new Error('Missing latest version in release page.');
+      }
+
+      const assetMatches = Array.from(
+        html.matchAll(/href="([^"]*\/releases\/download\/[^"]+)"/gi)
+      ).map((match) => String(match && match[1] ? match[1] : '').replace(/&amp;/g, '&'));
+
+      const uniqueAssets = Array.from(new Set(assetMatches));
+      const assets = uniqueAssets
+        .map((href) => {
+          const fullUrl = href.startsWith('http') ? href : `https://github.com${href}`;
+          const urlWithoutQuery = fullUrl.split('?')[0];
+          const encodedName = path.basename(urlWithoutQuery || '');
+          let name = encodedName;
+          try {
+            name = decodeURIComponent(encodedName);
+          } catch (_error) {}
+          return {
+            name,
+            browser_download_url: fullUrl
+          };
+        })
+        .filter((asset) => asset.name && asset.browser_download_url);
+
+      const asset = selectReleaseAssetForPlatform(assets);
+      return {
+        latestVersion,
+        asset,
+        releaseUrl: `https://github.com/kamil5646/MadCAD2D/releases/tag/v${latestVersion}`
+      };
+    } catch (_fallbackError) {
+      throw apiError;
+    }
+  }
+}
+
+function mapUpdaterError(error, fallbackPl, fallbackEn) {
+  const rawMessage = String((error && error.message) || '');
+  const rawCode = String((error && error.code) || '').toUpperCase();
+  const merged = `${rawMessage} ${rawCode}`.toUpperCase();
+
+  const networkCodes = [
+    'ENOTFOUND',
+    'EAI_AGAIN',
+    'ETIMEDOUT',
+    'ECONNRESET',
+    'ECONNREFUSED',
+    'ENETUNREACH',
+    'EHOSTUNREACH'
+  ];
+  const isNetworkError = networkCodes.some((code) => merged.includes(code));
+  if (isNetworkError) {
+    return {
+      code: 'NETWORK',
+      message: t(
+        'Brak połączenia z serwerem aktualizacji (GitHub). Sprawdź internet lub DNS i spróbuj ponownie.',
+        'Cannot connect to update server (GitHub). Check internet or DNS and try again.'
+      ),
+      rawMessage
+    };
+  }
+
+  if (merged.includes('HTTP 403')) {
+    return {
+      code: 'RATE_LIMIT',
+      message: t(
+        'Limit zapytań do GitHub został osiągnięty. Spróbuj ponownie za kilka minut.',
+        'GitHub API rate limit reached. Try again in a few minutes.'
+      ),
+      rawMessage
+    };
+  }
+
+  return {
+    code: rawCode || 'UNKNOWN',
+    message: t(fallbackPl, fallbackEn),
+    rawMessage
+  };
 }
 
 async function resolveOdaDmgUrls() {
@@ -832,7 +1144,7 @@ function createMainWindow() {
 
   let closeApproved = false;
   win.on('close', (event) => {
-    if (closeApproved) {
+    if (closeApproved || forceCloseForUpdate) {
       return;
     }
     event.preventDefault();
@@ -985,6 +1297,152 @@ ipcMain.handle('madcad:save-text-file', async (event, payload) => {
       ok: false,
       canceled: false,
       error: error && error.message ? String(error.message) : t('Nieznany błąd zapisu', 'Unknown save error')
+    };
+  }
+});
+
+ipcMain.handle('madcad:check-for-updates', async () => {
+  try {
+    if (!app.isPackaged) {
+      return {
+        ok: true,
+        available: false,
+        supported: false,
+        currentVersion: normalizeVersionText(app.getVersion()),
+        latestVersion: null,
+        releaseUrl: '',
+        error: t(
+          'Aktualizator działa tylko w wersji zainstalowanej (build release).',
+          'Updater works only in installed release builds.'
+        )
+      };
+    }
+    const currentVersion = normalizeVersionText(app.getVersion());
+    const latest = await fetchLatestMadcadRelease();
+    const hasNewerVersion = isVersionGreater(latest.latestVersion, currentVersion);
+    const hasAssetForPlatform = Boolean(latest.asset && latest.asset.url);
+    return {
+      ok: true,
+      available: hasNewerVersion && hasAssetForPlatform,
+      supported: hasAssetForPlatform,
+      currentVersion,
+      latestVersion: latest.latestVersion,
+      assetName: latest.asset ? latest.asset.name : null,
+      downloadUrl: latest.asset ? latest.asset.url : null,
+      releaseUrl: latest.releaseUrl || ''
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      available: false,
+      supported: false,
+      ...(function () {
+        const mapped = mapUpdaterError(error, 'Nie udało się sprawdzić aktualizacji.', 'Cannot check updates.');
+        return {
+          error: mapped.message,
+          code: mapped.code,
+          debug: mapped.rawMessage || null
+        };
+      })()
+    };
+  }
+});
+
+ipcMain.handle('madcad:download-and-install-update', async (_event, payload) => {
+  try {
+    if (!app.isPackaged) {
+      return {
+        ok: false,
+        installing: false,
+        error: t(
+          'Aktualizator działa tylko w wersji zainstalowanej (build release).',
+          'Updater works only in installed release builds.'
+        )
+      };
+    }
+
+    let downloadUrl = String((payload && payload.downloadUrl) || '').trim();
+    let assetName = String((payload && payload.assetName) || '').trim();
+    let latestVersion = normalizeVersionText(String((payload && payload.latestVersion) || ''));
+
+    if (!downloadUrl) {
+      const latest = await fetchLatestMadcadRelease();
+      if (!latest.asset || !latest.asset.url) {
+        return {
+          ok: false,
+          installing: false,
+          error: t(
+            'Brak paczki aktualizacji dla tej platformy.',
+            'No update package is available for this platform.'
+          )
+        };
+      }
+      downloadUrl = String(latest.asset.url || '').trim();
+      assetName = String(latest.asset.name || '').trim();
+      latestVersion = latest.latestVersion;
+    }
+
+    if (!downloadUrl) {
+      return {
+        ok: false,
+        installing: false,
+        error: t('Brak adresu pobierania aktualizacji.', 'Missing update download URL.')
+      };
+    }
+
+    const currentVersion = normalizeVersionText(app.getVersion());
+    if (latestVersion && !isVersionGreater(latestVersion, currentVersion)) {
+      return {
+        ok: true,
+        installing: false,
+        upToDate: true,
+        currentVersion,
+        latestVersion
+      };
+    }
+
+    const updateDir = path.join(app.getPath('temp'), 'madcad-updater');
+    await fs.mkdir(updateDir, { recursive: true });
+    const fileBase = sanitizeFileName(assetName, isWindows ? 'madcad-update.exe' : 'madcad-update.zip');
+    const downloadedPath = path.join(updateDir, `${Date.now()}-${fileBase}`);
+    await downloadFileWithRedirects(downloadUrl, downloadedPath);
+
+    if (isMac) {
+      await scheduleMacZipInstall(downloadedPath);
+    } else if (isWindows) {
+      launchWindowsInstaller(downloadedPath);
+    } else {
+      return {
+        ok: false,
+        installing: false,
+        error: t('Ta platforma nie jest jeszcze obsługiwana przez aktualizator.', 'This platform is not supported by updater yet.')
+      };
+    }
+
+    forceCloseForUpdate = true;
+    setTimeout(() => {
+      app.quit();
+    }, 120);
+
+    return {
+      ok: true,
+      installing: true,
+      downloadedPath,
+      latestVersion: latestVersion || null
+    };
+  } catch (error) {
+    forceCloseForUpdate = false;
+    const mapped = mapUpdaterError(
+      error,
+      'Nie udało się pobrać lub zainstalować aktualizacji.',
+      'Failed to download or install update.'
+    );
+    return {
+      ok: false,
+      installing: false,
+      error: mapped.message,
+      code: mapped.code,
+      debug: mapped.rawMessage || null
     };
   }
 });

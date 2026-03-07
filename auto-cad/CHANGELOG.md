@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.1.3 (2026-03-07)
+
+- Usprawniono aktualizator aplikacji i dodano automatyczne sprawdzanie przy starcie.
+- Dodano pytanie o instalację, gdy nowa wersja jest dostępna po uruchomieniu programu.
+- Naprawiono czytelność komunikatów aktualizatora oraz usunięto fałszywy status `offline` przy starcie.
+- Ujednolicono panel `Zapisz/Drukuj` z resztą interfejsu wstążki.
+
 ## 3.1.2 (2026-03-06)
 
 ### Dodano / zmieniono
