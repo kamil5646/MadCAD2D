@@ -1,8 +1,13 @@
 {
   "version": 1,
-  "mode": "denylist",
-  "updatedAt": "2026-03-08T17:05:00Z",
+  "mode": "allowlist",
+  "updatedAt": "2026-03-08T17:40:00Z",
   "tokens": [
+    {
+      "tokenHash": "cbcf464ec190adf9e92e8a08271ba5f3c84afa9eb48ff5361f2300ef80dcc1e3",
+      "status": "active",
+      "reason": "Aktualnie aktywna licencja"
+    },
     {
       "tokenHash": "bb4f6d4433f38b72d7ee1110a79d71f7257477f6b2f173bcc33cb05e398a905a",
       "status": "revoked",
