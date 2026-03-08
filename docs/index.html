@@ -1043,6 +1043,7 @@
         const TOKEN_LEGACY_LAST_KEY = "generatedPrivateToken";
         const TOKEN_ADMIN_PIN_HASH_KEY = "madcad-token-admin-pin-hash-v1";
         const TOKEN_REGISTRY_API_SYNC_KEY = "madcad-token-registry-api-sync-v1";
+        const TOKEN_REGISTRY_API_TOKEN_SESSION_KEY = "madcad-token-registry-api-token-session-v1";
         const DEFAULT_REGISTRY_API_URL = "https://madcad-license-registry.kamil5646.workers.dev/v1/license-registry";
         let adminUnlocked = false;
         let registryApiSyncBusy = false;
@@ -1159,10 +1160,11 @@
 
         async function pushRegistryToBackendApi(reason) {
           const cfg = readRegistryApiSyncConfig();
+          const adminToken = readRegistryApiSessionToken();
           if (!cfg.enabled) {
             return false;
           }
-          if (!cfg.apiUrl || !cfg.adminToken) {
+          if (!cfg.apiUrl || !adminToken) {
             setRegistryApiSyncStatus("Brak konfiguracji API URL lub tokenu.", "err");
             return false;
           }
@@ -1177,7 +1179,7 @@
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${cfg.adminToken}`
+                "Authorization": `Bearer ${adminToken}`
               },
               body: JSON.stringify(payload)
             });
@@ -1261,37 +1263,57 @@
             if (!raw) {
               return {
                 enabled: false,
-                apiUrl: DEFAULT_REGISTRY_API_URL,
-                adminToken: ""
+                apiUrl: DEFAULT_REGISTRY_API_URL
               };
             }
             const parsed = JSON.parse(raw);
             if (!parsed || typeof parsed !== "object") {
               return {
                 enabled: false,
-                apiUrl: DEFAULT_REGISTRY_API_URL,
-                adminToken: ""
+                apiUrl: DEFAULT_REGISTRY_API_URL
               };
             }
             return {
               enabled: Boolean(parsed.enabled),
-              apiUrl: String(parsed.apiUrl || DEFAULT_REGISTRY_API_URL).trim(),
-              adminToken: String(parsed.adminToken || "").trim()
+              apiUrl: String(parsed.apiUrl || DEFAULT_REGISTRY_API_URL).trim()
             };
           } catch {
             return {
               enabled: false,
-              apiUrl: DEFAULT_REGISTRY_API_URL,
-              adminToken: ""
+              apiUrl: DEFAULT_REGISTRY_API_URL
             };
           }
+        }
+
+        function readRegistryApiSessionToken() {
+          try {
+            return String(sessionStorage.getItem(TOKEN_REGISTRY_API_TOKEN_SESSION_KEY) || "").trim();
+          } catch {
+            return "";
+          }
+        }
+
+        function writeRegistryApiSessionToken(value) {
+          try {
+            const next = String(value || "").trim();
+            if (!next) {
+              sessionStorage.removeItem(TOKEN_REGISTRY_API_TOKEN_SESSION_KEY);
+              return;
+            }
+            sessionStorage.setItem(TOKEN_REGISTRY_API_TOKEN_SESSION_KEY, next);
+          } catch {}
+        }
+
+        function clearRegistryApiSessionToken() {
+          try {
+            sessionStorage.removeItem(TOKEN_REGISTRY_API_TOKEN_SESSION_KEY);
+          } catch {}
         }
 
         function writeRegistryApiSyncConfig(config) {
           const next = {
             enabled: Boolean(config && config.enabled),
-            apiUrl: String(config && config.apiUrl ? config.apiUrl : "").trim(),
-            adminToken: String(config && config.adminToken ? config.adminToken : "").trim()
+            apiUrl: String(config && config.apiUrl ? config.apiUrl : "").trim()
           };
           localStorage.setItem(TOKEN_REGISTRY_API_SYNC_KEY, JSON.stringify(next));
           return next;
@@ -1299,13 +1321,14 @@
 
         function applyRegistryApiSyncConfigToUi() {
           const cfg = readRegistryApiSyncConfig();
+          const adminToken = readRegistryApiSessionToken();
           if (registryApiUrlInput) {
             registryApiUrlInput.value = cfg.apiUrl;
           }
           if (registryApiTokenInput) {
-            registryApiTokenInput.value = cfg.adminToken;
+            registryApiTokenInput.value = adminToken;
           }
-          if (cfg.enabled && cfg.apiUrl && cfg.adminToken) {
+          if (cfg.enabled && cfg.apiUrl && adminToken) {
             setRegistryApiSyncStatus("Auto-sync API aktywny.", "ok");
           } else {
             setRegistryApiSyncStatus("Auto-sync API wyłączony.", "err");
@@ -1558,6 +1581,7 @@
               localStorage.removeItem(key);
             } catch {}
           });
+          clearRegistryApiSessionToken();
           clearLastPrivateToken();
           if (output) {
             output.value = "";
@@ -1854,9 +1878,9 @@
             }
             writeRegistryApiSyncConfig({
               enabled: true,
-              apiUrl,
-              adminToken
+              apiUrl
             });
+            writeRegistryApiSessionToken(adminToken);
             setRegistryApiSyncStatus("Auto-sync API zapisany.", "ok");
             void pushRegistryToBackendApi("Konfiguracja auto-sync");
           });
@@ -1878,9 +1902,9 @@
             const current = readRegistryApiSyncConfig();
             writeRegistryApiSyncConfig({
               enabled: false,
-              apiUrl: current.apiUrl,
-              adminToken: ""
+              apiUrl: current.apiUrl
             });
+            clearRegistryApiSessionToken();
             applyRegistryApiSyncConfigToUi();
             setRegistryApiSyncStatus("Auto-sync API wyłączony.", "err");
           });
