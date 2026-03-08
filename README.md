@@ -11,7 +11,7 @@ MadCAD 2D to desktopowa aplikacja CAD 2D do szybkiego projektowania elementów t
 ## Szybkie Linki
 - Najnowszy release: https://github.com/kamil5646/MadCAD2D/releases/latest
 - GitHub Pages: https://kamil5646.github.io/MadCAD2D/
-- Dokumentacja aplikacji: [`auto-cad/README.md`](./auto-cad/README.md)
+- Dokumentacja aplikacji: [`madcad-2d/README.md`](./madcad-2d/README.md)
 
 ## PL
 ### Co to jest
@@ -31,19 +31,19 @@ MadCAD 2D łączy klasyczne narzędzia CAD 2D z gotowym workflow pod bramy, ogro
 
 ### Szybki Start (dev)
 ```bash
-cd auto-cad
+cd madcad-2d
 npm install
 npm run dev
 ```
 
 ### Build
 ```bash
-cd auto-cad
+cd madcad-2d
 npm run dist:release:trusted
 ```
 
 ### Struktura repo
-- `auto-cad/` - główny kod aplikacji desktop (Electron + UI CAD).
+- `madcad-2d/` - główny kod aplikacji desktop (Electron + UI CAD).
 - `docs/` - strona projektu na GitHub Pages.
 - katalog główny - pliki prawne i organizacyjne.
 
@@ -67,19 +67,19 @@ MadCAD 2D is a desktop 2D CAD app focused on technical drawing and steel-structu
 
 ### Quick Start (dev)
 ```bash
-cd auto-cad
+cd madcad-2d
 npm install
 npm run dev
 ```
 
 ### Build
 ```bash
-cd auto-cad
+cd madcad-2d
 npm run dist:release:trusted
 ```
 
 ### Repository Layout
-- `auto-cad/` - main desktop app code (Electron + CAD UI).
+- `madcad-2d/` - main desktop app code (Electron + CAD UI).
 - `docs/` - project website hosted on GitHub Pages.
 - repository root - legal and project files.
 

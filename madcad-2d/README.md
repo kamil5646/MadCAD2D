@@ -19,7 +19,7 @@ Aplikacja desktop CAD 2D (Electron) do projektowania technicznego i konstrukcji 
 - Przy pierwszym uruchomieniu aplikacja pyta o język (`PL` lub `EN`).
 - Wybór jest zapamiętywany lokalnie i nie jest pytany ponownie.
 
-## Struktura Katalogu `auto-cad/`
+## Struktura Katalogu `madcad-2d/`
 - `app.js` - logika UI i narzędzi CAD.
 - `index.html` + `style.css` - interfejs aplikacji.
 - `electron/` - proces main/preload i integracje desktop.
@@ -34,13 +34,13 @@ Aplikacja desktop CAD 2D (Electron) do projektowania technicznego i konstrukcji 
 
 ## Uruchomienie Lokalnie (Dev)
 ```bash
-cd auto-cad
+cd madcad-2d
 npm install
 npm run dev
 ```
 
 ## Buildy
-Wszystkie komendy uruchamiaj z `auto-cad/`.
+Wszystkie komendy uruchamiaj z `madcad-2d/`.
 
 ### macOS (dir)
 ```bash
