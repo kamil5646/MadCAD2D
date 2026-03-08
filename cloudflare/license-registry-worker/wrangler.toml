@@ -8,3 +8,7 @@ id = "ca45525977374441b7787abe3d9975bf"
 
 [vars]
 ALLOWED_ORIGIN = "https://kamil5646.github.io"
+PAYPAL_COMMERCIAL_AMOUNT = "99.00"
+PAYPAL_CURRENCY = "USD"
+PAYPAL_RETURN_URL = "https://kamil5646.github.io/MadCAD2D/?checkout=paypal"
+PAYPAL_CANCEL_URL = "https://kamil5646.github.io/MadCAD2D/?checkout=paypal-cancel"

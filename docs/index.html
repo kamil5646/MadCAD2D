@@ -717,8 +717,12 @@
 
           <div class="token-actions">
             <button id="generatePrivateTokenBtn" class="btn" type="button">Generuj token prywatny</button>
+            <button id="buyCommercialTokenBtn" class="btn secondary" type="button">Zaloguj i zapłać PayPal (komercyjny)</button>
             <button id="copyPrivateTokenBtn" class="btn secondary" type="button">Kopiuj token</button>
           </div>
+          <p id="paypalFlowHelp" class="token-status">
+            Licencja komercyjna: kliknij PayPal, zaloguj się i opłać. Po powrocie token wygeneruje się automatycznie.
+          </p>
 
           <div class="field">
             <label for="generatedPrivateToken">Wygenerowany token</label>
@@ -934,7 +938,9 @@
           setText("label[for='tokenPurpose']", "Cel prywatnego użycia", "Private usage purpose");
           setText("label[for='tokenDeviceId']", "ID urządzenia (z aplikacji)", "Device ID (from app)");
           setText("#generatePrivateTokenBtn", "Generuj token prywatny", "Generate private token");
+          setText("#buyCommercialTokenBtn", "Zaloguj i zapłać PayPal (komercyjny)", "Sign in and pay with PayPal (commercial)");
           setText("#copyPrivateTokenBtn", "Kopiuj token", "Copy token");
+          setText("#paypalFlowHelp", "Licencja komercyjna: kliknij PayPal, zaloguj się i opłać. Po powrocie token wygeneruje się automatycznie.", "Commercial license: click PayPal, sign in, and pay. After you return, the token is generated automatically.");
           setText("label[for='generatedPrivateToken']", "Wygenerowany token", "Generated token");
           setText("#token-admin h2", "Prywatny panel zarządzania tokenami", "Private token management panel");
           setText("#token-admin .lead", "Panel administratora działa tylko po wejściu przez link prywatny i odblokowaniu PIN-em. Dane są zapisywane lokalnie w przeglądarce. Jeśli ustawisz API backendu, zmiany będą synchronizowane automatycznie bez dostępu strony do repozytorium GitHub.", "The admin panel works only via a private link and PIN unlock. Data is stored locally in the browser. If you configure a backend API, changes are synchronized automatically without giving the website access to your GitHub repository.");
@@ -986,6 +992,7 @@
         const purposeInput = document.getElementById("tokenPurpose");
         const deviceIdInput = document.getElementById("tokenDeviceId");
         const generateBtn = document.getElementById("generatePrivateTokenBtn");
+        const buyCommercialBtn = document.getElementById("buyCommercialTokenBtn");
         const copyBtn = document.getElementById("copyPrivateTokenBtn");
         const output = document.getElementById("generatedPrivateToken");
         const statusEl = document.getElementById("tokenStatus");
@@ -1043,8 +1050,11 @@
         const TOKEN_ADMIN_PIN_HASH_KEY = "madcad-token-admin-pin-hash-v1";
         const TOKEN_REGISTRY_API_SYNC_KEY = "madcad-token-registry-api-sync-v1";
         const TOKEN_REGISTRY_API_TOKEN_SESSION_KEY = "madcad-token-registry-api-token-session-v1";
+        const TOKEN_PAYPAL_PENDING_ORDER_KEY = "madcad-paypal-pending-order-v1";
         const DEFAULT_REGISTRY_API_URL = "https://madcad-license-registry.kkasprzak15.workers.dev/v1/license-registry";
         const DEFAULT_ISSUE_PRIVATE_URL = "https://madcad-license-registry.kkasprzak15.workers.dev/v1/license-tokens/issue-private";
+        const DEFAULT_PAYPAL_CREATE_ORDER_URL = "https://madcad-license-registry.kkasprzak15.workers.dev/v1/paypal/create-order";
+        const DEFAULT_PAYPAL_CAPTURE_ORDER_URL = "https://madcad-license-registry.kkasprzak15.workers.dev/v1/paypal/capture-order";
         let adminUnlocked = false;
         let registryApiSyncBusy = false;
         let registryApiSyncDebounceTimer = null;
@@ -1429,10 +1439,83 @@
           }
         }
 
+        function deriveWorkerEndpoint(apiUrl, endpointPath) {
+          const raw = String(apiUrl || "").trim();
+          const suffix = String(endpointPath || "").trim();
+          if (!raw || !suffix) {
+            return "";
+          }
+          try {
+            const parsed = new URL(raw);
+            if (!parsed.pathname.endsWith("/v1/license-registry")) {
+              return "";
+            }
+            parsed.pathname = `${parsed.pathname.slice(0, -"/v1/license-registry".length)}${suffix}`;
+            parsed.search = "";
+            parsed.hash = "";
+            return parsed.toString();
+          } catch {
+            return "";
+          }
+        }
+
         function getIssuePrivateUrl() {
           const cfg = readRegistryApiSyncConfig();
           const derived = deriveIssuePrivateUrl(cfg && cfg.apiUrl ? cfg.apiUrl : "");
           return derived || DEFAULT_ISSUE_PRIVATE_URL;
+        }
+
+        function getPayPalCreateOrderUrl() {
+          const cfg = readRegistryApiSyncConfig();
+          const derived = deriveWorkerEndpoint(cfg && cfg.apiUrl ? cfg.apiUrl : "", "/v1/paypal/create-order");
+          return derived || DEFAULT_PAYPAL_CREATE_ORDER_URL;
+        }
+
+        function getPayPalCaptureOrderUrl() {
+          const cfg = readRegistryApiSyncConfig();
+          const derived = deriveWorkerEndpoint(cfg && cfg.apiUrl ? cfg.apiUrl : "", "/v1/paypal/capture-order");
+          return derived || DEFAULT_PAYPAL_CAPTURE_ORDER_URL;
+        }
+
+        function readPendingPayPalOrder() {
+          try {
+            const raw = sessionStorage.getItem(TOKEN_PAYPAL_PENDING_ORDER_KEY);
+            if (!raw) {
+              return null;
+            }
+            const parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed !== "object") {
+              return null;
+            }
+            const orderId = String(parsed.orderId || "").trim();
+            if (!orderId) {
+              return null;
+            }
+            return {
+              orderId,
+              createdAt: String(parsed.createdAt || ""),
+              deviceId: String(parsed.deviceId || "")
+            };
+          } catch {
+            return null;
+          }
+        }
+
+        function writePendingPayPalOrder(orderId, deviceId) {
+          try {
+            const next = {
+              orderId: String(orderId || "").trim(),
+              deviceId: String(deviceId || "").trim(),
+              createdAt: new Date().toISOString()
+            };
+            sessionStorage.setItem(TOKEN_PAYPAL_PENDING_ORDER_KEY, JSON.stringify(next));
+          } catch {}
+        }
+
+        function clearPendingPayPalOrder() {
+          try {
+            sessionStorage.removeItem(TOKEN_PAYPAL_PENDING_ORDER_KEY);
+          } catch {}
         }
 
         function buildRegistryEntry(payload, token) {
@@ -1687,6 +1770,181 @@
           }
         }
 
+        async function buildCommercialTokenViaPayPal() {
+          const ownerName = String(ownerInput ? ownerInput.value : "").trim();
+          const email = normalizeEmail(emailInput ? emailInput.value : "");
+          const purpose = String(purposeInput ? purposeInput.value : "").trim();
+          const deviceId = String(deviceIdInput ? deviceIdInput.value : "").trim();
+
+          if (!ownerName) {
+            setStatus("Podaj imię i nazwisko.", "err");
+            return;
+          }
+          if (!email || !email.includes("@")) {
+            setStatus("Podaj poprawny adres e-mail.", "err");
+            return;
+          }
+          if (!deviceId || deviceId.length < 8) {
+            setStatus("Wklej poprawne ID urządzenia z aplikacji.", "err");
+            return;
+          }
+
+          if (buyCommercialBtn) {
+            buyCommercialBtn.disabled = true;
+          }
+          let redirectedToPayPal = false;
+          setStatus("Łączenie z PayPal...", "ok");
+          try {
+            const createOrderUrl = getPayPalCreateOrderUrl();
+            const response = await fetch(`${createOrderUrl}?ts=${Date.now()}`, {
+              method: "POST",
+              cache: "no-store",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                ownerName,
+                email,
+                purpose: purpose || "commercial-license",
+                deviceId,
+                plan: "commercial"
+              })
+            });
+            let body = null;
+            try {
+              body = await response.json();
+            } catch {}
+            if (!response.ok || !body || body.ok === false) {
+              const reason = body && body.error ? body.error : `HTTP ${response.status}`;
+              throw new Error(String(reason || "nieznany błąd"));
+            }
+
+            const orderId = String(body.orderId || "").trim();
+            const approveUrl = String(body.approveUrl || "").trim();
+            if (!orderId || !approveUrl) {
+              throw new Error("Brak danych zamówienia PayPal.");
+            }
+
+            writePendingPayPalOrder(orderId, deviceId);
+            setStatus("Przekierowanie do PayPal...", "ok");
+            redirectedToPayPal = true;
+            window.location.assign(approveUrl);
+          } catch (error) {
+            const reason = error && error.message ? error.message : "nieznany błąd";
+            setStatus(`Nie udało się uruchomić płatności PayPal: ${reason}`, "err");
+          } finally {
+            if (buyCommercialBtn && !redirectedToPayPal) {
+              buyCommercialBtn.disabled = false;
+            }
+          }
+        }
+
+        function cleanupPayPalQueryParams(params) {
+          const next = new URL(window.location.href);
+          const keysToRemove = ["token", "PayerID", "payerId", "checkout"];
+          keysToRemove.forEach((key) => {
+            if (params.has(key)) {
+              next.searchParams.delete(key);
+            }
+          });
+          const compact = `${next.pathname}${next.search}${next.hash}`;
+          window.history.replaceState({}, "", compact);
+        }
+
+        async function capturePayPalOrder(orderId) {
+          const normalizedOrderId = String(orderId || "").trim();
+          if (!/^[A-Z0-9-]{10,80}$/.test(normalizedOrderId)) {
+            setStatus("Nieprawidłowy identyfikator zamówienia PayPal.", "err");
+            return false;
+          }
+
+          if (buyCommercialBtn) {
+            buyCommercialBtn.disabled = true;
+          }
+          setStatus("Potwierdzanie płatności PayPal...", "ok");
+          try {
+            const captureUrl = getPayPalCaptureOrderUrl();
+            const response = await fetch(`${captureUrl}?ts=${Date.now()}`, {
+              method: "POST",
+              cache: "no-store",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                orderId: normalizedOrderId
+              })
+            });
+            let body = null;
+            try {
+              body = await response.json();
+            } catch {}
+            if (!response.ok || !body || body.ok === false) {
+              const reason = body && body.error ? body.error : `HTTP ${response.status}`;
+              throw new Error(String(reason || "nieznany błąd"));
+            }
+
+            const token = normalizeLicenseToken(body.token);
+            if (!token) {
+              throw new Error("Serwer nie zwrócił poprawnego tokenu.");
+            }
+
+            if (output) {
+              output.value = token;
+            }
+            setLastPrivateToken(token);
+            const payload = body.payload && typeof body.payload === "object"
+              ? body.payload
+              : {
+                  v: 2,
+                  scope: "commercial",
+                  ownerName: String(ownerInput ? ownerInput.value : "").trim(),
+                  email: normalizeEmail(emailInput ? emailInput.value : ""),
+                  purpose: "commercial-license",
+                  deviceId: String(deviceIdInput ? deviceIdInput.value : "").trim(),
+                  issuedAt: new Date().toISOString()
+                };
+            upsertRegistryEntry(buildRegistryEntry(payload, token));
+            if (adminUnlocked) {
+              renderTokenAdminTable();
+            }
+            clearPendingPayPalOrder();
+            setStatus("Token komercyjny aktywowany. Skopiuj i wklej go w aplikacji.", "ok");
+            return true;
+          } catch (error) {
+            const reason = error && error.message ? error.message : "nieznany błąd";
+            setStatus(`Nie udało się potwierdzić płatności PayPal: ${reason}`, "err");
+            return false;
+          } finally {
+            if (buyCommercialBtn) {
+              buyCommercialBtn.disabled = false;
+            }
+          }
+        }
+
+        async function handlePayPalReturn(params) {
+          const checkout = String(params.get("checkout") || "").trim().toLowerCase();
+          if (checkout === "paypal-cancel") {
+            clearPendingPayPalOrder();
+            setStatus("Płatność PayPal została anulowana.", "err");
+            cleanupPayPalQueryParams(params);
+            return;
+          }
+          const orderId = String(params.get("token") || "").trim();
+          const payerId = String(params.get("PayerID") || params.get("payerId") || "").trim();
+          if (!orderId || !payerId) {
+            return;
+          }
+          const pending = readPendingPayPalOrder();
+          if (pending && pending.orderId && pending.orderId !== orderId) {
+            setStatus("Wykryto inny identyfikator zamówienia PayPal. Spróbuj ponownie.", "err");
+            return;
+          }
+          const captured = await capturePayPalOrder(orderId);
+          if (captured) {
+            cleanupPayPalQueryParams(params);
+          }
+        }
+
         async function copyToken() {
           const value = String(output ? output.value : "").trim();
           if (!value) {
@@ -1703,6 +1961,11 @@
 
         if (generateBtn) {
           generateBtn.addEventListener("click", buildPrivateToken);
+        }
+        if (buyCommercialBtn) {
+          buyCommercialBtn.addEventListener("click", () => {
+            void buildCommercialTokenViaPayPal();
+          });
         }
         if (copyBtn) {
           copyBtn.addEventListener("click", copyToken);
@@ -1996,6 +2259,7 @@
         applyRegistryApiSyncConfigToUi();
 
         const params = new URLSearchParams(window.location.search);
+        void handlePayPalReturn(params);
         const queryDeviceId = String(params.get("deviceId") || "").trim();
         if (queryDeviceId && deviceIdInput && !deviceIdInput.value) {
           deviceIdInput.value = queryDeviceId;
