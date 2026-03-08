@@ -2272,6 +2272,19 @@
     }
   }
 
+  function readPersistedLicenseToken() {
+    try {
+      const raw = localStorage.getItem(LICENSE_STORAGE_KEY);
+      if (!raw) {
+        return "";
+      }
+      const record = JSON.parse(raw);
+      return String(record && record.token ? record.token : "").trim();
+    } catch (_error) {
+      return "";
+    }
+  }
+
   function normalizeLicenseOwner(payload) {
     if (!payload || typeof payload !== "object") {
       return "";
@@ -2340,6 +2353,30 @@
     const next = Boolean(visible);
     licenseOverlay.hidden = !next;
     licenseOverlay.setAttribute("aria-hidden", next ? "false" : "true");
+  }
+
+  function enforceLicenseStorageIntegrity(options) {
+    if (!licenseSession.active) {
+      return false;
+    }
+    const persistedToken = readPersistedLicenseToken();
+    if (persistedToken && persistedToken === licenseSession.token) {
+      return true;
+    }
+
+    licenseSession.token = "";
+    licenseSession.payload = null;
+    setLicenseLocked(true);
+    if (!options || options.silent !== true) {
+      setLicenseStatus("Wykryto brak lub zmianę klucza licencji. Wymagana ponowna aktywacja.", "error");
+      echoCommand("Licencja została usunięta lub zmieniona. Aplikacja została zablokowana.", true);
+    }
+    appendPrivateLicenseAudit(
+      "Integralność licencji",
+      "Wykryto brak lub zmianę lokalnego tokenu. Sesja została zablokowana.",
+      { deviceId: getLicenseDeviceId() }
+    );
+    return false;
   }
 
   function openLicenseManager() {
@@ -2532,16 +2569,7 @@
 
     updateLicenseSummaryChip();
 
-    let storedToken = "";
-    try {
-      const raw = localStorage.getItem(LICENSE_STORAGE_KEY);
-      if (raw) {
-        const record = JSON.parse(raw);
-        storedToken = String(record && record.token ? record.token : "").trim();
-      }
-    } catch (error) {
-      storedToken = "";
-    }
+    const storedToken = readPersistedLicenseToken();
 
     if (storedToken) {
       const result = activateLicenseToken(storedToken, { persist: false, silent: true });
@@ -10673,6 +10701,14 @@
     const inLicenseDialog =
       target instanceof Element ? Boolean(target.closest("#licenseOverlay")) : false;
 
+    if (licenseSession.active && !inLicenseDialog) {
+      const isStillLicensed = enforceLicenseStorageIntegrity();
+      if (!isStillLicensed) {
+        event.preventDefault();
+        return;
+      }
+    }
+
     if (!licenseSession.active && !inLicenseDialog) {
       event.preventDefault();
       return;
@@ -11047,6 +11083,29 @@
   }
 
   function initializeEvents() {
+    const isLicenseUiEventTarget = (target) => {
+      return target instanceof Element && Boolean(target.closest("#licenseOverlay, #licenseCategoryBtn"));
+    };
+
+    const guardInteractionWhenLocked = (event) => {
+      if (isLicenseUiEventTarget(event.target)) {
+        return;
+      }
+      if (licenseSession.active) {
+        const isStillLicensed = enforceLicenseStorageIntegrity();
+        if (isStillLicensed) {
+          return;
+        }
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      openLicenseManager();
+    };
+
+    document.addEventListener("pointerdown", guardInteractionWhenLocked, true);
+    document.addEventListener("click", guardInteractionWhenLocked, true);
+    document.addEventListener("submit", guardInteractionWhenLocked, true);
+
     const licenseEntryButtons = [licenseCategoryBtn].filter(Boolean);
     licenseEntryButtons.forEach((button) => {
       button.addEventListener("pointerdown", (event) => {
@@ -11929,6 +11988,16 @@
     window.addEventListener("blur", () => {
       resetTransientInputState();
       setFileMenuOpen(false);
+    });
+    window.addEventListener("focus", () => {
+      if (licenseSession.active) {
+        enforceLicenseStorageIntegrity({ silent: true });
+      }
+    });
+    window.addEventListener("storage", (event) => {
+      if (event.key === LICENSE_STORAGE_KEY && licenseSession.active) {
+        enforceLicenseStorageIntegrity();
+      }
     });
     window.addEventListener("online", () => {
       void checkForAppUpdates({ silent: true });
