@@ -176,9 +176,14 @@ function httpsGetBuffer(url) {
 }
 
 function normalizeVersionText(value) {
-  return String(value || '')
+  const cleaned = String(value || '')
     .trim()
     .replace(/^v/i, '');
+  const parts = cleaned.split('.');
+  while (parts.length > 2 && parts[parts.length - 1] === '0') {
+    parts.pop();
+  }
+  return parts.join('.');
 }
 
 function parseVersionTuple(versionText) {
