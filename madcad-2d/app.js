@@ -141,10 +141,11 @@
   const LICENSE_SIGNATURE_SALT = "MadCAD2D-Private-NoMods-SingleDevice-2026";
   const LICENSE_TOKEN_PREFIX = "M2D1";
   const LICENSE_PRIVATE_FORM_URL = "https://kamil5646.github.io/MadCAD2D/#token-prywatny";
+  const LICENSE_REGISTRY_ENDPOINTS_CONFIG_URL = "https://kamil5646.github.io/MadCAD2D/license-endpoints.json";
   const LICENSE_PUBLIC_REGISTRY_URLS = [
-    "https://madcad-license-registry.kamil5646.workers.dev/v1/license-registry",
     "https://kamil5646.github.io/MadCAD2D/license-registry.json"
   ];
+  const LICENSE_ENDPOINTS_CACHE_TTL_MS = 60000;
   const LICENSE_REMOTE_CHECK_TTL_MS = 10000;
   const LICENSE_REMOTE_RECHECK_INTERVAL_MS = 30000;
   function normalizeAppLanguage(value) {
@@ -749,6 +750,11 @@
     lastCheckedAt: 0,
     lastTokenHash: "",
     lastResultOk: null,
+    inFlight: null
+  };
+  const licenseRegistryEndpointsState = {
+    lastFetchedAt: 0,
+    urls: [],
     inFlight: null
   };
   let licenseRemoteRecheckTimer = null;
@@ -2366,7 +2372,66 @@
     if (typeof fetch !== "function") {
       throw new Error("Brak API fetch.");
     }
-    const urls = Array.isArray(LICENSE_PUBLIC_REGISTRY_URLS) ? LICENSE_PUBLIC_REGISTRY_URLS : [];
+    const getSanitizedUrls = (list) => {
+      const source = Array.isArray(list) ? list : [];
+      const out = [];
+      const seen = new Set();
+      source.forEach((entry) => {
+        const value = String(entry || "").trim();
+        if (!value || seen.has(value)) {
+          return;
+        }
+        if (!/^https?:\/\//i.test(value)) {
+          return;
+        }
+        seen.add(value);
+        out.push(value);
+      });
+      return out;
+    };
+
+    const fetchConfiguredUrls = async () => {
+      const now = Date.now();
+      if (
+        licenseRegistryEndpointsState.urls.length > 0 &&
+        now - licenseRegistryEndpointsState.lastFetchedAt <= LICENSE_ENDPOINTS_CACHE_TTL_MS
+      ) {
+        return licenseRegistryEndpointsState.urls;
+      }
+      if (licenseRegistryEndpointsState.inFlight) {
+        return licenseRegistryEndpointsState.inFlight;
+      }
+      const task = (async () => {
+        try {
+          const response = await fetch(`${LICENSE_REGISTRY_ENDPOINTS_CONFIG_URL}?ts=${Date.now()}`, {
+            method: "GET",
+            cache: "no-store"
+          });
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          const payload = await response.json();
+          const configured = getSanitizedUrls(payload && payload.registryUrls ? payload.registryUrls : []);
+          licenseRegistryEndpointsState.urls = configured;
+          licenseRegistryEndpointsState.lastFetchedAt = Date.now();
+          return configured;
+        } catch (_error) {
+          licenseRegistryEndpointsState.lastFetchedAt = Date.now();
+          return [];
+        }
+      })();
+      licenseRegistryEndpointsState.inFlight = task;
+      try {
+        return await task;
+      } finally {
+        if (licenseRegistryEndpointsState.inFlight === task) {
+          licenseRegistryEndpointsState.inFlight = null;
+        }
+      }
+    };
+
+    const configuredUrls = await fetchConfiguredUrls();
+    const urls = getSanitizedUrls([...(configuredUrls || []), ...(LICENSE_PUBLIC_REGISTRY_URLS || [])]);
     let lastError = null;
     let raw = null;
     for (const baseUrl of urls) {

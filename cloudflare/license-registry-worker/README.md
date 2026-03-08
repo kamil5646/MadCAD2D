@@ -50,3 +50,24 @@ W panelu admin na stronie MadCAD wpisz:
 - Admin token: ten sam co `ADMIN_TOKEN`
 
 Po tym każda zmiana tokenów w panelu będzie automatycznie wysyłana do Workera.
+
+## Użycie z aplikacją desktop
+
+Po pierwszym deployu zaktualizuj plik:
+
+- `docs/license-endpoints.json`
+
+Dodaj tam URL endpointu Workera (na pierwszej pozycji w `registryUrls`), np.:
+
+```json
+{
+  "version": 1,
+  "updatedAt": "2026-03-08T18:45:00Z",
+  "registryUrls": [
+    "https://<twoj-worker>.workers.dev/v1/license-registry",
+    "https://kamil5646.github.io/MadCAD2D/license-registry.json"
+  ]
+}
+```
+
+Aplikacja pobiera ten plik dynamicznie, więc nie wymaga nowego buildu po zmianie URL backendu.
