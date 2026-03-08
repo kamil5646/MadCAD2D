@@ -732,7 +732,8 @@
         <h2>Prywatny panel zarządzania tokenami</h2>
         <p class="lead">
           Panel administratora działa tylko po wejściu przez link prywatny i odblokowaniu PIN-em.
-          Dane są zapisywane lokalnie w przeglądarce (nie są publicznie publikowane na stronie).
+          Dane są zapisywane lokalnie w przeglądarce. Aby aktywacje działały automatycznie w aplikacji,
+          skonfiguruj poniżej synchronizację z plikiem <code>docs/license-registry.json</code> w repozytorium GitHub.
         </p>
 
         <div id="adminGate" class="admin-gate">
@@ -759,6 +760,17 @@
         </div>
 
         <div id="tokenAdminContent" class="token-form" hidden>
+          <div class="admin-actions">
+            <input id="githubSyncOwnerInput" type="text" placeholder="GitHub owner (np. kamil5646)" />
+            <input id="githubSyncRepoInput" type="text" placeholder="GitHub repo (np. MadCAD2D)" />
+            <input id="githubSyncBranchInput" type="text" placeholder="Branch (np. main)" />
+            <input id="githubSyncTokenInput" type="password" placeholder="GitHub token (Contents: Read and write)" />
+            <button id="saveGithubSyncBtn" class="btn secondary" type="button">Zapisz auto-sync</button>
+            <button id="syncRegistryNowBtn" class="btn secondary" type="button">Synchronizuj teraz</button>
+            <button id="clearGithubSyncBtn" class="btn secondary" type="button">Wyłącz auto-sync</button>
+          </div>
+          <p id="githubSyncStatus" class="token-status" aria-live="polite"></p>
+
           <div class="admin-kpi">
             <article class="box">
               <strong>Wszystkie</strong>
@@ -927,7 +939,10 @@
           setText("#copyPrivateTokenBtn", "Kopiuj token", "Copy token");
           setText("label[for='generatedPrivateToken']", "Wygenerowany token", "Generated token");
           setText("#token-admin h2", "Prywatny panel zarządzania tokenami", "Private token management panel");
-          setText("#token-admin .lead", "Panel administratora działa tylko po wejściu przez link prywatny i odblokowaniu PIN-em. Dane są zapisywane lokalnie w przeglądarce (nie są publicznie publikowane na stronie).", "The admin panel works only via a private link and PIN unlock. Data is stored locally in the browser (not publicly published on the website).");
+          setText("#token-admin .lead", "Panel administratora działa tylko po wejściu przez link prywatny i odblokowaniu PIN-em. Dane są zapisywane lokalnie w przeglądarce. Aby aktywacje działały automatycznie w aplikacji, skonfiguruj poniżej synchronizację z plikiem docs/license-registry.json w repozytorium GitHub.", "The admin panel works only via a private link and PIN unlock. Data is stored locally in the browser. To make activations work automatically in the app, configure synchronization with docs/license-registry.json in your GitHub repository.");
+          setText("#saveGithubSyncBtn", "Zapisz auto-sync", "Save auto sync");
+          setText("#syncRegistryNowBtn", "Synchronizuj teraz", "Sync now");
+          setText("#clearGithubSyncBtn", "Wyłącz auto-sync", "Disable auto sync");
           setText("#release h2", "Wydanie 5.1", "Release 5.1");
           setText("#release .box h3", "Co zawiera wersja 5.1", "What version 5.1 includes");
           setText("#faq h2", "FAQ", "FAQ");
@@ -946,6 +961,18 @@
           if (langEnBtn) {
             langEnBtn.classList.toggle("active", currentLang === "en");
           }
+          const syncPlaceholders = [
+            { selector: "#githubSyncOwnerInput", pl: "GitHub owner (np. kamil5646)", en: "GitHub owner (e.g. kamil5646)" },
+            { selector: "#githubSyncRepoInput", pl: "GitHub repo (np. MadCAD2D)", en: "GitHub repo (e.g. MadCAD2D)" },
+            { selector: "#githubSyncBranchInput", pl: "Branch (np. main)", en: "Branch (e.g. main)" },
+            { selector: "#githubSyncTokenInput", pl: "GitHub token (Contents: Read and write)", en: "GitHub token (Contents: Read and write)" }
+          ];
+          syncPlaceholders.forEach((entry) => {
+            const el = document.querySelector(entry.selector);
+            if (el) {
+              el.setAttribute("placeholder", t(entry.pl, entry.en));
+            }
+          });
         }
 
         const LICENSE_SIGNATURE_SALT = "MadCAD2D-Private-NoMods-SingleDevice-2026";
@@ -981,6 +1008,14 @@
         const clearTokensBtn = document.getElementById("clearTokensBtn");
         const openTokenImportBtn = document.getElementById("openTokenImportBtn");
         const tokenImportInput = document.getElementById("tokenImportInput");
+        const githubSyncOwnerInput = document.getElementById("githubSyncOwnerInput");
+        const githubSyncRepoInput = document.getElementById("githubSyncRepoInput");
+        const githubSyncBranchInput = document.getElementById("githubSyncBranchInput");
+        const githubSyncTokenInput = document.getElementById("githubSyncTokenInput");
+        const saveGithubSyncBtn = document.getElementById("saveGithubSyncBtn");
+        const syncRegistryNowBtn = document.getElementById("syncRegistryNowBtn");
+        const clearGithubSyncBtn = document.getElementById("clearGithubSyncBtn");
+        const githubSyncStatus = document.getElementById("githubSyncStatus");
         const langPlBtn = document.getElementById("langPlBtn");
         const langEnBtn = document.getElementById("langEnBtn");
 
@@ -1004,7 +1039,9 @@
         const TOKEN_LAST_PRIVATE_KEY = "madcad-last-private-token-v1";
         const TOKEN_LEGACY_LAST_KEY = "generatedPrivateToken";
         const TOKEN_ADMIN_PIN_HASH_KEY = "madcad-token-admin-pin-hash-v1";
+        const TOKEN_GH_SYNC_KEY = "madcad-token-gh-sync-v1";
         let adminUnlocked = false;
+        let githubSyncBusy = false;
 
         function setLastPrivateToken(token) {
           const value = String(token || "").trim();
@@ -1066,6 +1103,139 @@
           return `${a}${b}${c}`.toUpperCase();
         }
 
+        async function sha256Hex(text) {
+          const value = String(text || "");
+          if (!value) {
+            return "";
+          }
+          try {
+            if (window.crypto && window.crypto.subtle && typeof TextEncoder !== "undefined") {
+              const data = new TextEncoder().encode(value);
+              const digest = await window.crypto.subtle.digest("SHA-256", data);
+              return Array.from(new Uint8Array(digest))
+                .map((byte) => byte.toString(16).padStart(2, "0"))
+                .join("");
+            }
+          } catch {}
+          return `${fnv1aHash(value)}${fnv1aHash(value, 0x9e3779b9)}${fnv1aHash(value, 0x85ebca6b)}`;
+        }
+
+        function encodeBase64Utf8(text) {
+          const utf8 = unescape(encodeURIComponent(String(text || "")));
+          return btoa(utf8);
+        }
+
+        async function buildPublicRegistryPayload(entries) {
+          const safeEntries = Array.isArray(entries) ? entries : [];
+          const tokenRows = [];
+          const seen = new Set();
+          for (const entry of safeEntries) {
+            if (!entry || typeof entry !== "object") {
+              continue;
+            }
+            const token = String(entry.token || "").trim();
+            if (!token) {
+              continue;
+            }
+            const tokenHash = (await sha256Hex(token)).toLowerCase();
+            if (!/^[a-f0-9]{24,128}$/.test(tokenHash) || seen.has(tokenHash)) {
+              continue;
+            }
+            seen.add(tokenHash);
+            const status = String(entry.status || "active").toLowerCase() === "revoked" ? "revoked" : "active";
+            tokenRows.push({
+              tokenHash,
+              status,
+              reason: status === "active" ? "Token aktywny" : "Token uniewazniony"
+            });
+          }
+          return {
+            version: 1,
+            mode: "allowlist",
+            updatedAt: new Date().toISOString(),
+            tokens: tokenRows
+          };
+        }
+
+        async function pushPublicRegistryToGitHub(reason) {
+          const config = readGithubSyncConfig();
+          if (!config.enabled) {
+            return false;
+          }
+          if (!config.owner || !config.repo || !config.branch || !config.token) {
+            setGithubSyncStatus("Brak konfiguracji auto-sync (owner/repo/branch/token).", "err");
+            return false;
+          }
+          if (githubSyncBusy) {
+            return false;
+          }
+          githubSyncBusy = true;
+          const syncReason = String(reason || "sync").trim() || "sync";
+          try {
+            const entries = readTokenRegistry();
+            const payloadJson = JSON.stringify(await buildPublicRegistryPayload(entries), null, 2) + "\n";
+            const apiUrl = `https://api.github.com/repos/${encodeURIComponent(config.owner)}/${encodeURIComponent(config.repo)}/contents/docs/license-registry.json`;
+            const headers = {
+              Authorization: `Bearer ${config.token}`,
+              Accept: "application/vnd.github+json"
+            };
+
+            let sha = "";
+            const currentFile = await fetch(`${apiUrl}?ref=${encodeURIComponent(config.branch)}`, {
+              method: "GET",
+              headers
+            });
+            if (currentFile.ok) {
+              const body = await currentFile.json();
+              sha = String(body && body.sha ? body.sha : "").trim();
+            } else if (currentFile.status !== 404) {
+              throw new Error(`GET docs/license-registry.json: HTTP ${currentFile.status}`);
+            }
+
+            const putPayload = {
+              message: `sync license registry: ${syncReason}`,
+              content: encodeBase64Utf8(payloadJson),
+              branch: config.branch
+            };
+            if (sha) {
+              putPayload.sha = sha;
+            }
+
+            const putRes = await fetch(apiUrl, {
+              method: "PUT",
+              headers,
+              body: JSON.stringify(putPayload)
+            });
+            if (!putRes.ok) {
+              const errBody = await putRes.text();
+              throw new Error(`PUT docs/license-registry.json: HTTP ${putRes.status} ${errBody.slice(0, 180)}`);
+            }
+
+            setGithubSyncStatus("Auto-sync GitHub: zapisano docs/license-registry.json.", "ok");
+            return true;
+          } catch (error) {
+            setGithubSyncStatus(`Auto-sync błąd: ${error && error.message ? error.message : "nieznany"}`, "err");
+            return false;
+          } finally {
+            githubSyncBusy = false;
+          }
+        }
+
+        let githubSyncDebounceTimer = null;
+        function queuePublicRegistrySync(reason) {
+          const config = readGithubSyncConfig();
+          if (!config.enabled) {
+            return;
+          }
+          if (githubSyncDebounceTimer !== null) {
+            clearTimeout(githubSyncDebounceTimer);
+          }
+          githubSyncDebounceTimer = setTimeout(() => {
+            githubSyncDebounceTimer = null;
+            void pushPublicRegistryToGitHub(reason);
+          }, 700);
+        }
+
         function setStatus(message, kind) {
           if (!statusEl) {
             return;
@@ -1096,6 +1266,89 @@
           }
         }
 
+        function setGithubSyncStatus(message, kind) {
+          if (!githubSyncStatus) {
+            return;
+          }
+          githubSyncStatus.textContent = String(message || "");
+          githubSyncStatus.classList.remove("ok", "err");
+          if (kind === "ok") {
+            githubSyncStatus.classList.add("ok");
+          } else if (kind === "err") {
+            githubSyncStatus.classList.add("err");
+          }
+        }
+
+        function readGithubSyncConfig() {
+          try {
+            const raw = localStorage.getItem(TOKEN_GH_SYNC_KEY);
+            if (!raw) {
+              return {
+                owner: "kamil5646",
+                repo: "MadCAD2D",
+                branch: "main",
+                token: "",
+                enabled: false
+              };
+            }
+            const parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed !== "object") {
+              throw new Error("invalid");
+            }
+            return {
+              owner: String(parsed.owner || "kamil5646").trim(),
+              repo: String(parsed.repo || "MadCAD2D").trim(),
+              branch: String(parsed.branch || "main").trim(),
+              token: String(parsed.token || "").trim(),
+              enabled: Boolean(parsed.enabled)
+            };
+          } catch {
+            return {
+              owner: "kamil5646",
+              repo: "MadCAD2D",
+              branch: "main",
+              token: "",
+              enabled: false
+            };
+          }
+        }
+
+        function writeGithubSyncConfig(config) {
+          const next = {
+            owner: String(config && config.owner ? config.owner : "").trim(),
+            repo: String(config && config.repo ? config.repo : "").trim(),
+            branch: String(config && config.branch ? config.branch : "").trim(),
+            token: String(config && config.token ? config.token : "").trim(),
+            enabled: Boolean(config && config.enabled)
+          };
+          localStorage.setItem(TOKEN_GH_SYNC_KEY, JSON.stringify(next));
+          return next;
+        }
+
+        function applyGithubSyncConfigToUi() {
+          const config = readGithubSyncConfig();
+          if (githubSyncOwnerInput) {
+            githubSyncOwnerInput.value = config.owner;
+          }
+          if (githubSyncRepoInput) {
+            githubSyncRepoInput.value = config.repo;
+          }
+          if (githubSyncBranchInput) {
+            githubSyncBranchInput.value = config.branch;
+          }
+          if (githubSyncTokenInput) {
+            githubSyncTokenInput.value = config.token;
+          }
+          if (!githubSyncStatus) {
+            return;
+          }
+          if (config.enabled && config.token) {
+            setGithubSyncStatus("Auto-sync GitHub aktywny.", "ok");
+          } else {
+            setGithubSyncStatus("Auto-sync GitHub wyłączony.", "err");
+          }
+        }
+
         function readTokenRegistry() {
           try {
             const raw = localStorage.getItem(TOKEN_REGISTRY_KEY);
@@ -1115,9 +1368,10 @@
           }
         }
 
-        function writeTokenRegistry(entries) {
+        function writeTokenRegistry(entries, reason) {
           try {
             localStorage.setItem(TOKEN_REGISTRY_KEY, JSON.stringify(entries));
+            queuePublicRegistrySync(reason || "Zmiana tokenów");
           } catch {
             setAdminStatus("Nie udało się zapisać rejestru tokenów.", "err");
           }
@@ -1222,12 +1476,12 @@
           }
         }
 
-        function ensureTokenInRegistry(rawToken) {
+        function ensureTokenInRegistry(rawToken, reason) {
           const parsed = parsePrivateToken(rawToken);
           if (!parsed) {
             return false;
           }
-          upsertRegistryEntry(buildRegistryEntry(parsed.payload, parsed.token));
+          upsertRegistryEntry(buildRegistryEntry(parsed.payload, parsed.token), reason || "Dodanie tokenu");
           return true;
         }
 
@@ -1238,14 +1492,14 @@
             return false;
           }
           setLastPrivateToken(candidate);
-          return ensureTokenInRegistry(candidate);
+          return ensureTokenInRegistry(candidate, "Migracja tokenu");
         }
 
-        function upsertRegistryEntry(nextEntry) {
+        function upsertRegistryEntry(nextEntry, reason) {
           const entries = readTokenRegistry();
           const withoutSameToken = entries.filter((entry) => String(entry.token || "") !== String(nextEntry.token || ""));
           withoutSameToken.unshift(nextEntry);
-          writeTokenRegistry(withoutSameToken.slice(0, 1500));
+          writeTokenRegistry(withoutSameToken.slice(0, 1500), reason || "Aktualizacja tokenu");
           return withoutSameToken;
         }
 
@@ -1333,7 +1587,8 @@
         function wipeAllTokenData() {
           const keys = [
             TOKEN_REGISTRY_KEY,
-            TOKEN_ADMIN_PIN_HASH_KEY
+            TOKEN_ADMIN_PIN_HASH_KEY,
+            TOKEN_GH_SYNC_KEY
           ];
           keys.forEach((key) => {
             try {
@@ -1398,7 +1653,7 @@
             output.value = token;
           }
           setLastPrivateToken(token);
-          upsertRegistryEntry(buildRegistryEntry(payload, token));
+          upsertRegistryEntry(buildRegistryEntry(payload, token), "Wygenerowano nowy token");
           if (adminUnlocked) {
             renderTokenAdminTable();
           }
@@ -1437,7 +1692,7 @@
               setAdminStatus("Wklej token, który chcesz dodać.", "err");
               return;
             }
-            const added = ensureTokenInRegistry(raw);
+            const added = ensureTokenInRegistry(raw, "Dodano token ręcznie");
             if (!added) {
               setAdminStatus("Nie udało się dodać tokenu. Sprawdź format i podpis.", "err");
               return;
@@ -1485,7 +1740,7 @@
                 status: "revoked",
                 revokedAt: new Date().toISOString()
               };
-              writeTokenRegistry(entries);
+              writeTokenRegistry(entries, "Unieważniono token");
               setAdminStatus("Token został unieważniony.", "ok");
               renderTokenAdminTable();
               return;
@@ -1496,7 +1751,7 @@
                 status: "active",
                 revokedAt: null
               };
-              writeTokenRegistry(entries);
+              writeTokenRegistry(entries, "Przywrócono token");
               setAdminStatus("Token został przywrócony.", "ok");
               renderTokenAdminTable();
               return;
@@ -1504,7 +1759,7 @@
             if (action === "delete") {
               const deletedToken = String(entry && entry.token ? entry.token : "");
               entries.splice(index, 1);
-              writeTokenRegistry(entries);
+              writeTokenRegistry(entries, "Usunięto token");
               const currentLastToken = getLastPrivateToken();
               if (deletedToken && currentLastToken && deletedToken === currentLastToken) {
                 clearLastPrivateToken();
@@ -1619,7 +1874,7 @@
             if (!approved) {
               return;
             }
-            writeTokenRegistry([]);
+            writeTokenRegistry([], "Wyczyszczono cały rejestr tokenów");
             clearLastPrivateToken();
             if (output) {
               output.value = "";
@@ -1645,7 +1900,7 @@
                 throw new Error("Nieprawidłowy format JSON.");
               }
               const safe = parsed.filter((entry) => entry && typeof entry === "object");
-              writeTokenRegistry(safe);
+              writeTokenRegistry(safe, "Zaimportowano rejestr tokenów");
               renderTokenAdminTable();
               setAdminStatus(`Zaimportowano ${safe.length} wpisów.`, "ok");
             } catch (error) {
@@ -1655,6 +1910,55 @@
             }
           });
         }
+
+        if (saveGithubSyncBtn) {
+          saveGithubSyncBtn.addEventListener("click", () => {
+            const owner = String(githubSyncOwnerInput ? githubSyncOwnerInput.value : "").trim();
+            const repo = String(githubSyncRepoInput ? githubSyncRepoInput.value : "").trim();
+            const branch = String(githubSyncBranchInput ? githubSyncBranchInput.value : "").trim();
+            const token = String(githubSyncTokenInput ? githubSyncTokenInput.value : "").trim();
+            if (!owner || !repo || !branch || !token) {
+              setGithubSyncStatus("Uzupełnij owner/repo/branch/token, aby włączyć auto-sync.", "err");
+              return;
+            }
+            writeGithubSyncConfig({
+              owner,
+              repo,
+              branch,
+              token,
+              enabled: true
+            });
+            setGithubSyncStatus("Auto-sync zapisany. Każda zmiana tokenów będzie publikowana na GitHub.", "ok");
+          });
+        }
+
+        if (clearGithubSyncBtn) {
+          clearGithubSyncBtn.addEventListener("click", () => {
+            const current = readGithubSyncConfig();
+            writeGithubSyncConfig({
+              owner: current.owner || "kamil5646",
+              repo: current.repo || "MadCAD2D",
+              branch: current.branch || "main",
+              token: "",
+              enabled: false
+            });
+            applyGithubSyncConfigToUi();
+            setGithubSyncStatus("Auto-sync wyłączony.", "err");
+          });
+        }
+
+        if (syncRegistryNowBtn) {
+          syncRegistryNowBtn.addEventListener("click", async () => {
+            const ok = await pushPublicRegistryToGitHub("Ręczna synchronizacja");
+            if (ok) {
+              setAdminStatus("Ręczna synchronizacja do GitHub zakończona.", "ok");
+            } else {
+              setAdminStatus("Ręczna synchronizacja do GitHub nie powiodła się.", "err");
+            }
+          });
+        }
+
+        applyGithubSyncConfigToUi();
 
         const params = new URLSearchParams(window.location.search);
         const queryDeviceId = String(params.get("deviceId") || "").trim();
