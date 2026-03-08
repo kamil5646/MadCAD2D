@@ -1,11 +1,30 @@
 const REGISTRY_KEY = "license-registry-v1";
+const TOKEN_PREFIX = "M2D2";
 const VALID_TOKEN_HASH = /^[a-f0-9]{24,128}$/;
+const VALID_TOKEN_FORMAT = /^M2D[0-9]+\.[A-Za-z0-9_-]{8,512}(?:\.[A-Za-z0-9_-]{8,1200})?$/;
 const ALLOWED_STATUSES = new Set(["active", "revoked", "blocked", "disabled", "deleted", "inactive"]);
+const MAX_TOKENS = 50000;
 
 function buildCorsHeaders(env, request) {
   const requestOrigin = request.headers.get("Origin") || "";
-  const allowedOrigin = String(env.ALLOWED_ORIGIN || "").trim();
-  const origin = allowedOrigin || (requestOrigin ? requestOrigin : "*");
+  const allowedOrigins = String(env.ALLOWED_ORIGIN || "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+  let origin = "*";
+  if (requestOrigin && requestOrigin !== "null") {
+    if (allowedOrigins.length === 0) {
+      origin = requestOrigin;
+    } else if (allowedOrigins.includes(requestOrigin)) {
+      origin = requestOrigin;
+    } else {
+      origin = allowedOrigins[0];
+    }
+  } else if (allowedOrigins.length > 0) {
+    origin = "*";
+  }
+
   return {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
@@ -49,7 +68,33 @@ function getAdminBearerToken(request) {
   return auth.slice(7).trim();
 }
 
-function normalizeRegistry(payload) {
+function normalizeText(value, maxLength) {
+  return String(value || "").trim().slice(0, maxLength);
+}
+
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase().slice(0, 200);
+}
+
+function normalizeScope(value) {
+  const scope = String(value || "private").trim().toLowerCase();
+  return scope === "commercial" ? "commercial" : "private";
+}
+
+function normalizeIsoDate(value, fallbackIso) {
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return fallbackIso;
+  }
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) {
+    return fallbackIso;
+  }
+  return parsed.toISOString();
+}
+
+function ensureRegistryShape(payload) {
+  const nowIso = new Date().toISOString();
   const mode = String(payload && payload.mode ? payload.mode : "allowlist").trim().toLowerCase();
   const safeMode = mode === "denylist" ? "denylist" : "allowlist";
   const sourceTokens = Array.isArray(payload && payload.tokens) ? payload.tokens : [];
@@ -60,29 +105,34 @@ function normalizeRegistry(payload) {
       if (!entry || typeof entry !== "object") {
         return null;
       }
-      const tokenHash = String(entry.tokenHash || entry.hash || "").trim().toLowerCase();
-      const statusRaw = String(entry.status || "active").trim().toLowerCase();
+      const tokenHash = normalizeText(entry.tokenHash || entry.hash || "", 128).toLowerCase();
+      const statusRaw = normalizeText(entry.status || "active", 20).toLowerCase();
       const status = ALLOWED_STATUSES.has(statusRaw) ? statusRaw : "active";
-      const reason = String(entry.reason || "").trim();
-      if (!VALID_TOKEN_HASH.test(tokenHash)) {
-        return null;
-      }
-      if (seen.has(tokenHash)) {
+      if (!VALID_TOKEN_HASH.test(tokenHash) || seen.has(tokenHash)) {
         return null;
       }
       seen.add(tokenHash);
+      const issuedAt = normalizeIsoDate(entry.issuedAt, nowIso);
       return {
         tokenHash,
         status,
-        reason: reason.slice(0, 240)
+        reason: normalizeText(entry.reason || "", 240),
+        scope: normalizeScope(entry.scope),
+        ownerName: normalizeText(entry.ownerName || "", 120),
+        email: normalizeEmail(entry.email || ""),
+        purpose: normalizeText(entry.purpose || "", 200),
+        deviceId: normalizeText(entry.deviceId || "", 200),
+        issuedAt,
+        updatedAt: normalizeIsoDate(entry.updatedAt, nowIso)
       };
     })
-    .filter(Boolean);
+    .filter(Boolean)
+    .slice(0, MAX_TOKENS);
 
   return {
     version: 1,
     mode: safeMode,
-    updatedAt: new Date().toISOString(),
+    updatedAt: normalizeIsoDate(payload && payload.updatedAt, nowIso),
     tokens
   };
 }
@@ -101,7 +151,167 @@ async function readRegistry(env) {
   if (!stored || typeof stored !== "object") {
     return defaultRegistry();
   }
-  return normalizeRegistry(stored);
+  return ensureRegistryShape(stored);
+}
+
+async function writeRegistry(env, registry) {
+  const normalized = ensureRegistryShape(registry);
+  normalized.updatedAt = new Date().toISOString();
+  await env.LICENSE_REGISTRY_KV.put(REGISTRY_KEY, JSON.stringify(normalized));
+  return normalized;
+}
+
+async function sha256Hex(text) {
+  const value = String(text || "");
+  const data = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function randomTokenPart() {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  let binary = "";
+  bytes.forEach((value) => {
+    binary += String.fromCharCode(value);
+  });
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function requireAdminAuth(request, env, corsHeaders) {
+  const expectedToken = String(env.ADMIN_TOKEN || "").trim();
+  if (!expectedToken) {
+    return json({ ok: false, error: "ADMIN_TOKEN is not configured" }, { status: 500 }, corsHeaders);
+  }
+  const providedToken = getAdminBearerToken(request);
+  if (!providedToken || !constantTimeEqual(providedToken, expectedToken)) {
+    return json({ ok: false, error: "Unauthorized" }, { status: 401 }, corsHeaders);
+  }
+  return null;
+}
+
+function findTokenEntry(registry, tokenHash) {
+  return Array.isArray(registry.tokens)
+    ? registry.tokens.find((entry) => String(entry.tokenHash || "") === String(tokenHash || "")) || null
+    : null;
+}
+
+async function handleIssuePrivateToken(request, env, corsHeaders) {
+  let payload = null;
+  try {
+    payload = await request.json();
+  } catch (_error) {
+    return json({ ok: false, error: "Invalid JSON body" }, { status: 400 }, corsHeaders);
+  }
+
+  const ownerName = normalizeText(payload && payload.ownerName, 120);
+  const email = normalizeEmail(payload && payload.email);
+  const purpose = normalizeText(payload && payload.purpose, 200);
+  const deviceId = normalizeText(payload && payload.deviceId, 200);
+
+  if (!ownerName) {
+    return json({ ok: false, error: "ownerName is required" }, { status: 400 }, corsHeaders);
+  }
+  if (!email || !email.includes("@")) {
+    return json({ ok: false, error: "valid email is required" }, { status: 400 }, corsHeaders);
+  }
+  if (!purpose) {
+    return json({ ok: false, error: "purpose is required" }, { status: 400 }, corsHeaders);
+  }
+  if (!deviceId || deviceId.length < 8) {
+    return json({ ok: false, error: "valid deviceId is required" }, { status: 400 }, corsHeaders);
+  }
+
+  const token = `${TOKEN_PREFIX}.${randomTokenPart()}`;
+  const tokenHash = await sha256Hex(token);
+  const nowIso = new Date().toISOString();
+
+  const registry = await readRegistry(env);
+  const nextEntry = {
+    tokenHash,
+    status: "active",
+    reason: "Token aktywny",
+    scope: "private",
+    ownerName,
+    email,
+    purpose,
+    deviceId,
+    issuedAt: nowIso,
+    updatedAt: nowIso
+  };
+
+  const filtered = Array.isArray(registry.tokens)
+    ? registry.tokens.filter((entry) => String(entry.tokenHash || "") !== tokenHash)
+    : [];
+  registry.tokens = [nextEntry, ...filtered].slice(0, MAX_TOKENS);
+  await writeRegistry(env, registry);
+
+  return json(
+    {
+      ok: true,
+      token,
+      payload: {
+        v: 2,
+        scope: "private",
+        ownerName,
+        email,
+        purpose,
+        deviceId,
+        issuedAt: nowIso
+      }
+    },
+    { status: 200 },
+    corsHeaders
+  );
+}
+
+async function handleVerifyToken(request, env, corsHeaders) {
+  let payload = null;
+  try {
+    payload = await request.json();
+  } catch (_error) {
+    return json({ ok: false, error: "Invalid JSON body" }, { status: 400 }, corsHeaders);
+  }
+
+  const token = normalizeText(payload && payload.token, 320);
+  const deviceId = normalizeText(payload && payload.deviceId, 200);
+  if (!VALID_TOKEN_FORMAT.test(token)) {
+    return json({ ok: false, error: "Invalid token format" }, { status: 400 }, corsHeaders);
+  }
+
+  const tokenHash = await sha256Hex(token);
+  const registry = await readRegistry(env);
+  const entry = findTokenEntry(registry, tokenHash);
+
+  if (!entry) {
+    return json({ ok: false, error: "Token not found" }, { status: 404 }, corsHeaders);
+  }
+  if (String(entry.status || "").toLowerCase() !== "active") {
+    return json({ ok: false, error: "Token is not active" }, { status: 403 }, corsHeaders);
+  }
+  if (entry.deviceId && deviceId && entry.deviceId !== deviceId) {
+    return json({ ok: false, error: "Token is bound to a different device" }, { status: 403 }, corsHeaders);
+  }
+
+  return json(
+    {
+      ok: true,
+      tokenHash,
+      payload: {
+        v: 2,
+        scope: normalizeScope(entry.scope),
+        ownerName: normalizeText(entry.ownerName, 120),
+        email: normalizeEmail(entry.email),
+        purpose: normalizeText(entry.purpose, 200),
+        deviceId: normalizeText(entry.deviceId || deviceId, 200),
+        issuedAt: normalizeIsoDate(entry.issuedAt, new Date().toISOString())
+      }
+    },
+    { status: 200 },
+    corsHeaders
+  );
 }
 
 export default {
@@ -117,37 +327,44 @@ export default {
       return json({ ok: true, service: "madcad-license-registry" }, { status: 200 }, corsHeaders);
     }
 
-    if (url.pathname !== "/v1/license-registry") {
-      return json({ ok: false, error: "Not found" }, { status: 404 }, corsHeaders);
+    if (url.pathname === "/v1/license-tokens/issue-private" && request.method === "POST") {
+      return handleIssuePrivateToken(request, env, corsHeaders);
     }
 
-    if (request.method === "GET") {
-      const registry = await readRegistry(env);
-      return json(registry, { status: 200 }, corsHeaders);
+    if (url.pathname === "/v1/license-tokens/verify" && request.method === "POST") {
+      return handleVerifyToken(request, env, corsHeaders);
     }
 
-    if (request.method === "POST") {
-      const expectedToken = String(env.ADMIN_TOKEN || "").trim();
-      if (!expectedToken) {
-        return json({ ok: false, error: "ADMIN_TOKEN is not configured" }, { status: 500 }, corsHeaders);
-      }
-      const providedToken = getAdminBearerToken(request);
-      if (!providedToken || !constantTimeEqual(providedToken, expectedToken)) {
-        return json({ ok: false, error: "Unauthorized" }, { status: 401 }, corsHeaders);
+    if (url.pathname === "/v1/license-registry") {
+      if (request.method === "GET") {
+        const registry = await readRegistry(env);
+        return json(registry, { status: 200 }, corsHeaders);
       }
 
-      let payload = null;
-      try {
-        payload = await request.json();
-      } catch (_error) {
-        return json({ ok: false, error: "Invalid JSON body" }, { status: 400 }, corsHeaders);
+      if (request.method === "POST") {
+        const authError = requireAdminAuth(request, env, corsHeaders);
+        if (authError) {
+          return authError;
+        }
+
+        let payload = null;
+        try {
+          payload = await request.json();
+        } catch (_error) {
+          return json({ ok: false, error: "Invalid JSON body" }, { status: 400 }, corsHeaders);
+        }
+
+        const normalized = await writeRegistry(env, payload);
+        return json(
+          { ok: true, updatedAt: normalized.updatedAt, tokenCount: normalized.tokens.length },
+          { status: 200 },
+          corsHeaders
+        );
       }
 
-      const normalized = normalizeRegistry(payload);
-      await env.LICENSE_REGISTRY_KV.put(REGISTRY_KEY, JSON.stringify(normalized));
-      return json({ ok: true, updatedAt: normalized.updatedAt, tokenCount: normalized.tokens.length }, { status: 200 }, corsHeaders);
+      return json({ ok: false, error: "Method not allowed" }, { status: 405 }, corsHeaders);
     }
 
-    return json({ ok: false, error: "Method not allowed" }, { status: 405 }, corsHeaders);
+    return json({ ok: false, error: "Not found" }, { status: 404 }, corsHeaders);
   }
 };

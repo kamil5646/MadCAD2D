@@ -138,12 +138,11 @@
   const LICENSE_CLEARED_MARK_KEY = "madcad-license-cleared-at-v1";
   const UI_LANGUAGE_STORAGE_KEY = "madcad-ui-language";
   const UI_LANGUAGE_ONBOARDING_KEY = "madcad-ui-language-onboarded-v1";
-  const LICENSE_SIGNATURE_SALT = "MadCAD2D-Private-NoMods-SingleDevice-2026";
-  const LICENSE_TOKEN_PREFIX = "M2D1";
+  const LICENSE_TOKEN_PATTERN = /^M2D[0-9]+\.[A-Za-z0-9_-]{8,512}(?:\.[A-Za-z0-9_-]{8,1200})?$/;
   const LICENSE_PRIVATE_FORM_URL = "https://kamil5646.github.io/MadCAD2D/#token-prywatny";
   const LICENSE_REGISTRY_ENDPOINTS_CONFIG_URL = "https://kamil5646.github.io/MadCAD2D/license-endpoints.json";
-  const LICENSE_PUBLIC_REGISTRY_URLS = [
-    "https://kamil5646.github.io/MadCAD2D/license-registry.json"
+  const LICENSE_VERIFY_ENDPOINT_URLS = [
+    "https://madcad-license-registry.kamil5646.workers.dev/v1/license-tokens/verify"
   ];
   const LICENSE_ENDPOINTS_CACHE_TTL_MS = 60000;
   const LICENSE_REMOTE_CHECK_TTL_MS = 10000;
@@ -754,7 +753,7 @@
   };
   const licenseRegistryEndpointsState = {
     lastFetchedAt: 0,
-    urls: [],
+    config: null,
     inFlight: null
   };
   let licenseRemoteRecheckTimer = null;
@@ -782,8 +781,6 @@
     dimensionSecond: null,
     dimensionThird: null,
     commandState: null,
-    commandHistory: [],
-    commandHistoryIndex: -1,
     offsetDistance: 60,
     previewPoint: null,
     pointerWorld: { x: 0, y: 0 },
@@ -1790,45 +1787,6 @@
     return ["home", "references", "design", "view", "layers"];
   }
 
-  function resolveRibbonPageAlias(rawValue) {
-    const value = String(rawValue || "").trim().toLowerCase();
-    if (!value) {
-      return null;
-    }
-    if (["start", "poczatek", "początek", "startowa", "startowy"].includes(value)) {
-      return "home";
-    }
-    if (["home", "główne", "glowne"].includes(value)) {
-      return "home";
-    }
-    if (["design", "projekt", "stal", "steel", "manage", "zarzadzaj", "zarządzaj"].includes(value)) {
-      return "design";
-    }
-    if (["layout", "output", "wyjście", "wyjscie", "układ", "uklad"].includes(value)) {
-      return "home";
-    }
-    if (
-      ["references", "reference", "odwołania", "odwolania", "annotate", "adnotacje", "adnotacja", "wymiar", "wymiary", "wymiarowanie", "dim"].includes(
-        value
-      )
-    ) {
-      return "references";
-    }
-    if (["view", "widok"].includes(value)) {
-      return "view";
-    }
-    if (["layers", "layer", "warstwy", "warstwa"].includes(value)) {
-      return "layers";
-    }
-    if (["shortcuts", "skr", "skrót", "skrot", "skróty", "skroty"].includes(value)) {
-      return "home";
-    }
-    if (["insert", "wstaw", "wstawianie", "mailings", "mailing", "korespondencja", "review", "recenzja", "sprawdzenie"].includes(value)) {
-      return "home";
-    }
-    return undefined;
-  }
-
   function ribbonPageLabel(page) {
     const normalized = normalizeRibbonPage(page);
     if (normalized === "references") {
@@ -2188,13 +2146,6 @@
     return btoa(utf8).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
   }
 
-  function decodeBase64Url(text) {
-    const normalized = String(text || "").replace(/-/g, "+").replace(/_/g, "/");
-    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
-    const decoded = atob(padded);
-    return decodeURIComponent(escape(decoded));
-  }
-
   function normalizeLicenseEmail(email) {
     return String(email || "").trim().toLowerCase();
   }
@@ -2212,35 +2163,18 @@
     return licenseSession.deviceId;
   }
 
-  function makeLicenseSignature(payloadJson) {
-    const source = String(payloadJson || "");
-    const a = fnv1aHash(`${source}|${LICENSE_SIGNATURE_SALT}|A`);
-    const b = fnv1aHash(`${LICENSE_SIGNATURE_SALT}|${source}|B`, 0x9e3779b9);
-    const c = fnv1aHash(`${source}|${LICENSE_SIGNATURE_SALT}|C`, 0x85ebca6b);
-    return `${a}${b}${c}`.toUpperCase();
-  }
-
   function parseLicenseToken(rawToken) {
     const token = String(rawToken || "").trim();
-    const parts = token.split(".");
-    if (parts.length !== 3 || parts[0] !== LICENSE_TOKEN_PREFIX) {
+    if (!token) {
+      return { ok: false, error: "Wklej token licencji." };
+    }
+    if (!LICENSE_TOKEN_PATTERN.test(token)) {
       return { ok: false, error: "Nieprawidłowy format tokenu." };
     }
-    let payloadJson = "";
-    let payload = null;
-    try {
-      payloadJson = decodeBase64Url(parts[1]);
-      payload = JSON.parse(payloadJson);
-    } catch (error) {
-      return { ok: false, error: "Nie można odczytać danych tokenu." };
-    }
-    const signature = String(parts[2] || "").trim().toUpperCase();
     return {
       ok: true,
       token,
-      payload,
-      payloadJson,
-      signature
+      payload: null
     };
   }
 
@@ -2249,34 +2183,11 @@
     if (!parsed.ok) {
       return parsed;
     }
-    if (!parsed.payload || typeof parsed.payload !== "object") {
-      return { ok: false, error: "Brak danych licencji w tokenie." };
-    }
-    const expectedSignature = makeLicenseSignature(parsed.payloadJson);
-    if (expectedSignature !== parsed.signature) {
-      return { ok: false, error: "Podpis tokenu jest nieprawidłowy." };
-    }
-    if (Number(parsed.payload.v) !== 1) {
-      return { ok: false, error: "Nieobsługiwana wersja tokenu." };
-    }
-    const scope = String(parsed.payload.scope || "").toLowerCase();
-    if (!["private", "commercial"].includes(scope)) {
-      return { ok: false, error: "Nieznany typ licencji." };
-    }
-    const expectedDeviceId = getLicenseDeviceId();
-    if (String(parsed.payload.deviceId || "") !== expectedDeviceId) {
-      return { ok: false, error: "Token nie jest przypisany do tego urządzenia." };
-    }
-    if (scope === "private") {
-      if (!String(parsed.payload.ownerName || "").trim()) {
-        return { ok: false, error: "Token prywatny ma niepełne dane formularza." };
-      }
-    }
     return {
       ok: true,
       token: parsed.token,
-      payload: parsed.payload,
-      scope
+      payload: null,
+      scope: "private"
     };
   }
 
@@ -2318,6 +2229,7 @@
       }
       return {
         token: String(record.token || "").trim(),
+        payload: record.payload && typeof record.payload === "object" ? record.payload : null,
         activatedAt: String(record.activatedAt || "").trim()
       };
     } catch (_error) {
@@ -2368,126 +2280,117 @@
     return `${fnv1aHash(value)}${fnv1aHash(value, 0x9e3779b9)}${fnv1aHash(value, 0x85ebca6b)}`;
   }
 
-  async function fetchPublicLicenseRegistry() {
-    if (typeof fetch !== "function") {
-      throw new Error("Brak API fetch.");
+  function getSanitizedUrls(list) {
+    const source = Array.isArray(list) ? list : [];
+    const out = [];
+    const seen = new Set();
+    source.forEach((entry) => {
+      const value = String(entry || "").trim();
+      if (!value || seen.has(value)) {
+        return;
+      }
+      if (!/^https?:\/\//i.test(value)) {
+        return;
+      }
+      seen.add(value);
+      out.push(value);
+    });
+    return out;
+  }
+
+  function deriveVerifyUrlFromRegistryApiUrl(value) {
+    const raw = String(value || "").trim();
+    if (!raw) {
+      return "";
     }
-    const getSanitizedUrls = (list) => {
-      const source = Array.isArray(list) ? list : [];
-      const out = [];
-      const seen = new Set();
-      source.forEach((entry) => {
-        const value = String(entry || "").trim();
-        if (!value || seen.has(value)) {
-          return;
-        }
-        if (!/^https?:\/\//i.test(value)) {
-          return;
-        }
-        seen.add(value);
-        out.push(value);
-      });
-      return out;
-    };
+    try {
+      const parsed = new URL(raw);
+      if (!parsed.pathname.endsWith("/v1/license-registry")) {
+        return "";
+      }
+      parsed.pathname = `${parsed.pathname.slice(0, -"/v1/license-registry".length)}/v1/license-tokens/verify`;
+      parsed.search = "";
+      parsed.hash = "";
+      return parsed.toString();
+    } catch (_error) {
+      return "";
+    }
+  }
 
-    const fetchConfiguredUrls = async () => {
-      const now = Date.now();
-      if (
-        licenseRegistryEndpointsState.urls.length > 0 &&
-        now - licenseRegistryEndpointsState.lastFetchedAt <= LICENSE_ENDPOINTS_CACHE_TTL_MS
-      ) {
-        return licenseRegistryEndpointsState.urls;
-      }
-      if (licenseRegistryEndpointsState.inFlight) {
-        return licenseRegistryEndpointsState.inFlight;
-      }
-      const task = (async () => {
-        try {
-          const response = await fetch(`${LICENSE_REGISTRY_ENDPOINTS_CONFIG_URL}?ts=${Date.now()}`, {
-            method: "GET",
-            cache: "no-store"
-          });
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
-          const payload = await response.json();
-          const configured = getSanitizedUrls(payload && payload.registryUrls ? payload.registryUrls : []);
-          licenseRegistryEndpointsState.urls = configured;
-          licenseRegistryEndpointsState.lastFetchedAt = Date.now();
-          return configured;
-        } catch (_error) {
-          licenseRegistryEndpointsState.lastFetchedAt = Date.now();
-          return [];
-        }
-      })();
-      licenseRegistryEndpointsState.inFlight = task;
-      try {
-        return await task;
-      } finally {
-        if (licenseRegistryEndpointsState.inFlight === task) {
-          licenseRegistryEndpointsState.inFlight = null;
-        }
-      }
+  function normalizeLicenseEndpointsConfig(payload) {
+    const source = payload && typeof payload === "object" ? payload : {};
+    const registryApiUrls = getSanitizedUrls(source.registryApiUrls);
+    const verifyUrls = getSanitizedUrls([
+      ...(Array.isArray(source.verifyUrls) ? source.verifyUrls : []),
+      source.verifyUrl,
+      ...registryApiUrls.map((entry) => deriveVerifyUrlFromRegistryApiUrl(entry)),
+      ...LICENSE_VERIFY_ENDPOINT_URLS
+    ]);
+    return {
+      verifyUrls
     };
+  }
 
-    const configuredUrls = await fetchConfiguredUrls();
-    const urls = getSanitizedUrls([...(configuredUrls || []), ...(LICENSE_PUBLIC_REGISTRY_URLS || [])]);
-    let lastError = null;
-    let raw = null;
-    for (const baseUrl of urls) {
-      const url = `${String(baseUrl || "").trim()}?ts=${Date.now()}`;
-      if (!url || url.startsWith("?")) {
-        continue;
-      }
+  async function fetchLicenseEndpointsConfig() {
+    const now = Date.now();
+    if (
+      licenseRegistryEndpointsState.config &&
+      now - licenseRegistryEndpointsState.lastFetchedAt <= LICENSE_ENDPOINTS_CACHE_TTL_MS
+    ) {
+      return licenseRegistryEndpointsState.config;
+    }
+    if (licenseRegistryEndpointsState.inFlight) {
+      return licenseRegistryEndpointsState.inFlight;
+    }
+    const task = (async () => {
       try {
-        const response = await fetch(url, {
+        if (typeof fetch !== "function") {
+          throw new Error("Brak API fetch.");
+        }
+        const response = await fetch(`${LICENSE_REGISTRY_ENDPOINTS_CONFIG_URL}?ts=${Date.now()}`, {
           method: "GET",
           cache: "no-store"
         });
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
-        raw = await response.json();
-        break;
-      } catch (error) {
-        lastError = error;
+        const payload = await response.json();
+        const normalized = normalizeLicenseEndpointsConfig(payload);
+        licenseRegistryEndpointsState.config = normalized;
+        licenseRegistryEndpointsState.lastFetchedAt = Date.now();
+        return normalized;
+      } catch (_error) {
+        const fallback = normalizeLicenseEndpointsConfig(null);
+        licenseRegistryEndpointsState.config = fallback;
+        licenseRegistryEndpointsState.lastFetchedAt = Date.now();
+        return fallback;
+      }
+    })();
+    licenseRegistryEndpointsState.inFlight = task;
+    try {
+      return await task;
+    } finally {
+      if (licenseRegistryEndpointsState.inFlight === task) {
+        licenseRegistryEndpointsState.inFlight = null;
       }
     }
-    if (!raw || typeof raw !== "object") {
-      throw lastError || new Error("Nie udało się pobrać publicznego rejestru licencji.");
-    }
-    if (!raw || typeof raw !== "object") {
-      throw new Error("Niepoprawny format rejestru.");
-    }
-    const mode = String(raw.mode || "allowlist")
-      .trim()
-      .toLowerCase();
-    const tokensRaw = Array.isArray(raw.tokens) ? raw.tokens : [];
-    const tokens = tokensRaw
-      .map((entry) => {
-        if (!entry || typeof entry !== "object") {
-          return null;
-        }
-        const tokenHash = String(entry.tokenHash || entry.hash || "")
-          .trim()
-          .toLowerCase();
-        const status = String(entry.status || "active")
-          .trim()
-          .toLowerCase();
-        if (!/^[a-f0-9]{24,128}$/.test(tokenHash)) {
-          return null;
-        }
-        return {
-          tokenHash,
-          status
-        };
-      })
-      .filter(Boolean);
+  }
 
-    return {
-      mode: mode === "denylist" ? "denylist" : "allowlist",
-      tokens
-    };
+  async function readApiError(response) {
+    const fallbackResponse = response && typeof response.clone === "function" ? response.clone() : null;
+    try {
+      const data = await response.json();
+      if (data && typeof data === "object" && String(data.error || "").trim()) {
+        return String(data.error).trim();
+      }
+    } catch (_error) {}
+    try {
+      const text = fallbackResponse ? await fallbackResponse.text() : "";
+      const message = String(text || "").trim();
+      return message ? message.slice(0, 240) : "";
+    } catch (_error) {
+      return "";
+    }
   }
 
   function invalidateCurrentLicense(message, auditContext) {
@@ -2524,6 +2427,7 @@
       void validateLicenseWithPublicRegistry({
         force: true,
         audit: false,
+        persist: false,
         context: "Cykliczna walidacja online"
       });
     }, LICENSE_REMOTE_RECHECK_INTERVAL_MS);
@@ -2556,54 +2460,86 @@
     }
 
     const task = (async () => {
-      let registry = null;
-      try {
-        registry = await fetchPublicLicenseRegistry();
-      } catch (error) {
-        const reason = String(error && error.message ? error.message : "nieznany błąd");
+      const endpoints = await fetchLicenseEndpointsConfig();
+      const verifyUrls = getSanitizedUrls(endpoints && endpoints.verifyUrls ? endpoints.verifyUrls : []);
+      if (verifyUrls.length === 0) {
         licenseRemoteState.lastCheckedAt = Date.now();
         licenseRemoteState.lastTokenHash = tokenHash;
         licenseRemoteState.lastResultOk = false;
         invalidateCurrentLicense(
-          `Nie udało się zweryfikować licencji online (${reason}). Licencja została zablokowana.`,
+          "Brak skonfigurowanego endpointu weryfikacji licencji. Licencja została zablokowana.",
           contextLabel
         );
         return false;
       }
 
-      const entry = registry.tokens.find((item) => item.tokenHash === tokenHash) || null;
-      let isValid = true;
-      let invalidReason = "";
-      if (registry.mode === "denylist") {
-        if (entry && ["revoked", "blocked", "disabled", "deleted", "inactive"].includes(entry.status)) {
-          isValid = false;
-          invalidReason = "Token został unieważniony w publicznym rejestrze licencji.";
-        }
-      } else {
-        if (!entry) {
-          isValid = false;
-          invalidReason = "Token nie znajduje się w publicznym rejestrze aktywnych licencji.";
-        } else if (entry.status !== "active") {
-          isValid = false;
-          invalidReason = "Token ma status nieaktywny w publicznym rejestrze licencji.";
+      const deviceId = getLicenseDeviceId();
+      let lastError = null;
+      for (const verifyUrl of verifyUrls) {
+        try {
+          const response = await fetch(`${verifyUrl}?ts=${Date.now()}`, {
+            method: "POST",
+            cache: "no-store",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              token: licenseSession.token,
+              deviceId
+            })
+          });
+          if (!response.ok) {
+            const message = (await readApiError(response)) || `HTTP ${response.status}`;
+            if ([400, 403, 404].includes(response.status)) {
+              licenseRemoteState.lastCheckedAt = Date.now();
+              licenseRemoteState.lastTokenHash = tokenHash;
+              licenseRemoteState.lastResultOk = false;
+              invalidateCurrentLicense(`Serwer odrzucił token (${message}).`, contextLabel);
+              return false;
+            }
+            throw new Error(message);
+          }
+
+          const payload = await response.json();
+          const serverPayload = payload && payload.payload && typeof payload.payload === "object" ? payload.payload : {};
+          const remoteDeviceId = String(serverPayload.deviceId || "").trim();
+          if (remoteDeviceId && remoteDeviceId !== deviceId) {
+            licenseRemoteState.lastCheckedAt = Date.now();
+            licenseRemoteState.lastTokenHash = tokenHash;
+            licenseRemoteState.lastResultOk = false;
+            invalidateCurrentLicense("Token jest przypisany do innego urządzenia.", contextLabel);
+            return false;
+          }
+
+          licenseSession.payload = serverPayload;
+          if (opts.persist !== false) {
+            persistLicenseRecord(licenseSession.token, licenseSession.payload);
+          }
+          updateLicenseSummaryChip();
+          licenseRemoteState.lastCheckedAt = Date.now();
+          licenseRemoteState.lastTokenHash = tokenHash;
+          licenseRemoteState.lastResultOk = true;
+
+          if (opts.audit === true) {
+            appendPrivateLicenseAudit(contextLabel, "Token potwierdzony przez serwer licencji.", {
+              deviceId: getLicenseDeviceId()
+            });
+          }
+          return true;
+        } catch (error) {
+          lastError = error;
         }
       }
 
+      const reason = String(lastError && lastError.message ? lastError.message : "nieznany błąd");
       licenseRemoteState.lastCheckedAt = Date.now();
       licenseRemoteState.lastTokenHash = tokenHash;
-      licenseRemoteState.lastResultOk = isValid;
-
-      if (!isValid) {
-        invalidateCurrentLicense(invalidReason, contextLabel);
-        return false;
-      }
-      if (opts.audit === true) {
-        appendPrivateLicenseAudit(contextLabel, "Token potwierdzony w publicznym rejestrze licencji.", {
-          deviceId: getLicenseDeviceId(),
-          mode: registry.mode
-        });
-      }
-      return true;
+      licenseRemoteState.lastResultOk = false;
+      invalidateCurrentLicense(
+        `Nie udało się zweryfikować licencji online (${reason}). Licencja została zablokowana.`,
+        contextLabel
+      );
+      return false;
     })();
 
     licenseRemoteState.inFlight = task;
@@ -2795,11 +2731,15 @@
       return false;
     }
 
-    const result = activateLicenseToken(token, { persist: false, silent: true });
+    const result = activateLicenseToken(token, {
+      persist: false,
+      silent: true,
+      payload: record && record.payload && typeof record.payload === "object" ? record.payload : null
+    });
     if (result.ok) {
       updateLicenseSummaryChip();
       if (auditEnabled) {
-        appendPrivateLicenseAudit(contextLabel, "Token poprawny.", {
+        appendPrivateLicenseAudit(contextLabel, "Token zapisany lokalnie. Oczekiwanie na potwierdzenie serwera.", {
           deviceId: getLicenseDeviceId(),
           scope: result.scope
         });
@@ -2824,30 +2764,50 @@
   }
 
   function activateLicenseToken(rawToken, options) {
+    const opts = options && typeof options === "object" ? options : {};
     const verified = verifyLicenseToken(rawToken);
     if (!verified.ok) {
       setLicenseLocked(true);
-      if (!options || options.silent !== true) {
+      if (opts.silent !== true) {
         setLicenseStatus(`Błąd licencji: ${verified.error}`, "error");
       }
       return verified;
     }
+
+    const initialPayload = opts.payload && typeof opts.payload === "object" ? opts.payload : null;
+    const fallbackPayload = {
+      v: 2,
+      scope: "private",
+      ownerName: "",
+      email: "",
+      purpose: "",
+      deviceId: getLicenseDeviceId(),
+      issuedAt: new Date().toISOString()
+    };
+
     licenseSession.token = verified.token;
-    licenseSession.payload = verified.payload;
-    if (!options || options.persist !== false) {
-      persistLicenseRecord(verified.token, verified.payload);
+    licenseSession.payload = initialPayload || fallbackPayload;
+    if (opts.persist !== false) {
+      persistLicenseRecord(verified.token, licenseSession.payload);
     }
     setLicenseLocked(false);
-    const scopeLabel = verified.scope === "commercial" ? "komercyjny" : "prywatny";
-    setLicenseStatus(`Token ${scopeLabel} został aktywowany na tym urządzeniu.`, "ok");
-    if (!options || options.silent !== true) {
-      const owner = normalizeLicenseOwner(verified.payload) || "bez nazwy";
-      appendPrivateLicenseAudit("Aktywacja tokenu", `${scopeLabel} | ${owner}`, {
-        scope: verified.scope,
+    const scope = String(licenseSession.payload.scope || "private").trim().toLowerCase() === "commercial"
+      ? "commercial"
+      : "private";
+    const scopeLabel = scope === "commercial" ? "komercyjny" : "prywatny";
+    if (opts.silent !== true) {
+      setLicenseStatus("Token zapisany. Trwa walidacja online...", "ok");
+      const owner = normalizeLicenseOwner(licenseSession.payload) || "bez nazwy";
+      appendPrivateLicenseAudit("Aktywacja tokenu", `${scopeLabel} | ${owner} | oczekiwanie na walidację online`, {
+        scope,
         owner
       });
     }
-    return verified;
+    return {
+      ...verified,
+      scope,
+      payload: licenseSession.payload
+    };
   }
 
   function generateCommercialRequestCode() {
@@ -2941,9 +2901,11 @@
           const remoteOk = await validateLicenseWithPublicRegistry({
             force: true,
             audit: true,
+            persist: true,
             context: "Walidacja online po aktywacji"
           });
           if (remoteOk) {
+            setLicenseStatus("Token został potwierdzony przez serwer licencji.", "ok");
             echoCommand("Token aktywny.");
           }
         }
@@ -4056,21 +4018,6 @@
     return t("obiekt", "object");
   }
 
-  function pushCommandHistory(commandText) {
-    const text = String(commandText || "").trim();
-    if (!text) {
-      return;
-    }
-    const last = state.commandHistory[state.commandHistory.length - 1];
-    if (last !== text) {
-      state.commandHistory.push(text);
-      if (state.commandHistory.length > 250) {
-        state.commandHistory.shift();
-      }
-    }
-    state.commandHistoryIndex = state.commandHistory.length;
-  }
-
   function setDimensionMode(mode, options) {
     const normalized = normalizeDimensionMode(mode);
     state.dimensionMode = normalized;
@@ -4384,826 +4331,6 @@
       return null;
     }
     return state.layers.find((layer) => layer.name.toLowerCase() === normalized) || null;
-  }
-
-  function parseOnOffToggle(rawValue) {
-    const value = String(rawValue || "").trim().toLowerCase();
-    if (!value || value === "toggle") {
-      return null;
-    }
-    if (["on", "1", "true", "wl", "wlacz"].includes(value)) {
-      return true;
-    }
-    if (["off", "0", "false", "wyl", "wylacz"].includes(value)) {
-      return false;
-    }
-    return undefined;
-  }
-
-  function runCommand(rawCommand) {
-    const original = String(rawCommand || "").trim();
-    const normalized = original.toLowerCase().replace(/\s+/g, " ");
-
-    if (normalized) {
-      echoCommand("Komendy tekstowe są wyłączone.", true);
-    }
-    return;
-
-    if (!normalized) {
-      echoCommand("Wpisz polecenie.", true);
-      return;
-    }
-
-    pushCommandHistory(original);
-    if (state.commandState && !["cancel", "anuluj", "esc"].includes(normalized)) {
-      cancelActiveCommand({ echo: false });
-    }
-
-    const [command, ...args] = normalized.split(" ");
-    const argText = args.join(" ");
-
-    if (["cancel", "anuluj", "esc"].includes(command)) {
-      const canceled = cancelActiveCommand({ echo: false });
-      if (canceled) {
-        echoCommand("Polecenie anulowane.");
-      } else {
-        echoCommand("Brak aktywnego polecenia.");
-      }
-      return;
-    }
-
-    if (["line", "linia", "l"].includes(command)) {
-      setTool("line");
-      echoCommand("Tryb LINIA.");
-      return;
-    }
-    if (["polyline", "pline", "pl", "polilinia"].includes(command)) {
-      setTool("polyline");
-      echoCommand("Tryb POLILINIA.");
-      return;
-    }
-    if (["rect", "rectangle", "prostokąt", "rec"].includes(command)) {
-      setTool("rect");
-      echoCommand("Tryb PROSTOKĄT.");
-      return;
-    }
-    if (["circle", "okrąg", "c"].includes(command)) {
-      setTool("circle");
-      echoCommand("Tryb OKRĄG.");
-      return;
-    }
-    if (["measure", "distance", "pomiar", "di"].includes(command)) {
-      setTool("measure");
-      echoCommand("Tryb POMIAR.");
-      return;
-    }
-    if (["dimension", "dim", "wymiar", "wymiaruj"].includes(command)) {
-      const modeArg = String(args[0] || "")
-        .trim()
-        .toLowerCase();
-      if (["lin", "linear", "liniowy"].includes(modeArg)) {
-        setDimensionMode("linear");
-      } else if (["rot", "rotated", "obrocony", "obrócony"].includes(modeArg)) {
-        setDimensionMode("rotated");
-      } else if (["ang", "angular", "katowy", "kątowy"].includes(modeArg)) {
-        setDimensionMode("angular");
-      } else if (["ali", "aligned", "rownolegly"].includes(modeArg)) {
-        setDimensionMode("aligned");
-      }
-      setTool("dimension");
-      echoCommand(`Tryb WYMIAR (${dimensionModeLabel(state.dimensionMode)}).`);
-      return;
-    }
-    if (["dimaligned", "dal", "dimali"].includes(command)) {
-      setDimensionMode("aligned");
-      setTool("dimension");
-      echoCommand("Tryb WYMIAR (wyrównany).");
-      return;
-    }
-    if (["dimlinear", "dli", "dimlin"].includes(command)) {
-      setDimensionMode("linear");
-      setTool("dimension");
-      echoCommand("Tryb WYMIAR (liniowy).");
-      return;
-    }
-    if (["dimrotated", "dro", "dimrot", "dimobrocony", "dimobrócony"].includes(command)) {
-      setDimensionMode("rotated");
-      setTool("dimension");
-      echoCommand("Tryb WYMIAR (obrócony).");
-      return;
-    }
-    if (["dimangular", "dan", "dimkatowy", "dimkątowy"].includes(command)) {
-      setDimensionMode("angular");
-      setTool("dimension");
-      echoCommand("Tryb WYMIAR (kątowy).");
-      return;
-    }
-    if (["pan", "przesun", "h"].includes(command)) {
-      setTool("pan");
-      echoCommand("Tryb PRZESUŃ.");
-      return;
-    }
-    if (["select", "zaznacz", "sel"].includes(command)) {
-      setTool("select");
-      echoCommand("Tryb ZAZNACZ.");
-      return;
-    }
-    if (["move", "m", "przesunobj"].includes(command)) {
-      startMoveCommand();
-      return;
-    }
-    if (["copy", "co", "kopiujobj"].includes(command)) {
-      startCopyCommand();
-      return;
-    }
-    if (["offset", "of", "odsun"].includes(command)) {
-      startOffsetCommand(args[0]);
-      return;
-    }
-    if (["start", "strona", "hub", "skroty", "skróty"].includes(command)) {
-      setRibbonPage("home");
-      echoCommand("Zakładka: Główne.");
-      return;
-    }
-    if (command === "home") {
-      setWorkspaceMode("draw");
-      setRibbonPage("home", { persist: false });
-      echoCommand("Zakładka: Główne.");
-      return;
-    }
-    if (["model", "rysunek", "workspace"].includes(command)) {
-      setWorkspaceMode("draw");
-      setRibbonPage("home", { persist: false });
-      echoCommand("Przełączono na tryb Rysowanie 2D.");
-      return;
-    }
-    if (command === "mode" || command === "tryb") {
-      const requested = String(args[0] || "").trim().toLowerCase();
-      if (!requested) {
-        echoCommand(`Tryb: ${state.workspaceMode === "steel" ? "stal" : "rysunek"}`);
-        return;
-      }
-      if (requested === "start") {
-        setRibbonPage("home");
-        echoCommand("Zakładka: Główne.");
-        return;
-      }
-      if (["draw", "rysunek", "model", "cad"].includes(requested)) {
-        setWorkspaceMode("draw");
-        setRibbonPage("home", { persist: false });
-        echoCommand("Tryb: RYSOWANIE 2D.");
-        return;
-      }
-      if (["steel", "stal", "konstrukcja", "konstrukcje"].includes(requested)) {
-        openCustomSteelSetup();
-        return;
-      }
-      echoCommand("Użyj: mode rysunek | mode stal", true);
-      return;
-    }
-    if (command === "tab" || command === "zakladka" || command === "zakładka" || command === "ribbontab") {
-      const page = resolveRibbonPageAlias(args[0]);
-      const availablePages = getAvailableRibbonPages();
-      if (page === null) {
-        echoCommand(
-          `Zakładka: ${ribbonPageLabel(state.ribbonPage)}. Dostępne: ${availablePages
-            .map((item) => ribbonPageLabel(item))
-            .join(", ")}`
-        );
-        return;
-      }
-      if (page === undefined) {
-        echoCommand("Użyj: tab główne|wymiarowanie|stal|widok|warstwy", true);
-        return;
-      }
-      if (page === "design") {
-        openCustomSteelSetup();
-        return;
-      }
-      if (state.workspaceMode === "steel") {
-        setWorkspaceMode("draw", { persist: false });
-      }
-      if (state.workspaceView === "start") {
-        setWorkspaceMode("draw", { persist: false });
-      }
-      if (!getAvailableRibbonPages().includes(page)) {
-        echoCommand(`Zakładka ${page} nie jest dostępna w tym trybie.`, true);
-        return;
-      }
-      setRibbonPage(page);
-      echoCommand(`Zakładka: ${ribbonPageLabel(page)}.`);
-      return;
-    }
-    if (command === "layout" || command === "arkusz") {
-      const requested = normalizeLayoutTab(args[0]);
-      if (!args[0]) {
-        echoCommand(`Układ: ${state.layoutTab === "sheet1" ? "Arkusz1" : "Model"}.`);
-        return;
-      }
-      if (!["model", "sheet1", "arkusz1", "sheet", "modelspace", "paperspace"].includes(args[0])) {
-        echoCommand("Użyj: layout model | layout arkusz1", true);
-        return;
-      }
-      if (state.workspaceView === "start") {
-        setWorkspaceMode("draw");
-      }
-      setLayoutTab(
-        args[0] === "modelspace" ? "model" : args[0] === "paperspace" ? "sheet1" : requested
-      );
-      echoCommand(`Układ: ${state.layoutTab === "sheet1" ? "Arkusz1" : "Model"}.`);
-      return;
-    }
-
-    if (["brama", "gate", "ogrodzenie", "fence", "balkon", "balcony"].includes(command)) {
-      const template = normalizeSteelTemplate(command);
-      const preset = getSteelPreset(template);
-      const parsedWidth = Number(args[0]);
-      const parsedHeight = Number(args[1]);
-      generateSteelTemplate({
-        template: preset.template,
-        width: Number.isFinite(parsedWidth) && parsedWidth > 0 ? parsedWidth : preset.width,
-        height: Number.isFinite(parsedHeight) && parsedHeight > 0 ? parsedHeight : preset.height,
-        frameProfile: preset.frameProfile,
-        postWidth: preset.postWidth,
-        postLength: preset.postLength,
-        barWidth: preset.barWidth,
-        panelCount: preset.panelCount,
-        infillPattern: preset.infillPattern,
-        topPanel: preset.topPanel,
-        topPanelThickness: preset.topPanelThickness,
-        bottomPanel: preset.bottomPanel,
-        bottomPanelThickness: preset.bottomPanelThickness,
-        sectionCount: preset.sectionCount,
-        gateLeafCount: preset.gateLeafCount,
-        groundClearance: preset.groundClearance,
-        basePlateHeight: preset.basePlateHeight,
-        innerFrame: preset.innerFrame,
-        diagonal: preset.diagonal,
-        center: getViewportCenterWorld()
-      });
-      return;
-    }
-
-    if (command === "steel" || command === "stal") {
-      const templateArg = normalizeSteelTemplate(args[0]);
-      const template = templateArg || state.steelPreset;
-      const preset = templateArg ? getSteelPreset(templateArg) : null;
-      const widthArg = templateArg ? args[1] : args[0];
-      const heightArg = templateArg ? args[2] : args[1];
-      const parsedWidth = Number(widthArg);
-      const parsedHeight = Number(heightArg);
-      generateSteelTemplate({
-        template,
-        width: Number.isFinite(parsedWidth) && parsedWidth > 0 ? parsedWidth : preset ? preset.width : state.steelWidth,
-        height:
-          Number.isFinite(parsedHeight) && parsedHeight > 0 ? parsedHeight : preset ? preset.height : state.steelHeight,
-        frameProfile: preset ? preset.frameProfile : state.steelFrameProfile,
-        postWidth: preset ? preset.postWidth : state.steelPostWidth,
-        postLength: preset ? preset.postLength : state.steelPostLength,
-        barWidth: preset ? preset.barWidth : state.steelBarWidth,
-        panelCount: preset ? preset.panelCount : state.steelPanelCount,
-        infillPattern: preset ? preset.infillPattern : state.steelInfillPattern,
-        topPanel: preset ? preset.topPanel : state.steelTopPanel,
-        topPanelThickness: preset ? preset.topPanelThickness : state.steelTopPanelThickness,
-        bottomPanel: preset ? preset.bottomPanel : state.steelBottomPanel,
-        bottomPanelThickness: preset ? preset.bottomPanelThickness : state.steelBottomPanelThickness,
-        sectionCount: preset ? preset.sectionCount : state.steelSectionCount,
-        gateLeafCount: preset ? preset.gateLeafCount : state.steelGateLeafCount,
-        groundClearance: preset ? preset.groundClearance : state.steelGroundClearance,
-        basePlateHeight: preset ? preset.basePlateHeight : state.steelBasePlateHeight,
-        innerFrame: preset ? preset.innerFrame : state.steelInnerFrame,
-        diagonal: preset ? preset.diagonal : state.steelDiagonal,
-        center: getViewportCenterWorld()
-      });
-      return;
-    }
-
-    if (command === "infill" || command === "wypełnienie" || command === "wypelnienie") {
-      if (!args[0]) {
-        echoCommand(`Wypełnienie: ${infillPatternLabel(state.steelInfillPattern)}.`);
-        return;
-      }
-      const pattern = normalizeInfillPattern(args[0]);
-      if (!pattern) {
-        echoCommand("Użyj: infill pion|poziom|siatka|x", true);
-        return;
-      }
-      state.steelInfillPattern = pattern;
-      syncDocumentControls();
-      markDirty();
-      echoCommand(`Wypełnienie ustawione: ${infillPatternLabel(pattern)}.`);
-      return;
-    }
-
-    if (command === "panels" || command === "panele" || command === "iloscpaneli" || command === "panelcount") {
-      const parsed = Number(args[0]);
-      if (!args[0]) {
-        echoCommand(`Ilość paneli: ${state.steelPanelCount} szt./sekcja.`);
-        return;
-      }
-      if (!Number.isFinite(parsed)) {
-        echoCommand("Użyj: panele <szt>", true);
-        return;
-      }
-      state.steelPanelCount = clamp(Math.round(parsed), 1, 120, state.steelPanelCount);
-      syncDocumentControls();
-      markDirty();
-      echoCommand(`Ilość paneli: ${state.steelPanelCount} szt./sekcja.`);
-      return;
-    }
-
-    if (command === "spacing" || command === "odstep" || command === "odstęp") {
-      const parsed = Number(args[0]);
-      if (!args[0]) {
-        echoCommand(`Komenda spacing została zastąpiona. Użyj: panele <szt>. Aktualnie: ${state.steelPanelCount}.`);
-        return;
-      }
-      if (!Number.isFinite(parsed)) {
-        echoCommand("Użyj: panele <szt> (komenda spacing jest wycofana).", true);
-        return;
-      }
-      const inferred = inferPanelCountFromLegacySpacing(parsed, {
-        template: state.steelPreset,
-        infillPattern: state.steelInfillPattern,
-        width: state.steelWidth,
-        height: state.steelHeight,
-        frameProfile: state.steelFrameProfile,
-        postWidth: state.steelPostWidth,
-        barWidth: state.steelBarWidth,
-        sectionCount: state.steelSectionCount,
-        gateLeafCount: state.steelGateLeafCount,
-        groundClearance: state.steelGroundClearance,
-        basePlateHeight: state.steelBasePlateHeight,
-        innerFrame: state.steelInnerFrame,
-        topPanel: state.steelTopPanel,
-        topPanelThickness: state.steelTopPanelThickness,
-        bottomPanel: state.steelBottomPanel,
-        bottomPanelThickness: state.steelBottomPanelThickness
-      });
-      state.steelPanelCount = clamp(Math.round(inferred), 1, 120, state.steelPanelCount);
-      syncDocumentControls();
-      markDirty();
-      echoCommand(
-        `Komenda spacing jest wycofana. Przeliczono na ilość paneli: ${state.steelPanelCount} szt./sekcja.`
-      );
-      return;
-    }
-
-    if (command === "postwidth" || command === "slupekszer" || command === "szerokoscslupka") {
-      const parsed = Number(args[0]);
-      if (!args[0]) {
-        echoCommand(`Szerokość słupka: ${state.steelPostWidth} mm.`);
-        return;
-      }
-      if (!Number.isFinite(parsed)) {
-        echoCommand("Użyj: postwidth <mm>", true);
-        return;
-      }
-      state.steelPostWidth = Math.max(20, parsed);
-      syncDocumentControls();
-      markDirty();
-      echoCommand(`Szerokość słupka: ${state.steelPostWidth} mm.`);
-      return;
-    }
-
-    if (command === "postlength" || command === "slupekdl" || command === "dlugoscslupka") {
-      const parsed = Number(args[0]);
-      if (!args[0]) {
-        echoCommand(`Długość słupka: ${state.steelPostLength} mm.`);
-        return;
-      }
-      if (!Number.isFinite(parsed)) {
-        echoCommand("Użyj: postlength <mm>", true);
-        return;
-      }
-      state.steelPostLength = Math.max(200, parsed);
-      syncDocumentControls();
-      markDirty();
-      echoCommand(`Długość słupka: ${state.steelPostLength} mm.`);
-      return;
-    }
-
-    if (command === "sections" || command === "sekcje") {
-      const parsed = Number(args[0]);
-      if (!args[0]) {
-        echoCommand(`Sekcje: ${state.steelSectionCount}.`);
-        return;
-      }
-      if (!Number.isFinite(parsed)) {
-        echoCommand("Użyj: sections <1-6>", true);
-        return;
-      }
-      state.steelSectionCount = Math.max(1, Math.min(6, Math.round(parsed)));
-      syncDocumentControls();
-      markDirty();
-      echoCommand(`Sekcje: ${state.steelSectionCount}.`);
-      return;
-    }
-
-    if (command === "skrzydla" || command === "skrzydła" || command === "leaves") {
-      const parsed = Number(args[0]);
-      if (!args[0]) {
-        echoCommand(`Skrzydła bramy: ${state.steelGateLeafCount}.`);
-        return;
-      }
-      if (!Number.isFinite(parsed)) {
-        echoCommand("Użyj: skrzydła <1-2>", true);
-        return;
-      }
-      state.steelGateLeafCount = Math.max(1, Math.min(2, Math.round(parsed)));
-      syncDocumentControls();
-      markDirty();
-      echoCommand(`Skrzydła bramy: ${state.steelGateLeafCount}.`);
-      return;
-    }
-
-    if (command === "clearance" || command === "prześwit" || command === "przeswit") {
-      const parsed = Number(args[0]);
-      if (!args[0]) {
-        echoCommand(`Prześwit od dołu: ${state.steelGroundClearance} mm.`);
-        return;
-      }
-      if (!Number.isFinite(parsed)) {
-        echoCommand("Użyj: clearance <mm>", true);
-        return;
-      }
-      state.steelGroundClearance = Math.max(0, parsed);
-      syncDocumentControls();
-      markDirty();
-      echoCommand(`Prześwit od dołu: ${state.steelGroundClearance} mm.`);
-      return;
-    }
-
-    if (command === "baseplate" || command === "podmurówka" || command === "podmurowka") {
-      const parsed = Number(args[0]);
-      if (!args[0]) {
-        echoCommand(`Podmurówka: ${state.steelBasePlateHeight} mm.`);
-        return;
-      }
-      if (!Number.isFinite(parsed)) {
-        echoCommand("Użyj: baseplate <mm>", true);
-        return;
-      }
-      state.steelBasePlateHeight = Math.max(0, parsed);
-      syncDocumentControls();
-      markDirty();
-      echoCommand(`Podmurówka: ${state.steelBasePlateHeight} mm.`);
-      return;
-    }
-
-    if (command === "innerframe" || command === "ramawew") {
-      const toggle = parseOnOffToggle(args[0]);
-      if (toggle === undefined) {
-        echoCommand("Użyj: innerframe on | innerframe off | innerframe toggle", true);
-        return;
-      }
-      state.steelInnerFrame = toggle === null ? !state.steelInnerFrame : toggle;
-      syncDocumentControls();
-      markDirty();
-      echoCommand(`Rama wewnętrzna: ${state.steelInnerFrame ? "ON" : "OFF"}.`);
-      return;
-    }
-
-    if (command === "toppanel" || command === "panelgora" || command === "panelgóra") {
-      const parsedSize = Number(args[0]);
-      if (args[0] && Number.isFinite(parsedSize)) {
-        state.steelTopPanelThickness = Math.max(2, parsedSize);
-        syncDocumentControls();
-        markDirty();
-        echoCommand(`Panel górny: ${state.steelTopPanel ? "ON" : "OFF"}, rozmiar ${state.steelTopPanelThickness} mm.`);
-        return;
-      }
-      const toggle = parseOnOffToggle(args[0]);
-      if (!args[0]) {
-        echoCommand(`Panel górny: ${state.steelTopPanel ? "ON" : "OFF"}, rozmiar ${state.steelTopPanelThickness} mm.`);
-        return;
-      }
-      if (toggle === undefined) {
-        echoCommand("Użyj: toppanel on|off|toggle lub toppanel <mm>", true);
-        return;
-      }
-      state.steelTopPanel = toggle === null ? !state.steelTopPanel : toggle;
-      syncDocumentControls();
-      markDirty();
-      echoCommand(`Panel górny: ${state.steelTopPanel ? "ON" : "OFF"}, rozmiar ${state.steelTopPanelThickness} mm.`);
-      return;
-    }
-
-    if (command === "bottompanel" || command === "paneldol" || command === "paneldół") {
-      const parsedSize = Number(args[0]);
-      if (args[0] && Number.isFinite(parsedSize)) {
-        state.steelBottomPanelThickness = Math.max(2, parsedSize);
-        syncDocumentControls();
-        markDirty();
-        echoCommand(
-          `Panel dolny: ${state.steelBottomPanel ? "ON" : "OFF"}, rozmiar ${state.steelBottomPanelThickness} mm.`
-        );
-        return;
-      }
-      const toggle = parseOnOffToggle(args[0]);
-      if (!args[0]) {
-        echoCommand(
-          `Panel dolny: ${state.steelBottomPanel ? "ON" : "OFF"}, rozmiar ${state.steelBottomPanelThickness} mm.`
-        );
-        return;
-      }
-      if (toggle === undefined) {
-        echoCommand("Użyj: bottompanel on|off|toggle lub bottompanel <mm>", true);
-        return;
-      }
-      state.steelBottomPanel = toggle === null ? !state.steelBottomPanel : toggle;
-      syncDocumentControls();
-      markDirty();
-      echoCommand(
-        `Panel dolny: ${state.steelBottomPanel ? "ON" : "OFF"}, rozmiar ${state.steelBottomPanelThickness} mm.`
-      );
-      return;
-    }
-
-    if (command === "toppanelsize" || command === "panelgorasize") {
-      const parsed = Number(args[0]);
-      if (!args[0]) {
-        echoCommand(`Rozmiar panelu górnego: ${state.steelTopPanelThickness} mm.`);
-        return;
-      }
-      if (!Number.isFinite(parsed)) {
-        echoCommand("Użyj: toppanelsize <mm>", true);
-        return;
-      }
-      state.steelTopPanelThickness = Math.max(2, parsed);
-      syncDocumentControls();
-      markDirty();
-      echoCommand(`Rozmiar panelu górnego: ${state.steelTopPanelThickness} mm.`);
-      return;
-    }
-
-    if (command === "bottompanelsize" || command === "paneldolsize") {
-      const parsed = Number(args[0]);
-      if (!args[0]) {
-        echoCommand(`Rozmiar panelu dolnego: ${state.steelBottomPanelThickness} mm.`);
-        return;
-      }
-      if (!Number.isFinite(parsed)) {
-        echoCommand("Użyj: bottompanelsize <mm>", true);
-        return;
-      }
-      state.steelBottomPanelThickness = Math.max(2, parsed);
-      syncDocumentControls();
-      markDirty();
-      echoCommand(`Rozmiar panelu dolnego: ${state.steelBottomPanelThickness} mm.`);
-      return;
-    }
-
-    if (command === "steelopts" || command === "stalopts") {
-      const template = normalizeSteelTemplate(state.steelPreset) || "gate";
-      const leafInfo = template === "gate" ? `${state.steelGateLeafCount}` : "N/D";
-      echoCommand(
-        `STAL: ${steelTemplateLabel(template)}, ${state.steelWidth}x${state.steelHeight} mm, rama profil ${state.steelFrameProfile} mm, wypełnienie ${infillPatternLabel(
-          state.steelInfillPattern
-        )} (profil ${state.steelBarWidth} mm, panele ${state.steelPanelCount} szt./sekcja), panel góra ${state.steelTopPanel ? "ON" : "OFF"} ${state.steelTopPanelThickness} mm, panel dół ${state.steelBottomPanel ? "ON" : "OFF"} ${state.steelBottomPanelThickness} mm, słupek ${template === "fence" ? `${state.steelPostWidth}x${state.steelPostLength} mm` : "N/D"}, sekcje ${state.steelSectionCount}, skrzydła ${leafInfo}, prześwit ${state.steelGroundClearance} mm, podmurówka ${state.steelBasePlateHeight} mm, rama wewn. ${state.steelInnerFrame ? "ON" : "OFF"}, ukos ${template === "gate" ? (state.steelDiagonal ? "ON" : "OFF") : "N/D"}.`
-      );
-      return;
-    }
-
-    if (["ze", "zext", "zoomextents"].includes(command)) {
-      fitViewToEntities();
-      echoCommand("Dopasowano widok do obiektów.");
-      return;
-    }
-    if (command === "zoom") {
-      if (argText === "extents" || argText === "e" || argText === "all") {
-        fitViewToEntities();
-        echoCommand("Dopasowano widok do obiektów.");
-        return;
-      }
-      echoCommand("Dostępne: zoom extents", true);
-      return;
-    }
-
-    if (command === "snap") {
-      const toggle = parseOnOffToggle(args[0]);
-      if (toggle === undefined) {
-        echoCommand("Użyj: snap on | snap off | snap toggle", true);
-        return;
-      }
-      setSnapEnabled(toggle === null ? !state.snap : toggle);
-      echoCommand(`Przyciąganie: ${state.snap ? "WŁ." : "WYŁ."}`);
-      return;
-    }
-    if (command === "grid") {
-      const toggle = parseOnOffToggle(args[0]);
-      if (toggle === undefined) {
-        echoCommand("Użyj: grid on | grid off | grid toggle", true);
-        return;
-      }
-      setGridEnabled(toggle === null ? !state.showGrid : toggle);
-      echoCommand(`Siatka: ${state.showGrid ? "WŁ." : "WYŁ."}`);
-      return;
-    }
-    if (command === "ortho") {
-      const toggle = parseOnOffToggle(args[0]);
-      if (toggle === undefined) {
-        echoCommand("Użyj: ortho on | ortho off | ortho toggle", true);
-        return;
-      }
-      setOrthoEnabled(toggle === null ? !state.ortho : toggle);
-      echoCommand(`Poziom/Pion: ${state.ortho ? "WŁ." : "WYŁ."}`);
-      return;
-    }
-
-    if (command === "ribbon" || command === "wstążka" || command === "wstazka") {
-      const toggle = parseOnOffToggle(args[0]);
-      if (toggle === undefined) {
-        echoCommand("Użyj: ribbon on | ribbon off | ribbon toggle", true);
-        return;
-      }
-      const collapse = toggle === null ? !state.ribbonCollapsed : !toggle;
-      setRibbonCollapsed(collapse);
-      echoCommand(`Wstążka: ${state.ribbonCollapsed ? "zwinięta" : "rozwinięta"}.`);
-      return;
-    }
-
-    if (command === "paleta" || command === "palety" || command === "palette") {
-      const toggle = parseOnOffToggle(args[0]);
-      if (toggle === undefined) {
-        echoCommand("Użyj: paleta on | paleta off | paleta toggle", true);
-        return;
-      }
-      if (toggle === false) {
-        setPaletteHidden(true);
-        echoCommand("Panele: ukryte.");
-        return;
-      }
-      if (toggle === true) {
-        setPaletteHidden(false);
-        echoCommand("Panele: widoczne.");
-        return;
-      }
-      if (state.paletteHidden) {
-        setPaletteHidden(false);
-        echoCommand("Panele: widoczne.");
-      } else if (state.activeFlyout) {
-        setActiveFlyout(null, { persist: false });
-        echoCommand("Zamknięto aktywny panel.");
-      } else {
-        setActiveFlyout("layers", { persist: false });
-        echoCommand("Otwarto panel: Warstwy.");
-      }
-      return;
-    }
-
-    if (["print", "drukuj", "pdf", "plot"].includes(command)) {
-      void triggerPrintWithFeedback();
-      return;
-    }
-
-    if (command === "dimstyle" || command === "stylwymiaru") {
-      const unitArg = String(args[0] || "").trim().toLowerCase();
-      const decimalsArg = Number(args[1]);
-      const textSizeArg = Number(args[2]);
-      const modeArg = String(args[3] || "").trim().toLowerCase();
-      const colorArg = String(args[4] || "").trim();
-
-      if (unitArg) {
-        if (!["mm", "cm", "m"].includes(unitArg)) {
-          echoCommand(
-            "Użyj: dimstyle [mm|cm|m] [precyzja 0-4] [tekst 8-48] [aligned|linear|rotated|angular] [#RRGGBB]",
-            true
-          );
-          return;
-        }
-        state.dimensionUnit = unitArg;
-      }
-      if (args[1] !== undefined && args[1] !== "") {
-        if (!Number.isFinite(decimalsArg)) {
-          echoCommand("Precyzja musi być liczbą 0-4.", true);
-          return;
-        }
-        state.dimensionDecimals = clamp(Math.round(decimalsArg), 0, 4, state.dimensionDecimals);
-      }
-      if (args[2] !== undefined && args[2] !== "") {
-        if (!Number.isFinite(textSizeArg)) {
-          echoCommand("Rozmiar tekstu musi być liczbą 8-48.", true);
-          return;
-        }
-        state.dimensionTextSize = clamp(textSizeArg, 8, 48, state.dimensionTextSize);
-      }
-      if (modeArg) {
-        if (!["aligned", "linear", "rotated", "angular", "ali", "lin", "rot", "ang"].includes(modeArg)) {
-          echoCommand("Tryb wymiaru: aligned/wyrównany, linear/liniowy, rotated/obrócony lub angular/kątowy.", true);
-          return;
-        }
-        const nextMode = modeArg.startsWith("lin")
-          ? "linear"
-          : modeArg.startsWith("rot")
-            ? "rotated"
-            : modeArg.startsWith("ang")
-              ? "angular"
-              : "aligned";
-        setDimensionMode(nextMode, { persist: false });
-      }
-      if (colorArg) {
-        const normalizedColor = colorArg.startsWith("#") ? colorArg : `#${colorArg}`;
-        if (!/^#[0-9a-fA-F]{6}$/.test(normalizedColor)) {
-          echoCommand("Kolor DIM musi być w formacie #RRGGBB.", true);
-          return;
-        }
-        state.dimensionColor = normalizedColor.toLowerCase();
-      }
-
-      syncDocumentControls();
-      markDirty();
-      echoCommand(
-        `Styl wymiaru: ${dimensionModeLabel(state.dimensionMode)}, ${state.dimensionUnit}, precyzja ${
-          state.dimensionDecimals
-        }, tekst ${state.dimensionTextSize}, kąt ${state.dimensionRotation.toFixed(1)}°, skok ${
-          state.dimensionAngleSnap
-        }°, kolor ${state.dimensionColor}.`
-      );
-      return;
-    }
-
-    if (command === "dimangle" || command === "katdim" || command === "kątdim") {
-      const parsed = Number(args[0]);
-      if (!args[0]) {
-        echoCommand(`Kąt wymiaru: ${state.dimensionRotation.toFixed(1)}°.`);
-        return;
-      }
-      if (!Number.isFinite(parsed)) {
-        echoCommand("Użyj: dimangle <stopnie>", true);
-        return;
-      }
-      state.dimensionRotation = normalizeAngleDegrees(parsed);
-      syncDocumentControls();
-      markDirty();
-      echoCommand(`Kąt wymiaru: ${state.dimensionRotation.toFixed(1)}°.`);
-      return;
-    }
-
-    if (command === "dimsnap" || command === "katstep" || command === "kątstep") {
-      const parsed = Number(args[0]);
-      if (!args[0]) {
-        echoCommand(`Skok kąta wymiaru: ${state.dimensionAngleSnap}°.`);
-        return;
-      }
-      if (!Number.isFinite(parsed)) {
-        echoCommand("Użyj: dimsnap <0-90>", true);
-        return;
-      }
-      state.dimensionAngleSnap = clamp(Math.round(parsed), 0, 90, state.dimensionAngleSnap);
-      syncDocumentControls();
-      markDirty();
-      echoCommand(`Skok kąta wymiaru: ${state.dimensionAngleSnap}°.`);
-      return;
-    }
-
-    if (command === "dimcolor" || command === "kolordim") {
-      const colorArg = String(args[0] || "").trim();
-      if (!colorArg) {
-        echoCommand(`Kolor DIM: ${state.dimensionColor}.`);
-        return;
-      }
-      const normalizedColor = colorArg.startsWith("#") ? colorArg : `#${colorArg}`;
-      if (!/^#[0-9a-fA-F]{6}$/.test(normalizedColor)) {
-        echoCommand("Użyj: dimcolor #RRGGBB", true);
-        return;
-      }
-      state.dimensionColor = normalizedColor.toLowerCase();
-      syncDocumentControls();
-      markDirty();
-      queueRender();
-      echoCommand(`Kolor DIM: ${state.dimensionColor}.`);
-      return;
-    }
-
-    if (command === "clear" || command === "wyczyść") {
-      clearDrawing();
-      echoCommand("Polecenie WYCZYŚĆ wykonane.");
-      return;
-    }
-
-    if (command === "layer" || command === "warstwa") {
-      const layerName = original.split(/\s+/).slice(1).join(" ").trim();
-      if (!layerName) {
-        echoCommand(`Aktywna warstwa: ${getLayerNameById(state.activeLayerId)}`);
-        return;
-      }
-      let layer = findLayerByName(layerName);
-      if (!layer) {
-        createLayer(layerName);
-        layer = findLayerByName(layerName);
-      } else {
-        setActiveLayer(layer.id);
-      }
-      if (!layer) {
-        echoCommand("Nie udało się ustawić warstwy.", true);
-        return;
-      }
-      echoCommand(`Aktywna warstwa: ${layer.name}`);
-      return;
-    }
-
-    echoCommand(`Nieznane polecenie: ${original}`, true);
   }
 
   function updateFillControlsAvailability(selected) {
@@ -12399,6 +11526,7 @@
         enforceLicenseStorageIntegrity({ silent: true });
         void validateLicenseWithPublicRegistry({
           force: true,
+          persist: false,
           context: "Walidacja online przy wejściu do aplikacji"
         });
       }
@@ -12417,6 +11545,7 @@
           enforceLicenseStorageIntegrity();
           void validateLicenseWithPublicRegistry({
             force: true,
+            persist: false,
             context: "Walidacja online po zmianie storage"
           });
         }
@@ -12449,6 +11578,7 @@
       licensedAtBoot = await validateLicenseWithPublicRegistry({
         force: true,
         audit: true,
+        persist: false,
         context: "Walidacja online przy uruchomieniu"
       });
     }

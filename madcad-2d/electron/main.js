@@ -130,13 +130,6 @@ async function setSavedOdaConverterPath(filePath) {
   await writeCadConfig(config);
 }
 
-async function setDwgOnboardingState(patch) {
-  const config = await readCadConfig();
-  const update = patch && typeof patch === 'object' ? patch : {};
-  Object.assign(config, update);
-  await writeCadConfig(config);
-}
-
 function httpsGetBuffer(url) {
   return new Promise((resolve, reject) => {
     const request = https.get(
@@ -883,114 +876,6 @@ async function autoInstallOdaConverter() {
   }
 
   throw new Error(failures[0] || t('Nie udało się zainstalować ODA.', 'Failed to install ODA.'));
-}
-
-async function promptAutoInstallOda(win, options = {}) {
-  const title = options.retry
-    ? t('DWG: ponowić instalację?', 'DWG: retry installation?')
-    : t('Obsługa DWG', 'DWG support');
-  const message = options.retry
-    ? t(
-        'Brak ODA File Converter. Ponowić automatyczną instalację teraz?',
-        'ODA File Converter is missing. Retry automatic installation now?'
-      )
-    : t(
-        'Czy chcesz używać plików DWG w MadCAD 2D?',
-        'Do you want to use DWG files in MadCAD 2D?'
-      );
-  const detail = t(
-    'Po wyborze „Tak” aplikacja spróbuje automatycznie pobrać i zainstalować ODA File Converter.',
-    'If you choose “Yes”, the app will try to automatically download and install ODA File Converter.'
-  );
-
-  const answer = await dialog.showMessageBox(win, {
-    type: 'question',
-    buttons: [t('Tak', 'Yes'), t('Nie', 'No')],
-    defaultId: 0,
-    cancelId: 1,
-    noLink: true,
-    title,
-    message,
-    detail
-  });
-
-  if (answer.response !== 0) {
-    return false;
-  }
-
-  try {
-    const installedPath = await autoInstallOdaConverter();
-    await dialog.showMessageBox(win, {
-      type: 'info',
-      title: t('Instalacja zakończona', 'Installation completed'),
-      message: t('Zainstalowano ODA File Converter. DWG jest gotowe do użycia.', 'ODA File Converter has been installed. DWG is ready to use.'),
-      detail: installedPath
-    });
-    return true;
-  } catch (error) {
-    const errorText = error && error.message ? String(error.message) : '';
-    await dialog.showMessageBox(win, {
-      type: 'warning',
-      title: t('Nie udało się zainstalować ODA', 'ODA installation failed'),
-      message: t(
-        'Automatyczna instalacja ODA nie powiodła się. Możesz ponowić próbę przy kolejnym uruchomieniu.',
-        'Automatic ODA installation failed. You can retry on next launch.'
-      ),
-      detail: errorText
-    });
-    await shell.openExternal(ODA_DOWNLOAD_URL).catch(() => {});
-    return false;
-  }
-}
-
-async function runDwgOnboardingIfNeeded(win) {
-  const config = await readCadConfig();
-  const existing = await resolveOdaConverterPath();
-
-  if (existing) {
-    if (config && config.dwgEnabled !== true) {
-      await setDwgOnboardingState({ dwgOnboardingAsked: true, dwgEnabled: true });
-    }
-    return;
-  }
-
-  if (config && config.dwgOnboardingAsked === true && config.dwgEnabled === true) {
-    const installed = await promptAutoInstallOda(win, { retry: true });
-    if (installed) {
-      await setDwgOnboardingState({ dwgOnboardingAsked: true, dwgEnabled: true });
-    }
-    return;
-  }
-
-  if (config && config.dwgOnboardingAsked === true && config.dwgEnabled === false) {
-    return;
-  }
-
-  const answer = await dialog.showMessageBox(win, {
-    type: 'question',
-    buttons: [t('Tak, używam DWG', 'Yes, I use DWG'), t('Nie', 'No')],
-    defaultId: 0,
-    cancelId: 1,
-    noLink: true,
-    title: t('Obsługa DWG', 'DWG support'),
-    message: t('Czy chcesz używać plików DWG w MadCAD 2D?', 'Do you want to use DWG files in MadCAD 2D?'),
-    detail: t(
-      'Po wyborze „Tak” aplikacja spróbuje automatycznie pobrać i zainstalować ODA File Converter.',
-      'If you choose “Yes”, the app will try to automatically download and install ODA File Converter.'
-    )
-  });
-
-  const wantsDwg = answer.response === 0;
-  await setDwgOnboardingState({ dwgOnboardingAsked: true, dwgEnabled: wantsDwg });
-
-  if (!wantsDwg) {
-    return;
-  }
-
-  const installed = await promptAutoInstallOda(win, { retry: false });
-  if (!installed) {
-    await setDwgOnboardingState({ dwgOnboardingAsked: true, dwgEnabled: true });
-  }
 }
 
 async function pathExists(filePath) {

@@ -1,7 +1,10 @@
 {
-  "version": 1,
-  "updatedAt": "2026-03-08T18:45:00Z",
-  "registryUrls": [
-    "https://kamil5646.github.io/MadCAD2D/license-registry.json"
+  "version": 2,
+  "updatedAt": "2026-03-08T20:30:00Z",
+  "verifyUrls": [
+    "https://madcad-license-registry.kamil5646.workers.dev/v1/license-tokens/verify"
+  ],
+  "registryApiUrls": [
+    "https://madcad-license-registry.kamil5646.workers.dev/v1/license-registry"
   ]
 }

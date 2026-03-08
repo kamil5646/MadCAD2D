@@ -785,7 +785,7 @@
 
           <div class="admin-actions">
             <input id="tokenSearchInput" type="text" placeholder="Szukaj: właściciel, e-mail, ID urządzenia..." />
-            <input id="manualTokenInput" type="text" placeholder="Wklej istniejący token M2D1... aby dodać do rejestru" />
+            <input id="manualTokenInput" type="text" placeholder="Wklej istniejący token M2D... aby dodać do rejestru" />
             <button id="addManualTokenBtn" class="btn secondary" type="button">Dodaj token ręcznie</button>
             <button id="exportPublicRegistryBtn" class="btn secondary" type="button">Eksport license-registry.json</button>
             <button id="exportTokensJsonBtn" class="btn secondary" type="button">Eksport JSON</button>
@@ -979,8 +979,7 @@
           }
         }
 
-        const LICENSE_SIGNATURE_SALT = "MadCAD2D-Private-NoMods-SingleDevice-2026";
-        const LICENSE_TOKEN_PREFIX = "M2D1";
+        const LICENSE_TOKEN_PATTERN = /^M2D[0-9]+\.[A-Za-z0-9_-]{8,512}(?:\.[A-Za-z0-9_-]{8,1200})?$/;
 
         const ownerInput = document.getElementById("tokenOwnerName");
         const emailInput = document.getElementById("tokenEmail");
@@ -1045,6 +1044,7 @@
         const TOKEN_REGISTRY_API_SYNC_KEY = "madcad-token-registry-api-sync-v1";
         const TOKEN_REGISTRY_API_TOKEN_SESSION_KEY = "madcad-token-registry-api-token-session-v1";
         const DEFAULT_REGISTRY_API_URL = "https://madcad-license-registry.kamil5646.workers.dev/v1/license-registry";
+        const DEFAULT_ISSUE_PRIVATE_URL = "https://madcad-license-registry.kamil5646.workers.dev/v1/license-tokens/issue-private";
         let adminUnlocked = false;
         let registryApiSyncBusy = false;
         let registryApiSyncDebounceTimer = null;
@@ -1087,26 +1087,6 @@
             hash = Math.imul(hash, 0x01000193) >>> 0;
           }
           return hash.toString(16).padStart(8, "0");
-        }
-
-        function encodeBase64Url(text) {
-          const utf8 = unescape(encodeURIComponent(String(text || "")));
-          return btoa(utf8).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-        }
-
-        function decodeBase64Url(text) {
-          const value = String(text || "").replace(/-/g, "+").replace(/_/g, "/");
-          const padLength = (4 - (value.length % 4)) % 4;
-          const padded = value + "=".repeat(padLength);
-          return decodeURIComponent(escape(atob(padded)));
-        }
-
-        function makeLicenseSignature(payloadJson) {
-          const source = String(payloadJson || "");
-          const a = fnv1aHash(`${source}|${LICENSE_SIGNATURE_SALT}|A`);
-          const b = fnv1aHash(`${LICENSE_SIGNATURE_SALT}|${source}|B`, 0x9e3779b9);
-          const c = fnv1aHash(`${source}|${LICENSE_SIGNATURE_SALT}|C`, 0x85ebca6b);
-          return `${a}${b}${c}`.toUpperCase();
         }
 
         async function sha256Hex(text) {
@@ -1419,51 +1399,72 @@
           URL.revokeObjectURL(url);
         }
 
+        function normalizeLicenseToken(rawToken) {
+          const token = String(rawToken || "").trim();
+          if (!token) {
+            return "";
+          }
+          if (!LICENSE_TOKEN_PATTERN.test(token)) {
+            return "";
+          }
+          return token;
+        }
+
+        function deriveIssuePrivateUrl(apiUrl) {
+          const raw = String(apiUrl || "").trim();
+          if (!raw) {
+            return "";
+          }
+          try {
+            const parsed = new URL(raw);
+            if (!parsed.pathname.endsWith("/v1/license-registry")) {
+              return "";
+            }
+            parsed.pathname = `${parsed.pathname.slice(0, -"/v1/license-registry".length)}/v1/license-tokens/issue-private`;
+            parsed.search = "";
+            parsed.hash = "";
+            return parsed.toString();
+          } catch {
+            return "";
+          }
+        }
+
+        function getIssuePrivateUrl() {
+          const cfg = readRegistryApiSyncConfig();
+          const derived = deriveIssuePrivateUrl(cfg && cfg.apiUrl ? cfg.apiUrl : "");
+          return derived || DEFAULT_ISSUE_PRIVATE_URL;
+        }
+
         function buildRegistryEntry(payload, token) {
-          const idSeed = `${payload.deviceId}|${payload.ownerName}|${payload.email}|${payload.issuedAt}|${token}`;
+          const safePayload = payload && typeof payload === "object" ? payload : {};
+          const ownerName = String(safePayload.ownerName || "Nieznany").trim();
+          const email = normalizeEmail(safePayload.email || "");
+          const purpose = String(safePayload.purpose || "").trim();
+          const deviceId = String(safePayload.deviceId || "").trim();
+          const issuedAt = String(safePayload.issuedAt || new Date().toISOString()).trim();
+          const idSeed = `${deviceId}|${ownerName}|${email}|${issuedAt}|${token}`;
           return {
             id: `tok-${Date.now()}-${fnv1aHash(idSeed).slice(0, 8)}`,
-            createdAt: payload.issuedAt,
+            createdAt: issuedAt,
             status: "active",
-            type: "private",
-            ownerName: payload.ownerName,
-            email: payload.email,
-            purpose: payload.purpose,
-            deviceId: payload.deviceId,
+            type: String(safePayload.scope || "private").trim().toLowerCase() === "commercial" ? "commercial" : "private",
+            ownerName,
+            email,
+            purpose,
+            deviceId,
             token
           };
         }
 
         function parsePrivateToken(rawToken) {
-          const token = String(rawToken || "").trim();
+          const token = normalizeLicenseToken(rawToken);
           if (!token) {
             return null;
           }
-          const parts = token.split(".");
-          if (parts.length !== 3 || parts[0] !== LICENSE_TOKEN_PREFIX) {
-            return null;
-          }
-          try {
-            const payloadJson = decodeBase64Url(parts[1]);
-            const payload = JSON.parse(payloadJson);
-            const expectedSignature = makeLicenseSignature(payloadJson);
-            const signature = String(parts[2] || "").trim().toUpperCase();
-            if (signature !== expectedSignature) {
-              return null;
-            }
-            if (!payload || typeof payload !== "object" || String(payload.scope || "") !== "private") {
-              return null;
-            }
-            if (!String(payload.ownerName || "").trim() || !String(payload.deviceId || "").trim()) {
-              return null;
-            }
-            return {
-              token,
-              payload
-            };
-          } catch {
-            return null;
-          }
+          return {
+            token,
+            payload: null
+          };
         }
 
         function ensureTokenInRegistry(rawToken) {
@@ -1599,7 +1600,7 @@
           renderTokenAdminTable();
         }
 
-        function buildPrivateToken() {
+        async function buildPrivateToken() {
           const ownerName = String(ownerInput ? ownerInput.value : "").trim();
           const email = normalizeEmail(emailInput ? emailInput.value : "");
           const purpose = String(purposeInput ? purposeInput.value : "").trim();
@@ -1622,33 +1623,68 @@
             return;
           }
 
-          const payload = {
-            v: 1,
-            app: "MadCAD 2D",
-            scope: "private",
-            ownerName,
-            email,
-            purpose,
-            deviceId,
-            noModifications: true,
-            commercialUse: false,
-            seats: 1,
-            issuedAt: new Date().toISOString()
-          };
+          const issuePrivateUrl = getIssuePrivateUrl();
+          if (generateBtn) {
+            generateBtn.disabled = true;
+          }
+          setStatus("Generowanie tokenu na serwerze...", "ok");
+          try {
+            const response = await fetch(`${issuePrivateUrl}?ts=${Date.now()}`, {
+              method: "POST",
+              cache: "no-store",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                ownerName,
+                email,
+                purpose,
+                deviceId
+              })
+            });
 
-          const json = JSON.stringify(payload);
-          const body = encodeBase64Url(json);
-          const signature = makeLicenseSignature(json);
-          const token = `${LICENSE_TOKEN_PREFIX}.${body}.${signature}`;
-          if (output) {
-            output.value = token;
+            let responseBody = null;
+            try {
+              responseBody = await response.json();
+            } catch {}
+            if (!response.ok || !responseBody || responseBody.ok === false) {
+              const reason = responseBody && responseBody.error ? responseBody.error : `HTTP ${response.status}`;
+              throw new Error(String(reason || "nieznany błąd"));
+            }
+
+            const token = normalizeLicenseToken(responseBody.token);
+            if (!token) {
+              throw new Error("Serwer zwrócił nieprawidłowy token.");
+            }
+
+            if (output) {
+              output.value = token;
+            }
+            setLastPrivateToken(token);
+            const payload = responseBody.payload && typeof responseBody.payload === "object"
+              ? responseBody.payload
+              : {
+                  v: 2,
+                  scope: "private",
+                  ownerName,
+                  email,
+                  purpose,
+                  deviceId,
+                  issuedAt: new Date().toISOString()
+                };
+            upsertRegistryEntry(buildRegistryEntry(payload, token));
+            if (adminUnlocked) {
+              renderTokenAdminTable();
+            }
+            setStatus("Token wygenerowany przez serwer. Skopiuj i wklej go w aplikacji.", "ok");
+          } catch (error) {
+            const reason = error && error.message ? error.message : "nieznany błąd";
+            setStatus(`Nie udało się wygenerować tokenu: ${reason}`, "err");
+          } finally {
+            if (generateBtn) {
+              generateBtn.disabled = false;
+            }
           }
-          setLastPrivateToken(token);
-          upsertRegistryEntry(buildRegistryEntry(payload, token));
-          if (adminUnlocked) {
-            renderTokenAdminTable();
-          }
-          setStatus("Token wygenerowany. Skopiuj i wklej go w aplikacji.", "ok");
         }
 
         async function copyToken() {
@@ -1685,7 +1721,7 @@
             }
             const added = ensureTokenInRegistry(raw);
             if (!added) {
-              setAdminStatus("Nie udało się dodać tokenu. Sprawdź format i podpis.", "err");
+              setAdminStatus("Nie udało się dodać tokenu. Sprawdź format.", "err");
               return;
             }
             setLastPrivateToken(raw);
