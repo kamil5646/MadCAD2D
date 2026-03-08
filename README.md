@@ -4,7 +4,7 @@
 MadCAD 2D to desktopowa aplikacja CAD 2D (macOS/Windows) do rysunków technicznych i konstrukcji stalowych.
 
 ### Aktualne wydanie
-- Wersja: `5.0.0`
+- Wersja: `5.0`
 - Release: https://github.com/kamil5646/MadCAD2D/releases/tag/5.0.0
 - macOS (arm64): https://github.com/kamil5646/MadCAD2D/releases/download/5.0.0/MadCAD.2D-5.0.0-mac-arm64.zip
 - Windows (x64): https://github.com/kamil5646/MadCAD2D/releases/download/5.0.0/MadCAD.2D-5.0.0-win-x64.exe
@@ -28,7 +28,7 @@ Projekt jest objęty licencją niestandardową:
 MadCAD 2D is a desktop 2D CAD app (macOS/Windows) for technical drawings and steel structure workflows.
 
 ### Current release
-- Version: `5.0.0`
+- Version: `5.0`
 - Release: https://github.com/kamil5646/MadCAD2D/releases/tag/5.0.0
 - macOS (arm64): https://github.com/kamil5646/MadCAD2D/releases/download/5.0.0/MadCAD.2D-5.0.0-mac-arm64.zip
 - Windows (x64): https://github.com/kamil5646/MadCAD2D/releases/download/5.0.0/MadCAD.2D-5.0.0-win-x64.exe
