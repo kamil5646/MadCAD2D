@@ -498,12 +498,12 @@
 
   if (detectedMac) {
     document.documentElement.classList.add("platform-mac");
-    document.documentElement.style.setProperty("--traffic-space", "86px");
+    document.documentElement.style.setProperty("--traffic-space", "76px");
     document.documentElement.style.setProperty("--window-controls-space", "0px");
   } else if (detectedWindows) {
     document.documentElement.classList.add("platform-win");
     document.documentElement.style.setProperty("--traffic-space", "0px");
-    document.documentElement.style.setProperty("--window-controls-space", "148px");
+    document.documentElement.style.setProperty("--window-controls-space", "136px");
   } else {
     document.documentElement.style.setProperty("--traffic-space", "0px");
     document.documentElement.style.setProperty("--window-controls-space", "0px");

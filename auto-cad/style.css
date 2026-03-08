@@ -634,7 +634,7 @@ select {
   padding: 0 6px 0 calc(6px + var(--traffic-space));
   border-bottom: 1px solid rgba(123, 148, 188, 0.45);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0)), #1f3048;
-  min-height: 30px;
+  min-height: 28px;
   min-width: 0;
   overflow-x: hidden;
   overflow-y: visible;
@@ -711,7 +711,7 @@ select {
 }
 
 .ribbon-actions button {
-  min-height: 22px;
+  min-height: 21px;
   padding: 2px 7px;
   font-size: 10px;
   color: #d8e5f7;
@@ -725,7 +725,7 @@ select {
   max-width: 320px;
   justify-content: flex-start;
   padding: 2px 10px;
-  font-size: 11px;
+  font-size: 10px;
   border-color: rgba(137, 163, 202, 0.54);
   background: rgba(255, 255, 255, 0.08);
 }
@@ -761,8 +761,8 @@ select {
   background: transparent;
   color: #b9c9df;
   text-shadow: none;
-  padding: 4px 10px 3px;
-  font-size: 12px;
+  padding: 3px 10px 2px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.015em;
   cursor: pointer;
@@ -888,7 +888,7 @@ select {
 
 .platform-mac .ribbon-tabs {
   padding-left: calc(10px + var(--traffic-space));
-  min-height: 28px;
+  min-height: 27px;
 }
 
 .platform-win .ribbon-tabs {

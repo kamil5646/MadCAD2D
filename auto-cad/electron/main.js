@@ -10,6 +10,7 @@ const execFileAsync = promisify(execFile);
 
 const isMac = process.platform === 'darwin';
 const isWindows = process.platform === 'win32';
+const APP_DISPLAY_NAME = 'MadCAD 2D';
 const appIconPng = path.join(__dirname, '..', 'assets', 'icons', 'madcad-512.png');
 const ODA_DOWNLOAD_URL = 'https://www.opendesign.com/guestfiles/oda_file_converter';
 const ODA_DOWNLOAD_PAGE_HOST = 'www.opendesign.com';
@@ -17,6 +18,10 @@ const MADCAD_RELEASE_API_URL = 'https://api.github.com/repos/kamil5646/MadCAD2D/
 const MADCAD_RELEASE_LATEST_PAGE_URL = 'https://github.com/kamil5646/MadCAD2D/releases/latest';
 const MADCAD_UPDATE_USER_AGENT = 'MadCAD2D-Updater/1.0';
 let forceCloseForUpdate = false;
+
+if (app && typeof app.setName === 'function') {
+  app.setName(APP_DISPLAY_NAME);
+}
 
 function resolveAppLanguage() {
   if (process.env.APP_LANG === 'en') {
@@ -1146,21 +1151,21 @@ function createMainWindow() {
     minWidth: 1200,
     minHeight: 760,
     backgroundColor: '#111b29',
-    title: appLanguage === 'en' ? 'MadCAD 2D EN' : 'MadCAD 2D PL',
+    title: appLanguage === 'en' ? `${APP_DISPLAY_NAME} EN` : `${APP_DISPLAY_NAME} PL`,
     icon: appIconPng,
     autoHideMenuBar: !isMac,
     ...(isMac
       ? {
           titleBarStyle: 'hidden',
-          trafficLightPosition: { x: 14, y: 12 }
+          trafficLightPosition: { x: 13, y: 10 }
         }
       : isWindows
       ? {
           titleBarStyle: 'hidden',
           titleBarOverlay: {
-            color: '#1f3048',
+            color: '#20314a',
             symbolColor: '#dbe7ff',
-            height: 34
+            height: 30
           }
         }
       : {}),
@@ -1225,15 +1230,26 @@ function retainWindow(win) {
 }
 
 function createMenu() {
+  const executeRendererShortcut = (accelerator) => {
+    const focused = BrowserWindow.getFocusedWindow();
+    if (!focused || focused.isDestroyed()) {
+      return;
+    }
+    const commandKey = isMac ? 'metaKey' : 'ctrlKey';
+    focused.webContents.executeJavaScript(
+      `window.dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(
+        String(accelerator.key || '')
+      )}, ${commandKey}: true, altKey: ${Boolean(accelerator.altKey)}, shiftKey: ${Boolean(accelerator.shiftKey)} }));`
+    );
+  };
+
   const template = [
     ...(isMac
       ? [
           {
-            label: app.name,
+            label: APP_DISPLAY_NAME,
             submenu: [
-              { role: 'about' },
-              { type: 'separator' },
-              { role: 'services' },
+              { role: 'about', label: t(`O programie ${APP_DISPLAY_NAME}`, `About ${APP_DISPLAY_NAME}`) },
               { type: 'separator' },
               { role: 'hide' },
               { role: 'hideOthers' },
@@ -1250,17 +1266,28 @@ function createMenu() {
         {
           label: t('Nowy rysunek', 'New drawing'),
           accelerator: 'CmdOrCtrl+N',
-          click: () => {
-            const focused = BrowserWindow.getFocusedWindow();
-            if (focused) {
-              focused.webContents.executeJavaScript(
-                "window.dispatchEvent(new KeyboardEvent('keydown', { key: 'n', ctrlKey: true }));"
-              );
-            }
-          }
+          click: () => executeRendererShortcut({ key: 'n' })
+        },
+        {
+          label: t('Wczytaj JSON', 'Open JSON'),
+          accelerator: 'CmdOrCtrl+O',
+          click: () => executeRendererShortcut({ key: 'o' })
+        },
+        {
+          label: t('Zapisz JSON', 'Save JSON'),
+          accelerator: 'CmdOrCtrl+S',
+          click: () => executeRendererShortcut({ key: 's' })
+        },
+        {
+          label: t('Drukuj / PDF', 'Print / PDF'),
+          accelerator: 'CmdOrCtrl+P',
+          click: () => executeRendererShortcut({ key: 'p' })
         },
         { type: 'separator' },
-        { role: isMac ? 'close' : 'quit', label: isMac ? t('Zamknij okno', 'Close window') : t('Wyjście', 'Exit') }
+        {
+          role: isMac ? 'close' : 'quit',
+          label: isMac ? t('Zamknij okno', 'Close window') : t('Wyjście', 'Exit')
+        }
       ]
     },
     {
@@ -1278,15 +1305,19 @@ function createMenu() {
     {
       label: t('Widok', 'View'),
       submenu: [
-        { role: 'reload', label: t('Odśwież', 'Reload') },
-        { role: 'forceReload', label: t('Wymuś odświeżenie', 'Force reload') },
-        { role: 'toggleDevTools', label: t('Narzędzia deweloperskie', 'Developer tools') },
-        { type: 'separator' },
         { role: 'resetZoom', label: t('Reset powiększenia', 'Reset zoom') },
         { role: 'zoomIn', label: t('Powiększ', 'Zoom in') },
         { role: 'zoomOut', label: t('Pomniejsz', 'Zoom out') },
         { type: 'separator' },
-        { role: 'togglefullscreen', label: t('Pełny ekran', 'Full screen') }
+        { role: 'togglefullscreen', label: t('Pełny ekran', 'Full screen') },
+        ...(!app.isPackaged
+          ? [
+              { type: 'separator' },
+              { role: 'reload', label: t('Odśwież', 'Reload') },
+              { role: 'forceReload', label: t('Wymuś odświeżenie', 'Force reload') },
+              { role: 'toggleDevTools', label: t('Narzędzia deweloperskie', 'Developer tools') }
+            ]
+          : [])
       ]
     },
     {
@@ -1298,18 +1329,6 @@ function createMenu() {
         ...(isMac
           ? [{ type: 'separator' }, { role: 'front', label: t('Na wierzch', 'Bring all to front') }]
           : [{ role: 'close', label: t('Zamknij', 'Close') }])
-      ]
-    },
-    {
-      label: t('Pomoc', 'Help'),
-      submenu: [
-        {
-          label: t('Dokumentacja projektu (README)', 'Project documentation (README)'),
-          click: () => {
-            const readmePath = path.join(__dirname, '..', 'README.md');
-            shell.openPath(readmePath);
-          }
-        }
       ]
     }
   ];
