@@ -4,7 +4,7 @@ compatibility_date = "2026-03-08"
 
 [[kv_namespaces]]
 binding = "LICENSE_REGISTRY_KV"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+id = "ca45525977374441b7787abe3d9975bf"
 
 [vars]
 ALLOWED_ORIGIN = "https://kamil5646.github.io"

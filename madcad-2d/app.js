@@ -142,7 +142,7 @@
   const LICENSE_PRIVATE_FORM_URL = "https://kamil5646.github.io/MadCAD2D/#token-prywatny";
   const LICENSE_REGISTRY_ENDPOINTS_CONFIG_URL = "https://kamil5646.github.io/MadCAD2D/license-endpoints.json";
   const LICENSE_VERIFY_ENDPOINT_URLS = [
-    "https://madcad-license-registry.kamil5646.workers.dev/v1/license-tokens/verify"
+    "https://madcad-license-registry.kkasprzak15.workers.dev/v1/license-tokens/verify"
   ];
   const LICENSE_ENDPOINTS_CACHE_TTL_MS = 60000;
   const LICENSE_REMOTE_CHECK_TTL_MS = 10000;
