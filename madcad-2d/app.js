@@ -123,11 +123,7 @@
   const licenseDeviceIdInput = document.getElementById("licenseDeviceIdInput");
   const licenseOpenWebFormBtn = document.getElementById("licenseOpenWebFormBtn");
   const licenseCopyDeviceIdBtn = document.getElementById("licenseCopyDeviceIdBtn");
-  const licenseCommercialNameInput = document.getElementById("licenseCommercialNameInput");
-  const licenseCommercialEmailInput = document.getElementById("licenseCommercialEmailInput");
-  const licenseCommercialRefInput = document.getElementById("licenseCommercialRefInput");
-  const licenseGenerateCommercialRequestBtn = document.getElementById("licenseGenerateCommercialRequestBtn");
-  const licenseCommercialRequestOutput = document.getElementById("licenseCommercialRequestOutput");
+  const licenseSupportProjectBtn = document.getElementById("licenseSupportProjectBtn");
   const licenseTokenInput = document.getElementById("licenseTokenInput");
   const licenseActivateTokenBtn = document.getElementById("licenseActivateTokenBtn");
   const licenseClearTokenBtn = document.getElementById("licenseClearTokenBtn");
@@ -140,6 +136,7 @@
   const UI_LANGUAGE_ONBOARDING_KEY = "madcad-ui-language-onboarded-v1";
   const LICENSE_TOKEN_PATTERN = /^M2D[0-9]+\.[A-Za-z0-9_-]{8,512}(?:\.[A-Za-z0-9_-]{8,1200})?$/;
   const LICENSE_PRIVATE_FORM_URL = "https://kamil5646.github.io/MadCAD2D/#token-prywatny";
+  const LICENSE_SUPPORT_URL = "https://paypal.me/refek1";
   const LICENSE_REGISTRY_ENDPOINTS_CONFIG_URL = "https://kamil5646.github.io/MadCAD2D/license-endpoints.json";
   const LICENSE_VERIFY_ENDPOINT_URLS = [
     "https://madcad-license-registry.kkasprzak15.workers.dev/v1/license-tokens/verify"
@@ -713,27 +710,23 @@
       "Okrąg: promień": "Circle: radius",
       "Aktywacja licencji MadCAD 2D": "MadCAD 2D license activation",
       Zamknij: "Close",
-      "Prywatnie (darmowy token)": "Private (free token)",
-      "Komercyjnie (token komercyjny)": "Commercial (commercial token)",
+      "Darmowy klucz licencyjny": "Free license key",
+      "Wsparcie projektu": "Project support",
       "ID urządzenia": "Device ID",
-      "Firma / osoba": "Company / person",
-      "E-mail kontaktowy": "Contact email",
-      "Referencja wpłaty (opcjonalnie)": "Payment reference (optional)",
-      "Kod zgłoszenia komercyjnego": "Commercial request code",
+      "Wsparcie projektu - PayPal": "Support project - PayPal",
       "Wklej token licencji": "Paste license token",
       "Aktywuj token": "Activate token",
       "Wyczyść zapis": "Clear saved token",
       "Kopiuj ID urządzenia": "Copy device ID",
       "Otwórz formularz tokenu na GitHub": "Open token form on GitHub",
-      "Generuj kod zgłoszenia": "Generate request code"
+      "Jeśli MadCAD 2D przyspiesza Twoją codzienną pracę, możesz wesprzeć dalszy rozwój projektu.":
+        "If MadCAD 2D speeds up your daily work, you can support further project development.",
+      "Link:": "Link:"
     };
     localizeTextNodes(uiTextMap);
 
     localizeAttributes([
-      { selector: "#newLayerNameInput", attr: "placeholder", value: "New layer" },
-      { selector: "#licenseCommercialNameInput", attr: "placeholder", value: "Company name or full name" },
-      { selector: "#licenseCommercialEmailInput", attr: "placeholder", value: "contact@company.com" },
-      { selector: "#licenseCommercialRefInput", attr: "placeholder", value: "e.g. PAY-2026-0001" }
+      { selector: "#newLayerNameInput", attr: "placeholder", value: "New layer" }
     ]);
     applyPlatformShortcutLabels();
   }
@@ -2810,38 +2803,12 @@
     };
   }
 
-  function generateCommercialRequestCode() {
-    const ownerName = String(licenseCommercialNameInput ? licenseCommercialNameInput.value : "").trim();
-    const email = normalizeLicenseEmail(licenseCommercialEmailInput ? licenseCommercialEmailInput.value : "");
-    const donationRef = String(licenseCommercialRefInput ? licenseCommercialRefInput.value : "").trim();
-    if (!ownerName) {
-      setLicenseStatus("Podaj nazwę firmy/osoby dla zgłoszenia komercyjnego.", "error");
-      return;
-    }
-    if (!email || !email.includes("@")) {
-      setLicenseStatus("Podaj poprawny e-mail dla zgłoszenia komercyjnego.", "error");
-      return;
-    }
-    const requestPayload = {
-      app: "MadCAD 2D",
-      scope: "commercial",
-      ownerName,
-      email,
-      deviceId: getLicenseDeviceId(),
-      seats: 1,
-      donationRef: donationRef || null,
-      requestedAt: new Date().toISOString()
-    };
-    const requestCode = `M2D-COMM-REQ.${encodeBase64Url(JSON.stringify(requestPayload))}`;
-    if (licenseCommercialRequestOutput) {
-      licenseCommercialRequestOutput.value = requestCode;
-    }
-    setLicenseStatus("Wygenerowano kod zgłoszenia komercyjnego.", "ok");
-    appendPrivateLicenseAudit("Formularz komercyjny", `${ownerName} | ${email} | kod: ${requestCode.slice(0, 42)}...`, {
-      ownerName,
-      email
+  function openSupportProjectPage() {
+    window.open(LICENSE_SUPPORT_URL, "_blank", "noopener,noreferrer");
+    setLicenseStatus("Otwarto stronę wsparcia projektu (PayPal).", "ok");
+    appendPrivateLicenseAudit("Wsparcie projektu", LICENSE_SUPPORT_URL, {
+      url: LICENSE_SUPPORT_URL
     });
-    return requestCode;
   }
 
   async function copyLicenseText(text) {
@@ -2888,9 +2855,9 @@
         );
       });
     }
-    if (licenseGenerateCommercialRequestBtn) {
-      licenseGenerateCommercialRequestBtn.addEventListener("click", () => {
-        generateCommercialRequestCode();
+    if (licenseSupportProjectBtn) {
+      licenseSupportProjectBtn.addEventListener("click", () => {
+        openSupportProjectPage();
       });
     }
     if (licenseActivateTokenBtn) {

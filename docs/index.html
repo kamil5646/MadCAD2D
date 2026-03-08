@@ -594,6 +594,7 @@
           <a href="#funkcje">Funkcje</a>
           <a href="#jak-dziala">Jak działa</a>
           <a href="#token-prywatny">Token prywatny</a>
+          <a href="#wsparcie">Wsparcie</a>
           <a href="#pobierz">Pobierz</a>
           <a href="#faq">FAQ</a>
           <div class="lang-switch" aria-label="Wybór języka / Language switch">
@@ -721,7 +722,8 @@
             <button id="copyPrivateTokenBtn" class="btn secondary" type="button">Kopiuj token</button>
           </div>
           <p id="paypalFlowHelp" class="token-status">
-            Wsparcie w rozwoju projektu: <a href="https://www.paypal.com/donate/?business=kkasprzak15%40icloud.com&currency_code=USD" target="_blank" rel="noopener noreferrer">paypal.com/donate</a>
+            <span id="paypalFlowHelpLabel">Wsparcie w rozwoju projektu:</span>
+            <a href="https://paypal.me/refek1" target="_blank" rel="noopener noreferrer">paypal.me/refek1</a>
           </p>
 
           <div class="field">
@@ -729,6 +731,34 @@
             <textarea id="generatedPrivateToken" readonly></textarea>
           </div>
           <p id="tokenStatus" class="token-status" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section class="section" id="wsparcie">
+        <h2>Wsparcie projektu</h2>
+        <p id="supportLead" class="lead">
+          Rozwój MadCAD 2D to nowe funkcje CAD, poprawki stabilności i regularne wydania dla macOS i Windows.
+          Jeśli aplikacja oszczędza Ci czas, możesz wesprzeć dalsze prace.
+        </p>
+        <div class="release">
+          <article class="box">
+            <h3 id="supportWhyTitle">Co rozwijamy dzięki wsparciu</h3>
+            <ul>
+              <li>stabilniejsze buildy i szybsze poprawki błędów,</li>
+              <li>kolejne narzędzia 2D i usprawnienia workflow,</li>
+              <li>lepszą dokumentację i onboarding dla nowych użytkowników.</li>
+            </ul>
+          </article>
+          <article class="box">
+            <h3 id="supportNowTitle">Wesprzyj teraz</h3>
+            <p id="supportNowDesc" style="margin: 0 0 12px; color: var(--muted);">
+              <span id="supportNowDescLabel">Najprościej przez PayPal:</span>
+              <a href="https://paypal.me/refek1" target="_blank" rel="noopener noreferrer">paypal.me/refek1</a>
+            </p>
+            <a id="supportNowBtn" class="btn" href="https://paypal.me/refek1" target="_blank" rel="noopener noreferrer">
+              Wsparcie projektu
+            </a>
+          </article>
         </div>
       </section>
 
@@ -909,6 +939,7 @@
           setText(".nav a[href='#funkcje']", "Funkcje", "Features");
           setText(".nav a[href='#jak-dziala']", "Jak działa", "How it works");
           setText(".nav a[href='#token-prywatny']", "Token prywatny", "Private token");
+          setText(".nav a[href='#wsparcie']", "Wsparcie", "Support");
           setText(".nav a[href='#pobierz']", "Pobierz", "Download");
           setText(".subtitle", "Aplikacja CAD 2D na Windows i macOS do szybkiego projektowania bram, ogrodzeń i balkonów. Lekki interfejs, generator stali i wymiarowanie w jednym miejscu.", "A 2D CAD app for Windows and macOS to quickly design gates, fences, and balconies. Lightweight UI, steel generator and dimensioning in one place.");
 
@@ -940,7 +971,13 @@
           setText("#generatePrivateTokenBtn", "Generuj token prywatny", "Generate private token");
           setText("#buyCommercialTokenBtn", "Wsparcie w rozwoju projektu!", "Support project development!");
           setText("#copyPrivateTokenBtn", "Kopiuj token", "Copy token");
-          setText("#paypalFlowHelp", "Wsparcie w rozwoju projektu: paypal.com/donate", "Support project development: paypal.com/donate");
+          setText("#paypalFlowHelpLabel", "Wsparcie w rozwoju projektu:", "Support project development:");
+          setText("#wsparcie h2", "Wsparcie projektu", "Project support");
+          setText("#supportLead", "Rozwój MadCAD 2D to nowe funkcje CAD, poprawki stabilności i regularne wydania dla macOS i Windows. Jeśli aplikacja oszczędza Ci czas, możesz wesprzeć dalsze prace.", "MadCAD 2D development means new CAD features, stability improvements, and regular releases for macOS and Windows. If the app saves you time, you can support further work.");
+          setText("#supportWhyTitle", "Co rozwijamy dzięki wsparciu", "What support helps us build");
+          setText("#supportNowTitle", "Wesprzyj teraz", "Support now");
+          setText("#supportNowDescLabel", "Najprościej przez PayPal:", "The easiest way is PayPal:");
+          setText("#supportNowBtn", "Wsparcie projektu", "Support project");
           setText("label[for='generatedPrivateToken']", "Wygenerowany token", "Generated token");
           setText("#token-admin h2", "Prywatny panel zarządzania tokenami", "Private token management panel");
           setText("#token-admin .lead", "Panel administratora działa tylko po wejściu przez link prywatny i odblokowaniu PIN-em. Dane są zapisywane lokalnie w przeglądarce. Jeśli ustawisz API backendu, zmiany będą synchronizowane automatycznie bez dostępu strony do repozytorium GitHub.", "The admin panel works only via a private link and PIN unlock. Data is stored locally in the browser. If you configure a backend API, changes are synchronized automatically without giving the website access to your GitHub repository.");
@@ -1052,7 +1089,7 @@
         const TOKEN_REGISTRY_API_TOKEN_SESSION_KEY = "madcad-token-registry-api-token-session-v1";
         const DEFAULT_REGISTRY_API_URL = "https://madcad-license-registry.kkasprzak15.workers.dev/v1/license-registry";
         const DEFAULT_ISSUE_PRIVATE_URL = "https://madcad-license-registry.kkasprzak15.workers.dev/v1/license-tokens/issue-private";
-        const PAYPAL_DONATION_URL = "https://www.paypal.com/donate/?business=kkasprzak15%40icloud.com&currency_code=USD";
+        const PAYPAL_DONATION_URL = "https://paypal.me/refek1";
         let adminUnlocked = false;
         let registryApiSyncBusy = false;
         let registryApiSyncDebounceTimer = null;
@@ -1700,7 +1737,7 @@
           if (!win) {
             window.location.assign(PAYPAL_DONATION_URL);
           }
-          setStatus("Otwarto link darowizny PayPal.", "ok");
+          setStatus("Otwarto stronę wsparcia projektu.", "ok");
         }
 
         async function copyToken() {

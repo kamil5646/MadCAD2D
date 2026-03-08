@@ -6,6 +6,11 @@ Aplikacja desktop CAD 2D (Electron) do projektowania technicznego i konstrukcji 
 - Najnowszy release: https://github.com/kamil5646/MadCAD2D/releases/latest
 - Strona projektu (GitHub Pages): https://kamil5646.github.io/MadCAD2D/
 - README repo (główny): [`../README.md`](../README.md)
+- Wsparcie projektu: https://paypal.me/refek1
+
+## Wsparcie Projektu
+MadCAD 2D rozwija się aktywnie. Jeśli chcesz wesprzeć rozwój aplikacji:
+- PayPal: https://paypal.me/refek1
 
 ## Co Jest W Aplikacji
 - Wstążka z zakładkami: `Główne`, `Wymiarowanie`, `Stal`, `Widok`, `Warstwy`.

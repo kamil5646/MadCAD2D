@@ -512,7 +512,7 @@
 
         <div class="license-grid">
           <section class="license-card">
-            <h3 class="has-icon" data-icon="&#127968;">Prywatnie (darmowy token)</h3>
+            <h3 class="has-icon" data-icon="&#127968;">Darmowy klucz licencyjny</h3>
             <label class="control inline">
               <span>ID urządzenia</span>
               <input id="licenseDeviceIdInput" type="text" readonly />
@@ -530,29 +530,16 @@
           </section>
 
           <section class="license-card">
-            <h3 class="has-icon" data-icon="&#128188;">Komercyjnie (token komercyjny)</h3>
+            <h3 class="has-icon" data-icon="&#128153;">Wsparcie projektu</h3>
             <p class="license-note">
-              Wypełnij dane i wygeneruj kod zgłoszenia komercyjnego. Po obsłudze zgłoszenia otrzymasz token komercyjny.
+              Jeśli MadCAD 2D przyspiesza Twoją codzienną pracę, możesz wesprzeć dalszy rozwój projektu.
             </p>
-            <label class="control inline">
-              <span>Firma / osoba</span>
-              <input id="licenseCommercialNameInput" type="text" placeholder="Nazwa firmy lub imię i nazwisko" />
-            </label>
-            <label class="control inline">
-              <span>E-mail kontaktowy</span>
-              <input id="licenseCommercialEmailInput" type="email" placeholder="kontakt@firma.pl" />
-            </label>
-            <label class="control inline">
-              <span>Referencja wpłaty (opcjonalnie)</span>
-              <input id="licenseCommercialRefInput" type="text" placeholder="Np. PAY-2026-0001" />
-            </label>
-            <button id="licenseGenerateCommercialRequestBtn" class="ribbon-btn has-icon" data-icon="&#128221;">
-              Generuj kod zgłoszenia
+            <button id="licenseSupportProjectBtn" class="ribbon-btn has-icon" data-icon="&#128176;">
+              Wsparcie projektu - PayPal
             </button>
-            <label class="control">
-              <span>Kod zgłoszenia komercyjnego</span>
-              <textarea id="licenseCommercialRequestOutput" rows="3" readonly></textarea>
-            </label>
+            <p class="license-note">
+              Link: <a href="https://paypal.me/refek1" target="_blank" rel="noopener noreferrer">paypal.me/refek1</a>
+            </p>
           </section>
         </div>
 
