@@ -40,6 +40,7 @@
   const snapToggle = document.getElementById("snapToggle");
   const showGridToggle = document.getElementById("showGridToggle");
   const orthoToggle = document.getElementById("orthoToggle");
+  const languageSelect = document.getElementById("languageSelect");
   const gridSizeInput = document.getElementById("gridSizeInput");
   const strokeColorInput = document.getElementById("strokeColorInput");
   const lineWidthInput = document.getElementById("lineWidthInput");
@@ -135,11 +136,35 @@
   const licenseStatus = document.getElementById("licenseStatus");
 
   const LICENSE_STORAGE_KEY = "madcad-license-v1";
+  const UI_LANGUAGE_STORAGE_KEY = "madcad-ui-language";
   const LICENSE_SIGNATURE_SALT = "MadCAD2D-Private-NoMods-SingleDevice-2026";
   const LICENSE_TOKEN_PREFIX = "M2D1";
   const LICENSE_PRIVATE_FORM_URL = "https://kamil5646.github.io/MadCAD2D/#token-prywatny";
-  const APP_LANGUAGE =
-    window.desktopApp && window.desktopApp.appLanguage === "en" ? "en" : "pl";
+  function normalizeAppLanguage(value) {
+    return value === "en" || value === "pl" ? value : null;
+  }
+
+  function getStoredUiLanguage() {
+    try {
+      return normalizeAppLanguage(window.localStorage.getItem(UI_LANGUAGE_STORAGE_KEY));
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function saveUiLanguage(value) {
+    const normalized = normalizeAppLanguage(value);
+    if (!normalized) {
+      return;
+    }
+    try {
+      window.localStorage.setItem(UI_LANGUAGE_STORAGE_KEY, normalized);
+    } catch (_error) {}
+  }
+
+  let APP_LANGUAGE =
+    getStoredUiLanguage() ||
+    (window.desktopApp && window.desktopApp.appLanguage === "en" ? "en" : "pl");
   const t = (pl, en) => (APP_LANGUAGE === "en" ? en : pl);
   const IS_MAC_UI =
     (window.desktopApp && window.desktopApp.platform === "darwin") ||
@@ -470,12 +495,32 @@
     }
   }
 
+  async function changeAppLanguage(nextLanguage) {
+    const normalized = normalizeAppLanguage(nextLanguage);
+    if (!normalized || normalized === APP_LANGUAGE) {
+      return;
+    }
+
+    APP_LANGUAGE = normalized;
+    saveUiLanguage(normalized);
+
+    if (window.desktopApp && typeof window.desktopApp.setAppLanguage === "function") {
+      try {
+        await window.desktopApp.setAppLanguage({ language: normalized });
+      } catch (error) {
+        console.warn("Failed to persist app language in desktop shell:", error);
+      }
+    }
+
+    window.location.reload();
+  }
+
   function localizeStaticUi() {
+    document.documentElement.lang = APP_LANGUAGE === "en" ? "en" : "pl";
     if (APP_LANGUAGE !== "en") {
       applyPlatformShortcutLabels();
       return;
     }
-    document.documentElement.lang = "en";
     const entries = [
       ["#undoBtn", "Undo (Ctrl+Z)"],
       ["#redoBtn", "Redo (Ctrl+Y)"],
@@ -579,6 +624,8 @@
       Wypełnienie: "Fill",
       "Kolor wyp.": "Fill color",
       Krycie: "Opacity",
+      Język: "Language",
+      Polski: "Polish",
       "Aktywna": "Active",
       "Nowa warstwa": "New layer",
       "Szablon konstrukcji": "Structure template",
@@ -10417,6 +10464,10 @@
       snapToggle: "Przyciąga kursor do siatki i punktów charakterystycznych.",
       showGridToggle: "Włącza lub wyłącza siatkę roboczą.",
       orthoToggle: "Ogranicza rysowanie do kierunku poziomego i pionowego.",
+      languageSelect: t(
+        "Przełącza język interfejsu aplikacji.",
+        "Switches the application interface language."
+      ),
       activeLayerSelect: "Wybiera aktywną warstwę dla nowych obiektów.",
       gridSizeInput: "Ustawia rozmiar oczka siatki roboczej.",
       rectConfigWidthInput: "Ustawia szerokość prostokąta oraz szerokość zaznaczonego prostokąta.",
@@ -10568,6 +10619,9 @@
     steelInnerFrameToggle.checked = state.steelInnerFrame;
     steelDiagonalToggle.checked = state.steelDiagonal;
     syncSteelTemplateMeta();
+    if (languageSelect) {
+      languageSelect.value = APP_LANGUAGE;
+    }
     activeLayerSelect.value = state.activeLayerId;
     syncLayoutTabs();
     syncStartSummary();
@@ -11216,6 +11270,12 @@
       setOrthoEnabled(!state.ortho);
       echoCommand(`Poziom/Pion: ${state.ortho ? "WŁ." : "WYŁ."}`);
     });
+
+    if (languageSelect) {
+      languageSelect.addEventListener("change", () => {
+        void changeAppLanguage(languageSelect.value);
+      });
+    }
 
     gridSizeInput.addEventListener("change", () => {
       state.gridSize = Math.max(1, Number(gridSizeInput.value) || 10);

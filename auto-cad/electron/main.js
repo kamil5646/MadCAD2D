@@ -24,11 +24,19 @@ if (app && typeof app.setName === 'function') {
 }
 
 function resolveAppLanguage() {
+  const argLanguage = normalizeAppLanguageArg(process.argv);
+  if (argLanguage) {
+    return argLanguage;
+  }
   if (process.env.APP_LANG === 'en') {
     return 'en';
   }
   if (process.env.APP_LANG === 'pl') {
     return 'pl';
+  }
+  const savedLanguage = getSavedAppLanguageSync();
+  if (savedLanguage) {
+    return savedLanguage;
   }
   const appName = String(app.getName() || '').toLowerCase();
   if (appName.includes(' en')) {
@@ -40,8 +48,41 @@ function resolveAppLanguage() {
   return 'pl';
 }
 
-const t = (pl, en) => (resolveAppLanguage() === 'en' ? en : pl);
-const appLanguage = resolveAppLanguage();
+function normalizeLanguage(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return normalized === 'en' || normalized === 'pl' ? normalized : null;
+}
+
+function normalizeAppLanguageArg(argv) {
+  const source = Array.isArray(argv) ? argv : [];
+  for (const arg of source) {
+    if (typeof arg !== 'string' || !arg.startsWith('--madcad-lang=')) {
+      continue;
+    }
+    const maybeLanguage = normalizeLanguage(arg.split('=')[1]);
+    if (maybeLanguage) {
+      return maybeLanguage;
+    }
+  }
+  return null;
+}
+
+function getSavedAppLanguageSync() {
+  try {
+    const configPath = getCadConfigPath();
+    if (!fsRaw.existsSync(configPath)) {
+      return null;
+    }
+    const raw = fsRaw.readFileSync(configPath, 'utf8');
+    const parsed = JSON.parse(raw);
+    return normalizeLanguage(parsed && parsed.appLanguage);
+  } catch (_error) {
+    return null;
+  }
+}
+
+let appLanguage = resolveAppLanguage();
+const t = (pl, en) => (appLanguage === 'en' ? en : pl);
 const transientWindows = new Set();
 
 function getCadConfigPath() {
@@ -1144,7 +1185,6 @@ async function handleSavePromptBeforeExit(win) {
 }
 
 function createMainWindow() {
-  const appLanguage = resolveAppLanguage();
   const win = new BrowserWindow({
     width: 1680,
     height: 980,
@@ -1863,6 +1903,35 @@ ipcMain.handle('madcad:append-license-audit', async (_event, payload) => {
     return {
       ok: false,
       error: error && error.message ? String(error.message) : t('Nieznany błąd zapisu audytu', 'Unknown audit save error')
+    };
+  }
+});
+
+ipcMain.handle('madcad:set-language', async (_event, payload) => {
+  try {
+    const requested = normalizeLanguage(payload && payload.language);
+    if (!requested) {
+      return { ok: false, error: t('Nieprawidłowy język aplikacji.', 'Invalid app language.') };
+    }
+
+    appLanguage = requested;
+    const config = await readCadConfig();
+    config.appLanguage = requested;
+    await writeCadConfig(config);
+
+    createMenu();
+    BrowserWindow.getAllWindows().forEach((win) => {
+      if (!win || win.isDestroyed()) {
+        return;
+      }
+      win.setTitle(appLanguage === 'en' ? `${APP_DISPLAY_NAME} EN` : `${APP_DISPLAY_NAME} PL`);
+    });
+
+    return { ok: true, language: appLanguage };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error && error.message ? String(error.message) : t('Nie udało się zapisać języka.', 'Failed to save language.')
     };
   }
 });

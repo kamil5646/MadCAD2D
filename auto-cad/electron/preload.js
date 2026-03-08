@@ -68,5 +68,6 @@ contextBridge.exposeInMainWorld('desktopApp', {
   installOdaAddon: () => ipcRenderer.invoke('madcad:install-oda-addon'),
   chooseOdaConverterPath: () => ipcRenderer.invoke('madcad:choose-oda-path'),
   openOdaDownload: () => ipcRenderer.invoke('madcad:open-oda-download'),
-  appendLicenseAudit: (payload) => ipcRenderer.invoke('madcad:append-license-audit', payload)
+  appendLicenseAudit: (payload) => ipcRenderer.invoke('madcad:append-license-audit', payload),
+  setAppLanguage: (payload) => ipcRenderer.invoke('madcad:set-language', payload)
 });
