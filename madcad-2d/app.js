@@ -141,7 +141,10 @@
   const LICENSE_SIGNATURE_SALT = "MadCAD2D-Private-NoMods-SingleDevice-2026";
   const LICENSE_TOKEN_PREFIX = "M2D1";
   const LICENSE_PRIVATE_FORM_URL = "https://kamil5646.github.io/MadCAD2D/#token-prywatny";
-  const LICENSE_PUBLIC_REGISTRY_URL = "https://kamil5646.github.io/MadCAD2D/license-registry.json";
+  const LICENSE_PUBLIC_REGISTRY_URLS = [
+    "https://madcad-license-registry.kamil5646.workers.dev/v1/license-registry",
+    "https://kamil5646.github.io/MadCAD2D/license-registry.json"
+  ];
   const LICENSE_REMOTE_CHECK_TTL_MS = 10000;
   const LICENSE_REMOTE_RECHECK_INTERVAL_MS = 30000;
   function normalizeAppLanguage(value) {
@@ -2363,15 +2366,31 @@
     if (typeof fetch !== "function") {
       throw new Error("Brak API fetch.");
     }
-    const url = `${LICENSE_PUBLIC_REGISTRY_URL}?ts=${Date.now()}`;
-    const response = await fetch(url, {
-      method: "GET",
-      cache: "no-store"
-    });
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+    const urls = Array.isArray(LICENSE_PUBLIC_REGISTRY_URLS) ? LICENSE_PUBLIC_REGISTRY_URLS : [];
+    let lastError = null;
+    let raw = null;
+    for (const baseUrl of urls) {
+      const url = `${String(baseUrl || "").trim()}?ts=${Date.now()}`;
+      if (!url || url.startsWith("?")) {
+        continue;
+      }
+      try {
+        const response = await fetch(url, {
+          method: "GET",
+          cache: "no-store"
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        raw = await response.json();
+        break;
+      } catch (error) {
+        lastError = error;
+      }
     }
-    const raw = await response.json();
+    if (!raw || typeof raw !== "object") {
+      throw lastError || new Error("Nie udało się pobrać publicznego rejestru licencji.");
+    }
     if (!raw || typeof raw !== "object") {
       throw new Error("Niepoprawny format rejestru.");
     }

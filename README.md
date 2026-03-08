@@ -45,6 +45,7 @@ npm run dist:release:trusted
 ### Struktura repo
 - `madcad-2d/` - główny kod aplikacji desktop (Electron + UI CAD).
 - `docs/` - strona projektu na GitHub Pages.
+- `cloudflare/license-registry-worker/` - backend API rejestru licencji (Cloudflare Worker + KV).
 - katalog główny - pliki prawne i organizacyjne.
 
 ---
@@ -81,6 +82,7 @@ npm run dist:release:trusted
 ### Repository Layout
 - `madcad-2d/` - main desktop app code (Electron + CAD UI).
 - `docs/` - project website hosted on GitHub Pages.
+- `cloudflare/license-registry-worker/` - license registry backend API (Cloudflare Worker + KV).
 - repository root - legal and project files.
 
 ## License

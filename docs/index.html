@@ -759,6 +759,15 @@
         </div>
 
         <div id="tokenAdminContent" class="token-form" hidden>
+          <div class="admin-actions">
+            <input id="registryApiUrlInput" type="text" placeholder="URL API (np. https://twoj-worker.workers.dev/v1/license-registry)" />
+            <input id="registryApiTokenInput" type="password" placeholder="Admin token API (Bearer)" />
+            <button id="saveRegistryApiConfigBtn" class="btn secondary" type="button">Włącz auto-sync API</button>
+            <button id="syncRegistryApiNowBtn" class="btn secondary" type="button">Synchronizuj API teraz</button>
+            <button id="disableRegistryApiSyncBtn" class="btn secondary" type="button">Wyłącz auto-sync API</button>
+          </div>
+          <p id="registryApiSyncStatus" class="token-status" aria-live="polite"></p>
+
           <div class="admin-kpi">
             <article class="box">
               <strong>Wszystkie</strong>
@@ -928,7 +937,10 @@
           setText("#copyPrivateTokenBtn", "Kopiuj token", "Copy token");
           setText("label[for='generatedPrivateToken']", "Wygenerowany token", "Generated token");
           setText("#token-admin h2", "Prywatny panel zarządzania tokenami", "Private token management panel");
-          setText("#token-admin .lead", "Panel administratora działa tylko po wejściu przez link prywatny i odblokowaniu PIN-em. Dane są zapisywane lokalnie w przeglądarce (nie są publicznie publikowane na stronie).", "The admin panel works only via a private link and PIN unlock. Data is stored locally in the browser (not publicly published on the website).");
+          setText("#token-admin .lead", "Panel administratora działa tylko po wejściu przez link prywatny i odblokowaniu PIN-em. Dane są zapisywane lokalnie w przeglądarce. Jeśli ustawisz API backendu, zmiany będą synchronizowane automatycznie bez dostępu strony do repozytorium GitHub.", "The admin panel works only via a private link and PIN unlock. Data is stored locally in the browser. If you configure a backend API, changes are synchronized automatically without giving the website access to your GitHub repository.");
+          setText("#saveRegistryApiConfigBtn", "Włącz auto-sync API", "Enable API auto sync");
+          setText("#syncRegistryApiNowBtn", "Synchronizuj API teraz", "Sync API now");
+          setText("#disableRegistryApiSyncBtn", "Wyłącz auto-sync API", "Disable API auto sync");
           setText("#exportPublicRegistryBtn", "Eksport license-registry.json", "Export license-registry.json");
           setText("#release h2", "Wydanie 5.1", "Release 5.1");
           setText("#release .box h3", "Co zawiera wersja 5.1", "What version 5.1 includes");
@@ -947,6 +959,23 @@
           }
           if (langEnBtn) {
             langEnBtn.classList.toggle("active", currentLang === "en");
+          }
+          const registryApiUrlEl = document.getElementById("registryApiUrlInput");
+          if (registryApiUrlEl) {
+            registryApiUrlEl.setAttribute(
+              "placeholder",
+              t(
+                "URL API (np. https://twoj-worker.workers.dev/v1/license-registry)",
+                "API URL (e.g. https://your-worker.workers.dev/v1/license-registry)"
+              )
+            );
+          }
+          const registryApiTokenEl = document.getElementById("registryApiTokenInput");
+          if (registryApiTokenEl) {
+            registryApiTokenEl.setAttribute(
+              "placeholder",
+              t("Admin token API (Bearer)", "API admin token (Bearer)")
+            );
           }
         }
 
@@ -981,6 +1010,12 @@
         const exportTokensJsonBtn = document.getElementById("exportTokensJsonBtn");
         const exportTokensCsvBtn = document.getElementById("exportTokensCsvBtn");
         const exportPublicRegistryBtn = document.getElementById("exportPublicRegistryBtn");
+        const registryApiUrlInput = document.getElementById("registryApiUrlInput");
+        const registryApiTokenInput = document.getElementById("registryApiTokenInput");
+        const saveRegistryApiConfigBtn = document.getElementById("saveRegistryApiConfigBtn");
+        const syncRegistryApiNowBtn = document.getElementById("syncRegistryApiNowBtn");
+        const disableRegistryApiSyncBtn = document.getElementById("disableRegistryApiSyncBtn");
+        const registryApiSyncStatus = document.getElementById("registryApiSyncStatus");
         const clearTokensBtn = document.getElementById("clearTokensBtn");
         const openTokenImportBtn = document.getElementById("openTokenImportBtn");
         const tokenImportInput = document.getElementById("tokenImportInput");
@@ -1007,7 +1042,11 @@
         const TOKEN_LAST_PRIVATE_KEY = "madcad-last-private-token-v1";
         const TOKEN_LEGACY_LAST_KEY = "generatedPrivateToken";
         const TOKEN_ADMIN_PIN_HASH_KEY = "madcad-token-admin-pin-hash-v1";
+        const TOKEN_REGISTRY_API_SYNC_KEY = "madcad-token-registry-api-sync-v1";
+        const DEFAULT_REGISTRY_API_URL = "https://madcad-license-registry.kamil5646.workers.dev/v1/license-registry";
         let adminUnlocked = false;
+        let registryApiSyncBusy = false;
+        let registryApiSyncDebounceTimer = null;
 
         function setLastPrivateToken(token) {
           const value = String(token || "").trim();
@@ -1118,6 +1157,61 @@
           };
         }
 
+        async function pushRegistryToBackendApi(reason) {
+          const cfg = readRegistryApiSyncConfig();
+          if (!cfg.enabled) {
+            return false;
+          }
+          if (!cfg.apiUrl || !cfg.adminToken) {
+            setRegistryApiSyncStatus("Brak konfiguracji API URL lub tokenu.", "err");
+            return false;
+          }
+          if (registryApiSyncBusy) {
+            return false;
+          }
+          registryApiSyncBusy = true;
+          try {
+            const entries = readTokenRegistry();
+            const payload = await buildPublicRegistryFromEntries(entries);
+            const response = await fetch(cfg.apiUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${cfg.adminToken}`
+              },
+              body: JSON.stringify(payload)
+            });
+            if (!response.ok) {
+              const text = await response.text();
+              throw new Error(`HTTP ${response.status} ${text.slice(0, 160)}`);
+            }
+            setRegistryApiSyncStatus(`Auto-sync API OK (${String(reason || "sync")}).`, "ok");
+            return true;
+          } catch (error) {
+            setRegistryApiSyncStatus(
+              `Auto-sync API błąd: ${error && error.message ? error.message : "nieznany"}`,
+              "err"
+            );
+            return false;
+          } finally {
+            registryApiSyncBusy = false;
+          }
+        }
+
+        function queueRegistryBackendSync(reason) {
+          const cfg = readRegistryApiSyncConfig();
+          if (!cfg.enabled) {
+            return;
+          }
+          if (registryApiSyncDebounceTimer !== null) {
+            clearTimeout(registryApiSyncDebounceTimer);
+          }
+          registryApiSyncDebounceTimer = setTimeout(() => {
+            registryApiSyncDebounceTimer = null;
+            void pushRegistryToBackendApi(reason);
+          }, 700);
+        }
+
         function setStatus(message, kind) {
           if (!statusEl) {
             return;
@@ -1148,6 +1242,76 @@
           }
         }
 
+        function setRegistryApiSyncStatus(message, kind) {
+          if (!registryApiSyncStatus) {
+            return;
+          }
+          registryApiSyncStatus.textContent = String(message || "");
+          registryApiSyncStatus.classList.remove("ok", "err");
+          if (kind === "ok") {
+            registryApiSyncStatus.classList.add("ok");
+          } else if (kind === "err") {
+            registryApiSyncStatus.classList.add("err");
+          }
+        }
+
+        function readRegistryApiSyncConfig() {
+          try {
+            const raw = localStorage.getItem(TOKEN_REGISTRY_API_SYNC_KEY);
+            if (!raw) {
+              return {
+                enabled: false,
+                apiUrl: DEFAULT_REGISTRY_API_URL,
+                adminToken: ""
+              };
+            }
+            const parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed !== "object") {
+              return {
+                enabled: false,
+                apiUrl: DEFAULT_REGISTRY_API_URL,
+                adminToken: ""
+              };
+            }
+            return {
+              enabled: Boolean(parsed.enabled),
+              apiUrl: String(parsed.apiUrl || DEFAULT_REGISTRY_API_URL).trim(),
+              adminToken: String(parsed.adminToken || "").trim()
+            };
+          } catch {
+            return {
+              enabled: false,
+              apiUrl: DEFAULT_REGISTRY_API_URL,
+              adminToken: ""
+            };
+          }
+        }
+
+        function writeRegistryApiSyncConfig(config) {
+          const next = {
+            enabled: Boolean(config && config.enabled),
+            apiUrl: String(config && config.apiUrl ? config.apiUrl : "").trim(),
+            adminToken: String(config && config.adminToken ? config.adminToken : "").trim()
+          };
+          localStorage.setItem(TOKEN_REGISTRY_API_SYNC_KEY, JSON.stringify(next));
+          return next;
+        }
+
+        function applyRegistryApiSyncConfigToUi() {
+          const cfg = readRegistryApiSyncConfig();
+          if (registryApiUrlInput) {
+            registryApiUrlInput.value = cfg.apiUrl;
+          }
+          if (registryApiTokenInput) {
+            registryApiTokenInput.value = cfg.adminToken;
+          }
+          if (cfg.enabled && cfg.apiUrl && cfg.adminToken) {
+            setRegistryApiSyncStatus("Auto-sync API aktywny.", "ok");
+          } else {
+            setRegistryApiSyncStatus("Auto-sync API wyłączony.", "err");
+          }
+        }
+
         function readTokenRegistry() {
           try {
             const raw = localStorage.getItem(TOKEN_REGISTRY_KEY);
@@ -1167,9 +1331,10 @@
           }
         }
 
-        function writeTokenRegistry(entries) {
+        function writeTokenRegistry(entries, reason) {
           try {
             localStorage.setItem(TOKEN_REGISTRY_KEY, JSON.stringify(entries));
+            queueRegistryBackendSync(reason || "Zmiana tokenów");
           } catch {
             setAdminStatus("Nie udało się zapisać rejestru tokenów.", "err");
           }
@@ -1385,7 +1550,8 @@
         function wipeAllTokenData() {
           const keys = [
             TOKEN_REGISTRY_KEY,
-            TOKEN_ADMIN_PIN_HASH_KEY
+            TOKEN_ADMIN_PIN_HASH_KEY,
+            TOKEN_REGISTRY_API_SYNC_KEY
           ];
           keys.forEach((key) => {
             try {
@@ -1537,7 +1703,7 @@
                 status: "revoked",
                 revokedAt: new Date().toISOString()
               };
-              writeTokenRegistry(entries);
+              writeTokenRegistry(entries, "Unieważniono token");
               setAdminStatus("Token został unieważniony.", "ok");
               renderTokenAdminTable();
               return;
@@ -1548,7 +1714,7 @@
                 status: "active",
                 revokedAt: null
               };
-              writeTokenRegistry(entries);
+              writeTokenRegistry(entries, "Przywrócono token");
               setAdminStatus("Token został przywrócony.", "ok");
               renderTokenAdminTable();
               return;
@@ -1556,7 +1722,7 @@
             if (action === "delete") {
               const deletedToken = String(entry && entry.token ? entry.token : "");
               entries.splice(index, 1);
-              writeTokenRegistry(entries);
+              writeTokenRegistry(entries, "Usunięto token");
               const currentLastToken = getLastPrivateToken();
               if (deletedToken && currentLastToken && deletedToken === currentLastToken) {
                 clearLastPrivateToken();
@@ -1678,13 +1844,55 @@
           });
         }
 
+        if (saveRegistryApiConfigBtn) {
+          saveRegistryApiConfigBtn.addEventListener("click", () => {
+            const apiUrl = String(registryApiUrlInput ? registryApiUrlInput.value : "").trim();
+            const adminToken = String(registryApiTokenInput ? registryApiTokenInput.value : "").trim();
+            if (!apiUrl || !adminToken) {
+              setRegistryApiSyncStatus("Uzupełnij URL API i token admina.", "err");
+              return;
+            }
+            writeRegistryApiSyncConfig({
+              enabled: true,
+              apiUrl,
+              adminToken
+            });
+            setRegistryApiSyncStatus("Auto-sync API zapisany.", "ok");
+            void pushRegistryToBackendApi("Konfiguracja auto-sync");
+          });
+        }
+
+        if (syncRegistryApiNowBtn) {
+          syncRegistryApiNowBtn.addEventListener("click", async () => {
+            const ok = await pushRegistryToBackendApi("Ręczna synchronizacja");
+            if (ok) {
+              setAdminStatus("Wysłano publiczny rejestr do API.", "ok");
+            } else {
+              setAdminStatus("Nie udało się wysłać rejestru do API.", "err");
+            }
+          });
+        }
+
+        if (disableRegistryApiSyncBtn) {
+          disableRegistryApiSyncBtn.addEventListener("click", () => {
+            const current = readRegistryApiSyncConfig();
+            writeRegistryApiSyncConfig({
+              enabled: false,
+              apiUrl: current.apiUrl,
+              adminToken: ""
+            });
+            applyRegistryApiSyncConfigToUi();
+            setRegistryApiSyncStatus("Auto-sync API wyłączony.", "err");
+          });
+        }
+
         if (clearTokensBtn) {
           clearTokensBtn.addEventListener("click", () => {
             const approved = window.confirm("Na pewno usunąć cały rejestr tokenów?");
             if (!approved) {
               return;
             }
-            writeTokenRegistry([]);
+            writeTokenRegistry([], "Wyczyszczono cały rejestr tokenów");
             clearLastPrivateToken();
             if (output) {
               output.value = "";
@@ -1710,7 +1918,7 @@
                 throw new Error("Nieprawidłowy format JSON.");
               }
               const safe = parsed.filter((entry) => entry && typeof entry === "object");
-              writeTokenRegistry(safe);
+              writeTokenRegistry(safe, "Zaimportowano rejestr tokenów");
               renderTokenAdminTable();
               setAdminStatus(`Zaimportowano ${safe.length} wpisów.`, "ok");
             } catch (error) {
@@ -1720,6 +1928,8 @@
             }
           });
         }
+
+        applyRegistryApiSyncConfigToUi();
 
         const params = new URLSearchParams(window.location.search);
         const queryDeviceId = String(params.get("deviceId") || "").trim();
