@@ -1273,10 +1273,14 @@
                 apiUrl: DEFAULT_REGISTRY_API_URL
               };
             }
-            return {
+            const next = {
               enabled: Boolean(parsed.enabled),
               apiUrl: String(parsed.apiUrl || DEFAULT_REGISTRY_API_URL).trim()
             };
+            if (Object.prototype.hasOwnProperty.call(parsed, "adminToken")) {
+              localStorage.setItem(TOKEN_REGISTRY_API_SYNC_KEY, JSON.stringify(next));
+            }
+            return next;
           } catch {
             return {
               enabled: false,
