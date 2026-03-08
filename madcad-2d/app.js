@@ -141,6 +141,8 @@
   const LICENSE_SIGNATURE_SALT = "MadCAD2D-Private-NoMods-SingleDevice-2026";
   const LICENSE_TOKEN_PREFIX = "M2D1";
   const LICENSE_PRIVATE_FORM_URL = "https://kamil5646.github.io/MadCAD2D/#token-prywatny";
+  const LICENSE_PUBLIC_REGISTRY_URL = "https://kamil5646.github.io/MadCAD2D/license-registry.json";
+  const LICENSE_REMOTE_CHECK_TTL_MS = 10000;
   function normalizeAppLanguage(value) {
     return value === "en" || value === "pl" ? value : null;
   }
@@ -737,6 +739,13 @@
     token: "",
     payload: null,
     deviceId: ""
+  };
+
+  const licenseRemoteState = {
+    lastCheckedAt: 0,
+    lastTokenHash: "",
+    lastResultOk: null,
+    inFlight: null
   };
 
   const appUpdateState = {
@@ -2331,6 +2340,165 @@
     } catch (_error) {}
   }
 
+  async function sha256Hex(text) {
+    const value = String(text || "");
+    if (!value) {
+      return "";
+    }
+    try {
+      if (typeof crypto !== "undefined" && crypto.subtle && typeof TextEncoder !== "undefined") {
+        const data = new TextEncoder().encode(value);
+        const digest = await crypto.subtle.digest("SHA-256", data);
+        return Array.from(new Uint8Array(digest))
+          .map((byte) => byte.toString(16).padStart(2, "0"))
+          .join("");
+      }
+    } catch (_error) {}
+    return `${fnv1aHash(value)}${fnv1aHash(value, 0x9e3779b9)}${fnv1aHash(value, 0x85ebca6b)}`;
+  }
+
+  async function fetchPublicLicenseRegistry() {
+    if (typeof fetch !== "function") {
+      throw new Error("Brak API fetch.");
+    }
+    const url = `${LICENSE_PUBLIC_REGISTRY_URL}?ts=${Date.now()}`;
+    const response = await fetch(url, {
+      method: "GET",
+      cache: "no-store"
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const raw = await response.json();
+    if (!raw || typeof raw !== "object") {
+      throw new Error("Niepoprawny format rejestru.");
+    }
+    const mode = String(raw.mode || "allowlist")
+      .trim()
+      .toLowerCase();
+    const tokensRaw = Array.isArray(raw.tokens) ? raw.tokens : [];
+    const tokens = tokensRaw
+      .map((entry) => {
+        if (!entry || typeof entry !== "object") {
+          return null;
+        }
+        const tokenHash = String(entry.tokenHash || entry.hash || "")
+          .trim()
+          .toLowerCase();
+        const status = String(entry.status || "active")
+          .trim()
+          .toLowerCase();
+        if (!/^[a-f0-9]{24,128}$/.test(tokenHash)) {
+          return null;
+        }
+        return {
+          tokenHash,
+          status
+        };
+      })
+      .filter(Boolean);
+
+    return {
+      mode: mode === "denylist" ? "denylist" : "allowlist",
+      tokens
+    };
+  }
+
+  function invalidateCurrentLicense(message, auditContext) {
+    clearPersistedLicenseRecord();
+    setLicenseClearedMarker();
+    licenseSession.token = "";
+    licenseSession.payload = null;
+    if (licenseTokenInput) {
+      licenseTokenInput.value = "";
+    }
+    setLicenseLocked(true);
+    setLicenseStatus(message, "error");
+    appendPrivateLicenseAudit(String(auditContext || "Walidacja licencji"), String(message || ""), {
+      deviceId: getLicenseDeviceId()
+    });
+  }
+
+  async function validateLicenseWithPublicRegistry(options) {
+    const opts = options && typeof options === "object" ? options : {};
+    if (!licenseSession.active || !licenseSession.token) {
+      return false;
+    }
+
+    const contextLabel = String(opts.context || "Walidacja online");
+    const tokenHash = await sha256Hex(licenseSession.token);
+    if (!tokenHash) {
+      return true;
+    }
+
+    const now = Date.now();
+    if (
+      !opts.force &&
+      licenseRemoteState.lastResultOk !== null &&
+      licenseRemoteState.lastTokenHash === tokenHash &&
+      now - licenseRemoteState.lastCheckedAt <= LICENSE_REMOTE_CHECK_TTL_MS
+    ) {
+      return licenseRemoteState.lastResultOk;
+    }
+
+    if (licenseRemoteState.inFlight) {
+      return licenseRemoteState.inFlight;
+    }
+
+    const task = (async () => {
+      let registry = null;
+      try {
+        registry = await fetchPublicLicenseRegistry();
+      } catch (error) {
+        if (navigator.onLine === false) {
+          return true;
+        }
+        invalidateCurrentLicense(
+          "Nie udało się zweryfikować licencji online. Wymagana ponowna aktywacja.",
+          contextLabel
+        );
+        return false;
+      }
+
+      const entry = registry.tokens.find((item) => item.tokenHash === tokenHash) || null;
+      let isValid = true;
+      let invalidReason = "";
+      if (registry.mode === "denylist") {
+        if (entry && ["revoked", "blocked", "disabled", "deleted", "inactive"].includes(entry.status)) {
+          isValid = false;
+          invalidReason = "Token został unieważniony w publicznym rejestrze licencji.";
+        }
+      } else {
+        if (!entry) {
+          isValid = false;
+          invalidReason = "Token nie znajduje się w publicznym rejestrze aktywnych licencji.";
+        } else if (entry.status !== "active") {
+          isValid = false;
+          invalidReason = "Token ma status nieaktywny w publicznym rejestrze licencji.";
+        }
+      }
+
+      licenseRemoteState.lastCheckedAt = Date.now();
+      licenseRemoteState.lastTokenHash = tokenHash;
+      licenseRemoteState.lastResultOk = isValid;
+
+      if (!isValid) {
+        invalidateCurrentLicense(invalidReason, contextLabel);
+        return false;
+      }
+      return true;
+    })();
+
+    licenseRemoteState.inFlight = task;
+    try {
+      return await task;
+    } finally {
+      if (licenseRemoteState.inFlight === task) {
+        licenseRemoteState.inFlight = null;
+      }
+    }
+  }
+
   function normalizeLicenseOwner(payload) {
     if (!payload || typeof payload !== "object") {
       return "";
@@ -2644,11 +2812,17 @@
       });
     }
     if (licenseActivateTokenBtn) {
-      licenseActivateTokenBtn.addEventListener("click", () => {
+      licenseActivateTokenBtn.addEventListener("click", async () => {
         const token = licenseTokenInput ? licenseTokenInput.value : "";
         const result = activateLicenseToken(token);
         if (result.ok) {
-          echoCommand("Token aktywny.");
+          const remoteOk = await validateLicenseWithPublicRegistry({
+            force: true,
+            context: "Walidacja online po aktywacji"
+          });
+          if (remoteOk) {
+            echoCommand("Token aktywny.");
+          }
         }
       });
     }
@@ -12100,6 +12274,10 @@
       });
       if (isStillValid && licenseSession.active) {
         enforceLicenseStorageIntegrity({ silent: true });
+        void validateLicenseWithPublicRegistry({
+          force: true,
+          context: "Walidacja online przy wejściu do aplikacji"
+        });
       }
     });
     window.addEventListener("storage", (event) => {
@@ -12114,6 +12292,10 @@
         });
         if (isStillValid && licenseSession.active) {
           enforceLicenseStorageIntegrity();
+          void validateLicenseWithPublicRegistry({
+            force: true,
+            context: "Walidacja online po zmianie storage"
+          });
         }
       }
     });
@@ -12139,7 +12321,13 @@
     }
     localizeStaticUi();
     applyTheme("dark");
-    const licensedAtBoot = initializeLicenseManager();
+    let licensedAtBoot = initializeLicenseManager();
+    if (licensedAtBoot) {
+      licensedAtBoot = await validateLicenseWithPublicRegistry({
+        force: true,
+        context: "Walidacja online przy uruchomieniu"
+      });
+    }
 
     restoreSession();
     await restoreDesktopAutoSaveIfNeeded();
