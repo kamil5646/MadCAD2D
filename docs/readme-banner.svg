@@ -47,7 +47,5 @@
     <rect x="314" y="0" width="102" height="36" rx="18" fill="#16324f"/>
     <text x="365" y="24" text-anchor="middle" fill="#d9edff" font-size="18" font-family="Segoe UI, Arial, sans-serif">PL / EN</text>
 
-    <rect x="430" y="0" width="84" height="36" rx="18" fill="#16324f"/>
-    <text x="472" y="24" text-anchor="middle" fill="#d9edff" font-size="18" font-family="Segoe UI, Arial, sans-serif">v5.1</text>
   </g>
 </svg>
