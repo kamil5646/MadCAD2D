@@ -192,7 +192,35 @@
       "Wyczyszczono rysunek.": "Drawing cleared.",
       "Rysunek jest pusty lub anulowano czyszczenie.": "Drawing is empty or clearing was canceled.",
       "Brak zaznaczonego obiektu do usunięcia.": "No selected object to delete.",
-      "Najpierw zaznacz obiekt do duplikacji.": "Select an object first to duplicate."
+      "Najpierw zaznacz obiekt do duplikacji.": "Select an object first to duplicate.",
+      "Utworzono nowy pusty rysunek.": "Created a new empty drawing.",
+      "Token aktywny.": "Token active.",
+      "Zapis anulowany.": "Save canceled.",
+      "ODA File Converter skonfigurowany poprawnie.": "ODA File Converter configured correctly.",
+      "ODA File Converter zainstalowany. Import i eksport DWG są aktywne.":
+        "ODA File Converter installed. DWG import and export are active.",
+      "Instalowanie dodatku ODA (DWG)...": "Installing ODA add-on (DWG)...",
+      "Eksport DWG anulowany.": "DWG export canceled.",
+      "Brak aktywnego polecenia.": "No active command.",
+      "Polecenie anulowane.": "Command canceled.",
+      "Tryb LINIA.": "LINE mode.",
+      "Tryb POLILINIA.": "POLYLINE mode.",
+      "Tryb PROSTOKĄT.": "RECTANGLE mode.",
+      "Tryb OKRĄG.": "CIRCLE mode.",
+      "Tryb POMIAR.": "MEASURE mode.",
+      "Tryb PRZESUŃ.": "MOVE mode.",
+      "Tryb ZAZNACZ.": "SELECT mode.",
+      "Przełączono na tryb Rysowanie 2D.": "Switched to 2D drawing mode.",
+      "Dopasowano widok do obiektów.": "Fitted view to objects.",
+      "Panele: widoczne.": "Panels: visible.",
+      "Panele: ukryte.": "Panels: hidden.",
+      "Zamknięto aktywny panel.": "Closed active panel.",
+      "Otwarto panel: Warstwy.": "Opened panel: Layers.",
+      "Polecenie WYCZYŚĆ wykonane.": "CLEAR command executed.",
+      "Nie można usunąć warstwy.": "Cannot delete layer.",
+      "Nie utworzono geometrii szablonu.": "No template geometry was created.",
+      "Automatycznie odkryto i odblokowano warstwy KONSTRUKCJA/WYPELNIENIE.":
+        "Automatically unhid and unlocked CONSTRUCTION/FILL layers."
     };
     if (Object.prototype.hasOwnProperty.call(exact, text)) {
       return exact[text];
@@ -215,7 +243,231 @@
       .replace(/^Poziom\/Pion: WŁ\. \(F8\)$/, "Horizontal/Vertical: ON (F8)")
       .replace(/^Poziom\/Pion: WYŁ\. \(F8\)$/, "Horizontal/Vertical: OFF (F8)")
       .replace(/^ORTHO: WŁ\.$/, "ORTHO: ON")
-      .replace(/^ORTHO: WYŁ\.$/, "ORTHO: OFF");
+      .replace(/^ORTHO: WYŁ\.$/, "ORTHO: OFF")
+      .replace(/^Wstążka: zwinięta\.$/, "Ribbon: collapsed.")
+      .replace(/^Wstążka: rozwinięta\.$/, "Ribbon: expanded.")
+      .replace(/^Zakładka: Główne\.$/, "Tab: Home.")
+      .replace(/^Zakładka: Wymiarowanie\.$/, "Tab: Dimensioning.")
+      .replace(/^Zakładka: Stal\.$/, "Tab: Steel.")
+      .replace(/^Zakładka: Widok\.$/, "Tab: View.")
+      .replace(/^Zakładka: Warstwy\.$/, "Tab: Layers.")
+      .replace(/^Aktywna warstwa: (.+)\.$/, "Active layer: $1.")
+      .replace(/^Dodano warstwę: (.+)\.$/, "Added layer: $1.")
+      .replace(/^Usunięto warstwę: (.+)\.$/, "Deleted layer: $1.")
+      .replace(/^Nieznane polecenie: (.+)$/, "Unknown command: $1")
+      .replace(/^Wyeksportowano plik: (.+)$/, "Exported file: $1")
+      .replace(/^Wczytano JSON: (.+) \((\d+) obiektów\)\.$/, "Loaded JSON: $1 ($2 objects).")
+      .replace(/^Wczytano (DWG|DXF): (.+) \((\d+) obiektów\)\.$/, "Loaded $1: $2 ($3 objects).")
+      .replace(/^Błąd importu (DWG|DXF): (.+)$/, "$1 import error: $2")
+      .replace(/^Niepoprawny plik JSON: (.+)$/, "Invalid JSON file: $1")
+      .replace(/^Warstwa (.+): widoczna\.$/, "Layer $1: visible.")
+      .replace(/^Warstwa (.+): ukryta\.$/, "Layer $1: hidden.")
+      .replace(/^Warstwa (.+): zablokowana\.$/, "Layer $1: locked.")
+      .replace(/^Warstwa (.+): odblokowana\.$/, "Layer $1: unlocked.")
+      .replace(/^MadCAD 2D jest aktualny \(v(.+)\)\.$/, "MadCAD 2D is up to date (v$1).")
+      .replace(/^Automatyczny aktualizator nie jest dostępny w tej wersji\.$/, "Automatic updater is not available in this version.")
+      .replace(/^Pobieranie aktualizacji\. Po chwili aplikacja uruchomi instalator\.$/, "Downloading update. The app will launch installer shortly.")
+      .replace(
+        /^Aktualizacja uruchomiona\. Aplikacja zamknie się i zainstaluje nową wersję\.$/,
+        "Update started. The app will close and install the new version."
+      )
+      .replace(/^Masz już najnowszą wersję programu\.$/, "You already have the latest version.")
+      .replace(/^MOVE: najpierw zaznacz obiekt\.$/, "MOVE: select an object first.")
+      .replace(/^MOVE: obiekt jest na zablokowanej warstwie\.$/, "MOVE: object is on a locked layer.")
+      .replace(/^MOVE: wskaz punkt bazowy\.$/, "MOVE: select base point.")
+      .replace(/^COPY: najpierw zaznacz obiekt\.$/, "COPY: select an object first.")
+      .replace(/^COPY: obiekt jest na zablokowanej warstwie\.$/, "COPY: object is on a locked layer.")
+      .replace(/^COPY: wskaz punkt bazowy\.$/, "COPY: select base point.")
+      .replace(/^OFFSET: wskaz stronę odsunięcia \(dystans (.+)\)\.$/, "OFFSET: select side (distance $1).")
+      .replace(/^OFFSET: wskaz obiekt bazowy \(dystans (.+)\)\.$/, "OFFSET: select source object (distance $1).")
+      .replace(/^(MOVE|COPY): obiekt źródłowy nie istnieje\.$/, "$1: source object does not exist.")
+      .replace(/^(MOVE|COPY): wskaz punkt docelowy\.$/, "$1: select target point.")
+      .replace(/^(MOVE|COPY): przemieszczenie 0\. Polecenie anulowane\.$/, "$1: zero displacement. Command canceled.")
+      .replace(/^(MOVE|COPY): wykonano\.$/, "$1: done.")
+      .replace(/^OFFSET: wskaz linie, prostokąt lub okrąg\.$/, "OFFSET: select a line, rectangle or circle.")
+      .replace(/^OFFSET: obiekt jest na zablokowanej warstwie\.$/, "OFFSET: object is on a locked layer.")
+      .replace(/^OFFSET: nie można utworzyc offsetu dla tego obiektu\.$/, "OFFSET: cannot create offset for this object.")
+      .replace(/^OFFSET: utworzono obiekt\.$/, "OFFSET: object created.")
+      .replace(/^Komendy tekstowe są wyłączone\.$/, "Text commands are disabled.")
+      .replace(/^Wpisz polecenie\.$/, "Enter a command.")
+      .replace(/^Tryb WYMIAR \(wyrównany\)\.$/, "DIMENSION mode (aligned).")
+      .replace(/^Tryb WYMIAR \(liniowy\)\.$/, "DIMENSION mode (linear).")
+      .replace(/^Tryb WYMIAR \(obrócony\)\.$/, "DIMENSION mode (rotated).")
+      .replace(/^Tryb WYMIAR \(kątowy\)\.$/, "DIMENSION mode (angular).")
+      .replace(/^Tryb WYMIAR \(obrócony, kąt (.+)\)\.$/, "DIMENSION mode (rotated, angle $1).")
+      .replace(
+        /^Tryb WYMIAR \(kątowy\)\. Wskaż: wierzchołek, ramię 1, ramię 2, położenie łuku\.$/,
+        "DIMENSION mode (angular). Pick: vertex, arm 1, arm 2, arc position."
+      )
+      .replace(/^Tryb: stal$/, "Mode: steel")
+      .replace(/^Tryb: rysunek$/, "Mode: drawing")
+      .replace(/^Tryb: RYSOWANIE 2D\.$/, "Mode: 2D DRAWING.")
+      .replace(/^Użyj: mode rysunek \| mode stal$/, "Use: mode drawing | mode steel")
+      .replace(/^Użyj: tab główne\|wymiarowanie\|stal\|widok\|warstwy$/, "Use: tab home|dimensioning|steel|view|layers")
+      .replace(/^Zakładka ([^ ]+) nie jest dostępna w tym trybie\.$/, "Tab $1 is not available in this mode.")
+      .replace(/^Układ: Arkusz1\.$/, "Layout: Sheet1.")
+      .replace(/^Użyj: layout model \| layout arkusz1$/, "Use: layout model | layout sheet1")
+      .replace(/^Wypełnienie: (.+)\.$/, "Infill: $1.")
+      .replace(/^Wypełnienie ustawione: (.+)\.$/, "Infill set: $1.")
+      .replace(/^Użyj: infill pion\|poziom\|siatka\|x$/, "Use: infill vertical|horizontal|grid|x")
+      .replace(/^Ilość paneli: (\d+) szt.\/sekcja\.$/, "Panel count: $1 pcs/section.")
+      .replace(/^Użyj: panele <szt>$/, "Use: panels <count>")
+      .replace(
+        /^Komenda spacing została zastąpiona\. Użyj: panele <szt>\. Aktualnie: (\d+)\.$/,
+        "Spacing command was replaced. Use: panels <count>. Current: $1."
+      )
+      .replace(/^Użyj: panele <szt> \(komenda spacing jest wycofana\)\.$/, "Use: panels <count> (spacing command is deprecated).")
+      .replace(
+        /^Komenda spacing jest wycofana\. Przeliczono na ilość paneli: (\d+) szt.\/sekcja\.$/,
+        "Spacing command is deprecated. Recalculated to panel count: $1 pcs/section."
+      )
+      .replace(/^Szerokość słupka: ([\d.]+) mm\.$/, "Post width: $1 mm.")
+      .replace(/^Użyj: postwidth <mm>$/, "Use: postwidth <mm>")
+      .replace(/^Długość słupka: ([\d.]+) mm\.$/, "Post length: $1 mm.")
+      .replace(/^Użyj: postlength <mm>$/, "Use: postlength <mm>")
+      .replace(/^Sekcje: (\d+)\.$/, "Sections: $1.")
+      .replace(/^Użyj: sections <1-6>$/, "Use: sections <1-6>")
+      .replace(/^Skrzydła bramy: (\d+)\.$/, "Gate leaves: $1.")
+      .replace(/^Użyj: skrzydła <1-2>$/, "Use: leaves <1-2>")
+      .replace(/^Prześwit od dołu: ([\d.]+) mm\.$/, "Bottom clearance: $1 mm.")
+      .replace(/^Użyj: clearance <mm>$/, "Use: clearance <mm>")
+      .replace(/^Podmurówka: ([\d.]+) mm\.$/, "Base plate: $1 mm.")
+      .replace(/^Użyj: baseplate <mm>$/, "Use: baseplate <mm>")
+      .replace(/^Użyj: innerframe on \| innerframe off \| innerframe toggle$/, "Use: innerframe on | innerframe off | innerframe toggle")
+      .replace(/^Rama wewnętrzna: (ON|OFF)\.$/, "Inner frame: $1.")
+      .replace(/^Panel górny: (ON|OFF), rozmiar ([\d.]+) mm\.$/, "Top panel: $1, size $2 mm.")
+      .replace(/^Użyj: toppanel on\|off\|toggle lub toppanel <mm>$/, "Use: toppanel on|off|toggle or toppanel <mm>")
+      .replace(/^Panel dolny: (ON|OFF), rozmiar ([\d.]+) mm\.$/, "Bottom panel: $1, size $2 mm.")
+      .replace(/^Użyj: bottompanel on\|off\|toggle lub bottompanel <mm>$/, "Use: bottompanel on|off|toggle or bottompanel <mm>")
+      .replace(/^Rozmiar panelu górnego: ([\d.]+) mm\.$/, "Top panel size: $1 mm.")
+      .replace(/^Użyj: toppanelsize <mm>$/, "Use: toppanelsize <mm>")
+      .replace(/^Rozmiar panelu dolnego: ([\d.]+) mm\.$/, "Bottom panel size: $1 mm.")
+      .replace(/^Użyj: bottompanelsize <mm>$/, "Use: bottompanelsize <mm>")
+      .replace(/^Dostępne: zoom extents$/, "Available: zoom extents")
+      .replace(/^Użyj: snap on \| snap off \| snap toggle$/, "Use: snap on | snap off | snap toggle")
+      .replace(/^Użyj: grid on \| grid off \| grid toggle$/, "Use: grid on | grid off | grid toggle")
+      .replace(/^Użyj: ortho on \| ortho off \| ortho toggle$/, "Use: ortho on | ortho off | ortho toggle")
+      .replace(/^Użyj: ribbon on \| ribbon off \| ribbon toggle$/, "Use: ribbon on | ribbon off | ribbon toggle")
+      .replace(/^Użyj: paleta on \| paleta off \| paleta toggle$/, "Use: palette on | palette off | palette toggle")
+      .replace(/^Precyzja musi być liczbą 0-4\.$/, "Precision must be a number between 0 and 4.")
+      .replace(/^Rozmiar tekstu musi być liczbą 8-48\.$/, "Text size must be a number between 8 and 48.")
+      .replace(
+        /^Tryb wymiaru: aligned\/wyrównany, linear\/liniowy, rotated\/obrócony lub angular\/kątowy\.$/,
+        "Dimension mode: aligned, linear, rotated or angular."
+      )
+      .replace(/^Kolor DIM musi być w formacie #RRGGBB\.$/, "DIM color must be in #RRGGBB format.")
+      .replace(/^Kąt wymiaru: ([\d.-]+)°\.$/, "Dimension angle: $1deg.")
+      .replace(/^Użyj: dimangle <stopnie>$/, "Use: dimangle <degrees>")
+      .replace(/^Skok kąta wymiaru: ([\d.-]+)°\.$/, "Dimension angle snap: $1deg.")
+      .replace(/^Użyj: dimsnap <0-90>$/, "Use: dimsnap <0-90>")
+      .replace(/^Użyj: dimcolor #RRGGBB$/, "Use: dimcolor #RRGGBB")
+      .replace(/^Nie udało się ustawić warstwy\.$/, "Failed to set layer.")
+      .replace(/^Brama: za mała szerokość dla liczby skrzydeł\.$/, "Gate: width too small for selected leaf count.")
+      .replace(/^Ogrodzenie: za mała szerokość dla wybranej szerokości słupków\.$/, "Fence: width too small for selected post width.")
+      .replace(/^Ogrodzenie: za mała szerokość na odstęp między słupkiem a profilem\.$/, "Fence: width too small for spacing between post and profile.")
+      .replace(/^Siatka: pion (\d+) szt\. \(przerwa ([\d.-]+) mm\), poziom (\d+) szt\. \(przerwa ([\d.-]+) mm\)\.$/, "Grid: vertical $1 pcs (gap $2 mm), horizontal $3 pcs (gap $4 mm).")
+      .replace(/^Panele dopasowano: (\d+) szt.\/sekcja, przerwa ([\d.-]+) mm\.$/, "Panels adjusted: $1 pcs/section, gap $2 mm.")
+      .replace(/^(.+): utworzono (\d+) elementów \((\d+)x(\d+) mm(?:, skrzydła (\d+))?, (.+)\)\.$/, (_m, name, count, width, height, leaves, infill) => {
+        const leavesPart = leaves ? `, leaves ${leaves}` : "";
+        return `${name}: created ${count} elements (${width}x${height} mm${leavesPart}, ${infill}).`;
+      })
+      .replace(/^Otwarto podgląd wydruku\. W nowym oknie wybierz Drukuj lub Zapisz jako PDF\.$/, "Opened print preview. In the new window choose Print or Save as PDF.")
+      .replace(/^Otwarto podgląd wydruku w oknie aplikacji\. Użyj Drukuj\/Zapisz PDF\.$/, "Opened print preview in app window. Use Print/Save PDF.")
+      .replace(/^Otwarto okno systemowe druku \(tryb awaryjny bez popupu\)\.$/, "Opened system print window (fallback mode without popup).")
+      .replace(/^Nie udało się otworzyć podglądu wydruku(.+)$/, "Could not open print preview$1")
+      .replace(/^Błąd zapisu: (.+)$/, "Save error: $1")
+      .replace(/^Błąd ODA: (.+)$/, "ODA error: $1")
+      .replace(/^Błąd eksportu DWG: (.+)$/, "DWG export error: $1")
+      .replace(/^Instalacja ODA wymaga wersji desktop aplikacji\.$/, "ODA installation requires the desktop app version.")
+      .replace(/^Błąd instalacji ODA: (.+)$/, "ODA installation error: $1")
+      .replace(/^Wybierz plik JSON do wczytania\.$/, "Select a JSON file to load.")
+      .replace(/^Wybierz plik DXF lub DWG do importu\.$/, "Select a DXF or DWG file to import.")
+      .replace(/^Wybierz plik DWG do importu\.$/, "Select a DWG file to import.")
+      .replace(/^Błąd importu (.+): (.+)$/, "Import error $1: $2")
+      .replace(/^Przywrócono autozapis po awaryjnym zamknięciu\.$/, "Restored autosave after unexpected shutdown.")
+      .replace(/^Eksport DWG jest dostępny tylko w wersji desktop z konwerterem ODA\.$/, "DWG export is available only in desktop version with ODA converter.")
+      .replace(/^Zapisano plik: (.+)$/, "Saved file: $1")
+      .replace(/^Cofnięto \(Ctrl\+Z\)\.$/, "Undo (Ctrl+Z).")
+      .replace(/^Brak operacji do cofnięcia \(Ctrl\+Z\)\.$/, "No operation to undo (Ctrl+Z).")
+      .replace(/^Ponówiono \(Ctrl\+Y\)\.$/, "Redo (Ctrl+Y).")
+      .replace(/^Brak operacji do ponówienia \(Ctrl\+Y\)\.$/, "No operation to redo (Ctrl+Y).")
+      .replace(/^Zduplikowano obiekt \(Ctrl\+D\)\.$/, "Duplicated object (Ctrl+D).")
+      .replace(/^Brak obiektu do duplikacji \(Ctrl\+D\)\.$/, "No object to duplicate (Ctrl+D).")
+      .replace(/^Skopiowano obiekt \(Ctrl\+C\)\.$/, "Copied object (Ctrl+C).")
+      .replace(/^Brak obiektu do kopiowania \(Ctrl\+C\)\.$/, "No object to copy (Ctrl+C).")
+      .replace(/^Wklejono obiekt \(Ctrl\+V\)\.$/, "Pasted object (Ctrl+V).")
+      .replace(/^Schowek pusty \(Ctrl\+V\)\.$/, "Clipboard is empty (Ctrl+V).")
+      .replace(/^Usunięto zaznaczony obiekt\.$/, "Deleted selected object.")
+      .replace(/^Brak obiektu do usunięcia\.$/, "No object to delete.")
+      .replace(/^Skrót Z: narzędzie ZAZNACZ\.$/, "Shortcut Z: SELECT tool.")
+      .replace(/^Skrót L: narzędzie LINIA\.$/, "Shortcut L: LINE tool.")
+      .replace(/^Skrót Y: narzędzie POLILINIA\.$/, "Shortcut Y: POLYLINE tool.")
+      .replace(/^Skrót D: narzędzie WYMIAR\.$/, "Shortcut D: DIMENSION tool.")
+      .replace(/^Skrót P: narzędzie PROSTOKĄT\.$/, "Shortcut P: RECTANGLE tool.")
+      .replace(/^Skrót O: narzędzie OKRĄG\.$/, "Shortcut O: CIRCLE tool.")
+      .replace(/^Skrót B: narzędzie MALOWANIE\.$/, "Shortcut B: PAINT tool.")
+      .replace(/^Skrót M: narzędzie POMIAR\.$/, "Shortcut M: MEASURE tool.")
+      .replace(/^Skrót H: narzędzie PRZESUŃ\.$/, "Shortcut H: PAN tool.")
+      .replace(/^Narzędzie: (.+)\.$/, "Tool: $1.")
+      .replace(/^Otwarto menedżer licencji\.$/, "Opened license manager.")
+      .replace(/^Ta zakładka jest niedostępna w aktualnym trybie\.$/, "This tab is unavailable in the current mode.")
+      .replace(/^Aktywny układ: Arkusz1 \(podgląd wydruku\)\.$/, "Active layout: Sheet1 (print preview).")
+      .replace(/^Aktywny układ: Model\.$/, "Active layout: Model.")
+      .replace(/^Tryb WYMIAR \((.+)\)\.$/, "DIMENSION mode ($1).")
+      .replace(/^Zakładka: (.+)\.$/, "Tab: $1.")
+      .replace(/^Układ: (Arkusz1|Model)\.$/, (_m, value) => `Layout: ${value === "Arkusz1" ? "Sheet1" : "Model"}.`)
+      .replace(/^Siatka: (WŁ\.|WYŁ\.) \(G\)$/, (_m, value) => `Grid: ${value === "WŁ." ? "ON" : "OFF"} (G)`)
+      .replace(/^Cofnięto ostatnią operację\.$/, "Undid last operation.")
+      .replace(/^Brak operacji do cofnięcia\.$/, "No operation to undo.")
+      .replace(/^Przywrócono operacje\.$/, "Restored operations.")
+      .replace(/^Brak operacji do ponówienia\.$/, "No operation to redo.")
+      .replace(/^Przeniesiono obiekt na wierzch\.$/, "Moved object to front.")
+      .replace(/^Nie można przenieść obiektu na wierzch\.$/, "Cannot move object to front.")
+      .replace(/^Przeniesiono obiekt na spod\.$/, "Moved object to back.")
+      .replace(/^Nie można przenieść obiektu na spod\.$/, "Cannot move object to back.")
+      .replace(/^Brak obiektów\. Ustawiono widok domyślny\.$/, "No objects. Default view set.")
+      .replace(/^Przeniesiono zaznaczenie do warstwy: (.+)\.$/, "Moved selection to layer: $1.")
+      .replace(
+        /^Nie przeniesiono obiektów \(brak zaznaczenia lub obiekty są na zablokowanej warstwie\)\.$/,
+        "Objects were not moved (no selection or objects are on a locked layer)."
+      )
+      .replace(/^Wymiar kątowy: ramię 2 nie może być współliniowe z ramieniem 1\.$/, "Angular dimension: arm 2 cannot be collinear with arm 1.")
+      .replace(/Nie znaleziono ODA File Converter\./g, "ODA File Converter not found.")
+      .replace(/Brak wsparcia ODA w tej wersji aplikacji\./g, "ODA is not supported in this app version.");
+  }
+
+  function localizeTextNodes(plToEnMap) {
+    if (APP_LANGUAGE !== "en" || !plToEnMap || typeof plToEnMap !== "object") {
+      return;
+    }
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    let node = walker.nextNode();
+    while (node) {
+      const raw = String(node.nodeValue || "");
+      const normalized = raw.replace(/\s+/g, " ").trim();
+      if (normalized && Object.prototype.hasOwnProperty.call(plToEnMap, normalized)) {
+        const leading = raw.match(/^\s*/);
+        const trailing = raw.match(/\s*$/);
+        node.nodeValue = `${leading ? leading[0] : ""}${plToEnMap[normalized]}${trailing ? trailing[0] : ""}`;
+      }
+      node = walker.nextNode();
+    }
+  }
+
+  function localizeAttributes(entries) {
+    if (APP_LANGUAGE !== "en" || !Array.isArray(entries)) {
+      return;
+    }
+    for (const entry of entries) {
+      if (!entry || typeof entry.selector !== "string" || typeof entry.attr !== "string" || typeof entry.value !== "string") {
+        continue;
+      }
+      const element = document.querySelector(entry.selector);
+      if (!element) {
+        continue;
+      }
+      element.setAttribute(entry.attr, entry.value);
+    }
   }
 
   function localizeStaticUi() {
@@ -289,6 +541,100 @@
         element.setAttribute("title", formatShortcutTextForPlatform(text));
       }
     }
+    const uiTextMap = {
+      "Zapisz / Drukuj": "Save / Print",
+      "Projekt, import/eksport CAD i podgląd wydruku": "Project, CAD import/export and print preview",
+      Projekt: "Project",
+      CAD: "CAD",
+      Wydruk: "Print",
+      Rysuj: "Draw",
+      Modyfikuj: "Modify",
+      Właściwości: "Properties",
+      Tryby: "Modes",
+      Warstwy: "Layers",
+      "Konstrukcje stalowe": "Steel structures",
+      "Właściwości zaznaczenia": "Selection properties",
+      "Brak zaznaczonego obiektu": "No object selected",
+      "Tryb wymiaru": "Dimension mode",
+      Wyrównany: "Aligned",
+      Liniowy: "Linear",
+      Obrócony: "Rotated",
+      Kątowy: "Angular",
+      "Kąt wymiaru [°]": "Dimension angle [deg]",
+      "Skok kąta [°]": "Angle snap [deg]",
+      Jednostka: "Unit",
+      Precyzja: "Precision",
+      "Tekst wymiaru": "Dimension text",
+      "Kolor wymiaru": "Dimension color",
+      "Wymiar wyrównany (Alt+1)": "Aligned dimension (Alt+1)",
+      "Wymiar liniowy (Alt+2)": "Linear dimension (Alt+2)",
+      "Wymiar obrócony (Alt+3)": "Rotated dimension (Alt+3)",
+      "Wymiar kątowy (Alt+4)": "Angular dimension (Alt+4)",
+      Kolor: "Color",
+      Grubość: "Thickness",
+      Styl: "Style",
+      Ciągła: "Solid",
+      Kreskowana: "Dashed",
+      Kropkowana: "Dotted",
+      Wypełnienie: "Fill",
+      "Kolor wyp.": "Fill color",
+      Krycie: "Opacity",
+      "Aktywna": "Active",
+      "Nowa warstwa": "New layer",
+      "Szablon konstrukcji": "Structure template",
+      Brama: "Gate",
+      Ogrodzenie: "Fence",
+      Balkon: "Balcony",
+      "Szerokość całkowita [mm]": "Total width [mm]",
+      "Wysokość całkowita [mm]": "Total height [mm]",
+      "Profil boczny [mm]": "Side profile [mm]",
+      "Szerokość słupka [mm]": "Post width [mm]",
+      "Długość słupka [mm]": "Post length [mm]",
+      "Profil wypełnienia [mm]": "Infill profile [mm]",
+      "Ilość paneli [szt./sekcja]": "Panel count [pcs/section]",
+      "Typ wypełnienia": "Infill type",
+      Pionowe: "Vertical",
+      Poziome: "Horizontal",
+      Siatka: "Grid",
+      "Krzyżowe X": "Cross X",
+      "Panel górny": "Top panel",
+      "Panel dolny": "Bottom panel",
+      Włącz: "Enable",
+      "Rozmiar [mm]": "Size [mm]",
+      "Ilość pól": "Section count",
+      "Prześwit od dołu [mm]": "Bottom clearance [mm]",
+      "Skrzydła bramy [szt.]": "Gate leaves [pcs]",
+      "Wysokość podmurówki [mm]": "Base plate height [mm]",
+      "Rama wewnętrzna": "Inner frame",
+      "Zastrzał ukośny": "Diagonal brace",
+      "Kontekst: figura": "Context: shape",
+      "Prostokąt: szer.": "Rectangle: width",
+      "Prostokąt: wys.": "Rectangle: height",
+      "Okrąg: promień": "Circle: radius",
+      "Aktywacja licencji MadCAD 2D": "MadCAD 2D license activation",
+      Zamknij: "Close",
+      "Prywatnie (darmowy token)": "Private (free token)",
+      "Komercyjnie (token komercyjny)": "Commercial (commercial token)",
+      "ID urządzenia": "Device ID",
+      "Firma / osoba": "Company / person",
+      "E-mail kontaktowy": "Contact email",
+      "Referencja wpłaty (opcjonalnie)": "Payment reference (optional)",
+      "Kod zgłoszenia komercyjnego": "Commercial request code",
+      "Wklej token licencji": "Paste license token",
+      "Aktywuj token": "Activate token",
+      "Wyczyść zapis": "Clear saved token",
+      "Kopiuj ID urządzenia": "Copy device ID",
+      "Otwórz formularz tokenu na GitHub": "Open token form on GitHub",
+      "Generuj kod zgłoszenia": "Generate request code"
+    };
+    localizeTextNodes(uiTextMap);
+
+    localizeAttributes([
+      { selector: "#newLayerNameInput", attr: "placeholder", value: "New layer" },
+      { selector: "#licenseCommercialNameInput", attr: "placeholder", value: "Company name or full name" },
+      { selector: "#licenseCommercialEmailInput", attr: "placeholder", value: "contact@company.com" },
+      { selector: "#licenseCommercialRefInput", attr: "placeholder", value: "e.g. PAY-2026-0001" }
+    ]);
     applyPlatformShortcutLabels();
   }
 
@@ -393,7 +739,7 @@
     layers: [
       {
         id: baseLayerId,
-        name: "Warstwa 0",
+        name: `${t("Warstwa", "Layer")} 0`,
         visible: true,
         locked: false
       }
@@ -499,16 +845,19 @@
 
   const STEEL_TEMPLATE_META = {
     gate: {
-      hint: "Brama: skrzydło pojedyncze lub dwuskrzydłowe z opcjonalnym zastrzałem ukośnym.",
-      badges: ["Wjazd", "Skrzydła 1/2", "Ukos opcjonalny"]
+      hint: t(
+        "Brama: skrzydło pojedyncze lub dwuskrzydłowe z opcjonalnym zastrzałem ukośnym.",
+        "Gate: single or double leaf with an optional diagonal brace."
+      ),
+      badges: [t("Wjazd", "Entry"), t("Skrzydła 1/2", "Leaves 1/2"), t("Ukos opcjonalny", "Optional diagonal")]
     },
     fence: {
-      hint: "Ogrodzenie: przęsło z podmurówką, bez zastrzału ukośnego.",
-      badges: ["Przęsło", "Podmurówka", "Sztachety"]
+      hint: t("Ogrodzenie: przęsło z podmurówką, bez zastrzału ukośnego.", "Fence: section with base plate, no diagonal brace."),
+      badges: [t("Przęsło", "Section"), t("Podmurówka", "Base plate"), t("Sztachety", "Pickets")]
     },
     balcony: {
-      hint: "Balkon: balustrada z automatycznymi słupkami i wypełnieniem.",
-      badges: ["Balustrada", "Słupki auto", "Bez ukosu"]
+      hint: t("Balkon: balustrada z automatycznymi słupkami i wypełnieniem.", "Balcony: railing with automatic posts and infill."),
+      badges: [t("Balustrada", "Railing"), t("Słupki auto", "Auto posts"), t("Bez ukosu", "No diagonal")]
     }
   };
 
@@ -1369,21 +1718,21 @@
   function ribbonPageLabel(page) {
     const normalized = normalizeRibbonPage(page);
     if (normalized === "references") {
-      return "Wymiarowanie";
+      return t("Wymiarowanie", "Dimensioning");
     }
     if (normalized === "design") {
-      return "Stal";
+      return t("Stal", "Steel");
     }
     if (normalized === "layout") {
-      return "Układ";
+      return t("Układ", "Layout");
     }
     if (normalized === "view") {
-      return "Widok";
+      return t("Widok", "View");
     }
     if (normalized === "layers") {
-      return "Warstwy";
+      return t("Warstwy", "Layers");
     }
-    return "Główne";
+    return t("Główne", "Home");
   }
 
   function syncStartSummary() {
@@ -2169,12 +2518,12 @@
   function lineStyleLabel(style) {
     const normalized = normalizeLineStyle(style);
     if (normalized === "dashed") {
-      return "kreskowana";
+      return t("kreskowana", "dashed");
     }
     if (normalized === "dotted") {
-      return "kropkowana";
+      return t("kropkowana", "dotted");
     }
-    return "ciągła";
+    return t("ciągła", "solid");
   }
 
   function normalizeDimensionMode(mode) {
@@ -2207,15 +2556,15 @@
   function dimensionModeLabel(mode) {
     const normalized = normalizeDimensionMode(mode);
     if (normalized === "linear") {
-      return "liniowy";
+      return t("liniowy", "linear");
     }
     if (normalized === "rotated") {
-      return "obrócony";
+      return t("obrócony", "rotated");
     }
     if (normalized === "angular") {
-      return "kątowy";
+      return t("kątowy", "angular");
     }
-    return "wyrównany";
+    return t("wyrównany", "aligned");
   }
 
   function normalizeLayers(layers) {
@@ -2227,7 +2576,7 @@
         }
         return {
           id: layer.id || createId(),
-          name: layer.name || `Warstwa ${index}`,
+          name: layer.name || `${t("Warstwa", "Layer")} ${index}`,
           visible: layer.visible !== false,
           locked: Boolean(layer.locked)
         };
@@ -2237,7 +2586,7 @@
     if (normalized.length === 0) {
       normalized.push({
         id: createId(),
-        name: "Warstwa 0",
+        name: `${t("Warstwa", "Layer")} 0`,
         visible: true,
         locked: false
       });
@@ -2441,7 +2790,7 @@
 
   function getLayerNameById(id) {
     const layer = getLayerById(id);
-    return layer ? layer.name : "Warstwa ?";
+    return layer ? layer.name : `${t("Warstwa", "Layer")} ?`;
   }
 
   function getActiveLayer() {
@@ -3064,15 +3413,15 @@
   function updateStatus(pointer) {
     const point = pointer || state.pointerWorld;
     coordsLabel.textContent = `X: ${point.x.toFixed(2)} Y: ${point.y.toFixed(2)}`;
-    zoomInfoLabel.textContent = `Skala: ${(state.view.scale * 100).toFixed(0)}%`;
-    entityCountLabel.textContent = `Obiekty: ${state.entities.length}`;
+    zoomInfoLabel.textContent = `${t("Skala", "Scale")}: ${(state.view.scale * 100).toFixed(0)}%`;
+    entityCountLabel.textContent = `${t("Obiekty", "Objects")}: ${state.entities.length}`;
     if (state.commandState) {
       toolInfoLabel.textContent = `${t("Polecenie", "Command")}: ${String(state.commandState.name || "").toUpperCase()}`;
       toolInfoLabel.dataset.icon = "\u23F5";
     } else {
       const lengthPreview = String(state.lengthInputBuffer || "").trim();
       const lengthSuffix = lengthPreview ? ` | ${t("Długość", "Length")}: ${lengthPreview}` : "";
-      const snapSuffix = state.snap ? " | SNAP: WŁ" : " | SNAP: WYŁ";
+      const snapSuffix = state.snap ? ` | SNAP: ${t("WŁ", "ON")}` : ` | SNAP: ${t("WYŁ", "OFF")}`;
       toolInfoLabel.textContent = `${t("Narzędzie", "Tool")}: ${TOOL_LABELS[state.tool] || state.tool}${lengthSuffix}${snapSuffix}`;
       toolInfoLabel.dataset.icon = TOOL_ICONS[state.tool] || "\u2699";
     }
@@ -3166,24 +3515,24 @@
 
   function selectedEntityLabel(entity) {
     if (!entity) {
-      return "obiekt";
+      return t("obiekt", "object");
     }
     if (entity.type === "line") {
-      return "linia";
+      return t("linia", "line");
     }
     if (entity.type === "rect") {
-      return "prostokąt";
+      return t("prostokąt", "rectangle");
     }
     if (entity.type === "circle") {
-      return "okrąg";
+      return t("okrąg", "circle");
     }
     if (entity.type === "dimension") {
-      return "wymiar";
+      return t("wymiar", "dimension");
     }
     if (entity.type === "fillRegion") {
-      return "wypełnienie";
+      return t("wypełnienie", "fill");
     }
-    return "obiekt";
+    return t("obiekt", "object");
   }
 
   function pushCommandHistory(commandText) {
@@ -4420,7 +4769,7 @@
       if (dimensionColorInput) {
         dimensionColorInput.value = state.dimensionColor;
       }
-      selectionInfo.textContent = `Zaznaczono obiekty: ${selectedEntities.length}`;
+      selectionInfo.textContent = `${t("Zaznaczono obiekty", "Selected objects")}: ${selectedEntities.length}`;
       return;
     }
 
@@ -4432,13 +4781,13 @@
       }
       if (state.lastMeasure) {
         selectionInfo.textContent =
-          `Ostatni pomiar\n` +
-          `Start: (${state.lastMeasure.p1.x.toFixed(2)}, ${state.lastMeasure.p1.y.toFixed(2)})\n` +
-          `Koniec: (${state.lastMeasure.p2.x.toFixed(2)}, ${state.lastMeasure.p2.y.toFixed(2)})\n` +
-          `Długość: ${state.lastMeasure.distance.toFixed(2)}\n` +
-          `Kąt: ${state.lastMeasure.angle.toFixed(2)} stopni`;
+          `${t("Ostatni pomiar", "Last measurement")}\n` +
+          `${t("Start", "Start")}: (${state.lastMeasure.p1.x.toFixed(2)}, ${state.lastMeasure.p1.y.toFixed(2)})\n` +
+          `${t("Koniec", "End")}: (${state.lastMeasure.p2.x.toFixed(2)}, ${state.lastMeasure.p2.y.toFixed(2)})\n` +
+          `${t("Długość", "Length")}: ${state.lastMeasure.distance.toFixed(2)}\n` +
+          `${t("Kąt", "Angle")}: ${state.lastMeasure.angle.toFixed(2)} ${t("stopni", "degrees")}`;
       } else {
-        selectionInfo.textContent = "Brak zaznaczonego obiektu";
+        selectionInfo.textContent = t("Brak zaznaczonego obiektu", "No object selected");
       }
       return;
     }
@@ -4462,43 +4811,43 @@
 
     if (selected.type === "line") {
       selectionInfo.textContent =
-        `Typ: Linia\n` +
-        `Warstwa: ${layerName}\n` +
-        `Styl: ${lineStyleLabel(selected.lineStyle)}\n` +
-        `Początek: (${selected.x1.toFixed(2)}, ${selected.y1.toFixed(2)})\n` +
-        `Koniec: (${selected.x2.toFixed(2)}, ${selected.y2.toFixed(2)})`;
+        `${t("Typ", "Type")}: ${t("Linia", "Line")}\n` +
+        `${t("Warstwa", "Layer")}: ${layerName}\n` +
+        `${t("Styl", "Style")}: ${lineStyleLabel(selected.lineStyle)}\n` +
+        `${t("Początek", "Start")}: (${selected.x1.toFixed(2)}, ${selected.y1.toFixed(2)})\n` +
+        `${t("Koniec", "End")}: (${selected.x2.toFixed(2)}, ${selected.y2.toFixed(2)})`;
       return;
     }
 
     if (selected.type === "rect") {
       selectionInfo.textContent =
-        `Typ: Prostokąt\n` +
-        `Warstwa: ${layerName}\n` +
-        `Styl: ${lineStyleLabel(selected.lineStyle)}\n` +
-        `Początek: (${selected.x.toFixed(2)}, ${selected.y.toFixed(2)})\n` +
-        `Szerokość: ${selected.w.toFixed(2)}\n` +
-        `Wysokość: ${selected.h.toFixed(2)}\n` +
-        `Wypełnienie: ${selected.fill ? "tak" : "nie"}`;
+        `${t("Typ", "Type")}: ${t("Prostokąt", "Rectangle")}\n` +
+        `${t("Warstwa", "Layer")}: ${layerName}\n` +
+        `${t("Styl", "Style")}: ${lineStyleLabel(selected.lineStyle)}\n` +
+        `${t("Początek", "Start")}: (${selected.x.toFixed(2)}, ${selected.y.toFixed(2)})\n` +
+        `${t("Szerokość", "Width")}: ${selected.w.toFixed(2)}\n` +
+        `${t("Wysokość", "Height")}: ${selected.h.toFixed(2)}\n` +
+        `${t("Wypełnienie", "Fill")}: ${selected.fill ? t("tak", "yes") : t("nie", "no")}`;
       return;
     }
 
     if (selected.type === "circle") {
       selectionInfo.textContent =
-        `Typ: Okrąg\n` +
-        `Warstwa: ${layerName}\n` +
-        `Styl: ${lineStyleLabel(selected.lineStyle)}\n` +
-        `Środek: (${selected.cx.toFixed(2)}, ${selected.cy.toFixed(2)})\n` +
-        `Promień: ${selected.r.toFixed(2)}\n` +
-        `Wypełnienie: ${selected.fill ? "tak" : "nie"}`;
+        `${t("Typ", "Type")}: ${t("Okrąg", "Circle")}\n` +
+        `${t("Warstwa", "Layer")}: ${layerName}\n` +
+        `${t("Styl", "Style")}: ${lineStyleLabel(selected.lineStyle)}\n` +
+        `${t("Środek", "Center")}: (${selected.cx.toFixed(2)}, ${selected.cy.toFixed(2)})\n` +
+        `${t("Promień", "Radius")}: ${selected.r.toFixed(2)}\n` +
+        `${t("Wypełnienie", "Fill")}: ${selected.fill ? t("tak", "yes") : t("nie", "no")}`;
       return;
     }
 
     if (selected.type === "fillRegion") {
       selectionInfo.textContent =
-        `Typ: Wypełnienie\n` +
-        `Warstwa: ${layerName}\n` +
-        `Punkty: ${selected.points.length}\n` +
-        `Wypełnienie: tak`;
+        `${t("Typ", "Type")}: ${t("Wypełnienie", "Fill region")}\n` +
+        `${t("Warstwa", "Layer")}: ${layerName}\n` +
+        `${t("Punkty", "Points")}: ${selected.points.length}\n` +
+        `${t("Wypełnienie", "Fill")}: ${t("tak", "yes")}`;
       return;
     }
 
@@ -4507,31 +4856,31 @@
       const distance = geometry ? geometry.length : Math.hypot(selected.x2 - selected.x1, selected.y2 - selected.y1);
       const rotationInfo =
         normalizeDimensionMode(selected.mode) === "rotated"
-          ? `\nKąt: ${normalizeAngleDegrees(selected.rotation).toFixed(1)}°`
+          ? `\n${t("Kąt", "Angle")}: ${normalizeAngleDegrees(selected.rotation).toFixed(1)}°`
           : "";
       const angularInfo =
         geometry && geometry.kind === "angular"
-          ? `\nWierzchołek: (${selected.x1.toFixed(2)}, ${selected.y1.toFixed(2)})\n` +
-            `Ramię 1: (${selected.x2.toFixed(2)}, ${selected.y2.toFixed(2)})\n` +
-            `Ramię 2: (${Number(selected.x3 || 0).toFixed(2)}, ${Number(selected.y3 || 0).toFixed(2)})`
-          : `\nStart: (${selected.x1.toFixed(2)}, ${selected.y1.toFixed(2)})\n` +
-            `Koniec: (${selected.x2.toFixed(2)}, ${selected.y2.toFixed(2)})`;
+          ? `\n${t("Wierzchołek", "Vertex")}: (${selected.x1.toFixed(2)}, ${selected.y1.toFixed(2)})\n` +
+            `${t("Ramię", "Arm")} 1: (${selected.x2.toFixed(2)}, ${selected.y2.toFixed(2)})\n` +
+            `${t("Ramię", "Arm")} 2: (${Number(selected.x3 || 0).toFixed(2)}, ${Number(selected.y3 || 0).toFixed(2)})`
+          : `\n${t("Start", "Start")}: (${selected.x1.toFixed(2)}, ${selected.y1.toFixed(2)})\n` +
+            `${t("Koniec", "End")}: (${selected.x2.toFixed(2)}, ${selected.y2.toFixed(2)})`;
       const valueLabel =
         geometry && geometry.kind === "angular"
           ? formatDimensionAngle(distance, selected.decimals)
           : formatDimensionDistance(distance, selected.unit || "mm", selected.decimals);
       selectionInfo.textContent =
-        `Typ: Wymiar\n` +
-        `Tryb: ${dimensionModeLabel(selected.mode)}\n` +
-        `Warstwa: ${layerName}\n` +
-        `Styl: ${lineStyleLabel(selected.lineStyle)}\n` +
+        `${t("Typ", "Type")}: ${t("Wymiar", "Dimension")}\n` +
+        `${t("Tryb", "Mode")}: ${dimensionModeLabel(selected.mode)}\n` +
+        `${t("Warstwa", "Layer")}: ${layerName}\n` +
+        `${t("Styl", "Style")}: ${lineStyleLabel(selected.lineStyle)}\n` +
         angularInfo +
-        `\nWartość: ${valueLabel}` +
+        `\n${t("Wartość", "Value")}: ${valueLabel}` +
         rotationInfo;
       return;
     }
 
-    selectionInfo.textContent = "Nieznany obiekt";
+    selectionInfo.textContent = t("Nieznany obiekt", "Unknown object");
   }
 
   function resizeCanvas(options) {
@@ -5411,7 +5760,7 @@
 
     activeLayerSelect.innerHTML = state.layers
       .map((layer) => {
-        const suffix = [layer.locked ? "zabl." : "", !layer.visible ? "ukryta" : ""]
+        const suffix = [layer.locked ? t("zabl.", "locked") : "", !layer.visible ? t("ukryta", "hidden") : ""]
           .filter(Boolean)
           .join(", ");
         return `<option value="${layer.id}">${escapeHtml(layer.name)}${
@@ -5430,28 +5779,37 @@
           }">
             <div class="layer-item-head">
               <span class="layer-item-name">${escapeHtml(layer.name)}</span>
-              <span class="layer-pill">${itemCount} ob.</span>
+              <span class="layer-pill">${itemCount} ${t("ob.", "obj.")}</span>
             </div>
             <div class="layer-item-meta">
               <label class="layer-toggle">
                 <input class="layer-visible" type="checkbox" data-layer-id="${layer.id}" ${
                   layer.visible ? "checked" : ""
-                } title="Pokazuje lub ukrywa warstwę." />
-                widoczna
+                } title="${t("Pokazuje lub ukrywa warstwę.", "Shows or hides the layer.")}" />
+                ${t("widoczna", "visible")}
               </label>
               <label class="layer-toggle">
                 <input class="layer-locked" type="checkbox" data-layer-id="${layer.id}" ${
                   layer.locked ? "checked" : ""
-                } title="Blokuje edycję obiektów na warstwie." />
-                zablokowana
+                } title="${t("Blokuje edycję obiektów na warstwie.", "Locks editing of objects on this layer.")}" />
+                ${t("zablokowana", "locked")}
               </label>
             </div>
             <div class="layer-actions">
-              <button class="layer-set-active has-icon" data-icon="&#9989;" data-layer-id="${layer.id}" title="Ustawia tę warstwę jako aktywną.">Aktywna</button>
-              <button class="layer-move-selection has-icon" data-icon="&#8645;" data-layer-id="${layer.id}" title="Przenosi zaznaczone obiekty na tę warstwę.">Przenieś zazn.</button>
+              <button class="layer-set-active has-icon" data-icon="&#9989;" data-layer-id="${layer.id}" title="${t(
+                "Ustawia tę warstwę jako aktywną.",
+                "Sets this layer as active."
+              )}">${t("Aktywna", "Active")}</button>
+              <button class="layer-move-selection has-icon" data-icon="&#8645;" data-layer-id="${layer.id}" title="${t(
+                "Przenosi zaznaczone obiekty na tę warstwę.",
+                "Moves selected objects to this layer."
+              )}">${t("Przenieś zazn.", "Move sel.")}</button>
               <button class="layer-delete has-icon" data-icon="&#128465;" data-layer-id="${layer.id}" ${
                 state.layers.length <= 1 ? "disabled" : ""
-              } title="Usuwa warstwę i przenosi obiekty do aktywnej warstwy.">Usuń</button>
+              } title="${t(
+                "Usuwa warstwę i przenosi obiekty do aktywnej warstwy.",
+                "Deletes the layer and moves objects to the active layer."
+              )}">${t("Usuń", "Delete")}</button>
             </div>
           </div>
         `;
@@ -7223,7 +7581,7 @@
     setRibbonPage("home", { persist: false });
     markDirty();
     queueRender();
-    echoCommand("Utworzono nowy pusty rysunek.");
+    echoCommand(t("Utworzono nowy pusty rysunek.", "Created a new empty drawing."));
     return true;
   }
 
@@ -7235,12 +7593,17 @@
     }
     setPaletteHidden(false);
     steelTemplateSelect.focus();
-    echoCommand("Stal: wybierz szablon (Brama/Ogrodzenie/Balkon), ustaw parametry i kliknij Generuj element.");
+    echoCommand(
+      t(
+        "Stal: wybierz szablon (Brama/Ogrodzenie/Balkon), ustaw parametry i kliknij Generuj element.",
+        "Steel: choose template (Gate/Fence/Balcony), set parameters, then click Generate element."
+      )
+    );
   }
 
   function createLayer(name) {
     const trimmed = String(name || "").trim();
-    const base = trimmed || `Warstwa ${state.layers.length}`;
+    const base = trimmed || `${t("Warstwa", "Layer")} ${state.layers.length}`;
     let candidate = base;
     let index = 1;
     while (state.layers.some((layer) => layer.name.toLowerCase() === candidate.toLowerCase())) {
@@ -7428,25 +7791,25 @@
 
   function infillPatternLabel(pattern) {
     if (pattern === "horizontal") {
-      return "poziome";
+      return t("poziome", "horizontal");
     }
     if (pattern === "grid") {
-      return "siatka";
+      return t("siatka", "grid");
     }
     if (pattern === "cross") {
-      return "krzyżowe X";
+      return t("krzyżowe X", "cross X");
     }
-    return "pionowe";
+    return t("pionowe", "vertical");
   }
 
   function steelTemplateLabel(template) {
     if (template === "fence") {
-      return "Ogrodzenie";
+      return t("Ogrodzenie", "Fence");
     }
     if (template === "balcony") {
-      return "Balkon";
+      return t("Balkon", "Balcony");
     }
-    return "Brama";
+    return t("Brama", "Gate");
   }
 
   function getSteelPreset(template) {
@@ -7511,13 +7874,13 @@
     }
     if (steelPostWidthHint) {
       steelPostWidthHint.textContent = postControlEnabled
-        ? "Dotyczy słupków ogrodzenia."
-        : "Opcja dostępna tylko dla szablonu Ogrodzenie.";
+        ? t("Dotyczy słupków ogrodzenia.", "Applies to fence posts.")
+        : t("Opcja dostępna tylko dla szablonu Ogrodzenie.", "Option available only for Fence template.");
     }
     if (steelPostLengthHint) {
       steelPostLengthHint.textContent = postControlEnabled
-        ? "Nadmiar długości słupka schodzi w dół poniżej przęsła."
-        : "Opcja dostępna tylko dla szablonu Ogrodzenie.";
+        ? t("Nadmiar długości słupka schodzi w dół poniżej przęsła.", "Extra post length extends below the section.")
+        : t("Opcja dostępna tylko dla szablonu Ogrodzenie.", "Option available only for Fence template.");
     }
     if (postWidthControl) {
       postWidthControl.classList.toggle("is-disabled", !postControlEnabled);
@@ -7537,8 +7900,8 @@
     }
     if (steelGateLeafCountHint) {
       steelGateLeafCountHint.textContent = leafAllowed
-        ? "Podział szerokości na skrzydła (dotyczy tylko bramy)."
-        : "Opcja dostępna tylko dla szablonu Brama.";
+        ? t("Podział szerokości na skrzydła (dotyczy tylko bramy).", "Splits width into leaves (gate only).")
+        : t("Opcja dostępna tylko dla szablonu Brama.", "Option available only for Gate template.");
     }
     if (leafControl) {
       leafControl.classList.toggle("is-disabled", !leafAllowed);
@@ -7554,8 +7917,8 @@
     }
     if (steelDiagonalHint) {
       steelDiagonalHint.textContent = diagonalAllowed
-        ? "Dodatkowe usztywnienie po przekątnej."
-        : "Opcja dostępna tylko dla szablonu Brama.";
+        ? t("Dodatkowe usztywnienie po przekątnej.", "Additional diagonal reinforcement.")
+        : t("Opcja dostępna tylko dla szablonu Brama.", "Option available only for Gate template.");
     }
     const diagonalControl =
       steelDiagonalToggle && steelDiagonalToggle.closest(".steel-control")
@@ -7594,7 +7957,10 @@
 
     if (!options || options.announce !== false) {
       echoCommand(
-        `Szablon ${steelTemplateLabel(preset.template)}: ustawiono domyślne parametry (${preset.width}x${preset.height} mm).`
+        t(
+          `Szablon ${steelTemplateLabel(preset.template)}: ustawiono domyślne parametry (${preset.width}x${preset.height} mm).`,
+          `Template ${steelTemplateLabel(preset.template)}: set default parameters (${preset.width}x${preset.height} mm).`
+        )
       );
     }
   }
@@ -8011,7 +8377,10 @@
     if (!steelPanelCountHint) {
       return;
     }
-    const baseText = "Podajesz ilość paneli, a aplikacja automatycznie dopasowuje równe przerwy.";
+    const baseText = t(
+      "Podajesz ilość paneli, a aplikacja automatycznie dopasowuje równe przerwy.",
+      "Provide panel count and the app will automatically calculate equal spacing."
+    );
     const autoInfo = buildSteelPanelCountAutoInfo();
     if (!autoInfo) {
       steelPanelCountHint.textContent = baseText;
@@ -8020,22 +8389,32 @@
 
     if (autoInfo.pattern === "grid") {
       steelPanelCountHint.textContent =
-        `Siatka: pion ${autoInfo.vertical.count} szt. (przerwa ${Math.max(0, Math.round(autoInfo.vertical.gap))} mm), ` +
-        `poziom ${autoInfo.horizontal.count} szt. (przerwa ${Math.max(0, Math.round(autoInfo.horizontal.gap))} mm).`;
+        t(
+          `Siatka: pion ${autoInfo.vertical.count} szt. (przerwa ${Math.max(0, Math.round(autoInfo.vertical.gap))} mm), ` +
+            `poziom ${autoInfo.horizontal.count} szt. (przerwa ${Math.max(0, Math.round(autoInfo.horizontal.gap))} mm).`,
+          `Grid: vertical ${autoInfo.vertical.count} pcs (gap ${Math.max(0, Math.round(autoInfo.vertical.gap))} mm), ` +
+            `horizontal ${autoInfo.horizontal.count} pcs (gap ${Math.max(0, Math.round(autoInfo.horizontal.gap))} mm).`
+        );
       return;
     }
 
     const axisLayout = autoInfo.pattern === "horizontal" ? autoInfo.horizontal : autoInfo.vertical;
-    const axisName = autoInfo.pattern === "horizontal" ? "poziomo" : "pionowo";
+    const axisName = autoInfo.pattern === "horizontal" ? t("poziomo", "horizontal") : t("pionowo", "vertical");
     const clampNote =
       autoInfo.requestedCount > axisLayout.maxCount
-        ? ` (maksymalnie ${axisLayout.maxCount} dla tej sekcji)`
+        ? t(
+            ` (maksymalnie ${axisLayout.maxCount} dla tej sekcji)`,
+            ` (max ${axisLayout.maxCount} for this section)`
+          )
         : "";
     steelPanelCountHint.textContent =
-      `Auto ${axisName}: ${axisLayout.count} szt./sekcja${clampNote}, przerwa ${Math.max(
-        0,
-        Math.round(axisLayout.gap)
-      )} mm.`;
+      t(
+        `Auto ${axisName}: ${axisLayout.count} szt./sekcja${clampNote}, przerwa ${Math.max(
+          0,
+          Math.round(axisLayout.gap)
+        )} mm.`,
+        `Auto ${axisName}: ${axisLayout.count} pcs/section${clampNote}, gap ${Math.max(0, Math.round(axisLayout.gap))} mm.`
+      );
   }
 
   function inferPanelCountFromLegacySpacing(legacySpacing, options) {
@@ -10097,7 +10476,7 @@
       const fields = Array.from(control.querySelectorAll("input, select, textarea"));
       const labelText = label ? label.textContent.replace(/\s+/g, " ").trim() : "";
       const helpText = help ? help.textContent.replace(/\s+/g, " ").trim() : "";
-      const tooltipText = helpText || (labelText ? `Ustawienie: ${labelText}.` : "");
+      const tooltipText = helpText || (labelText ? `${t("Ustawienie", "Setting")}: ${labelText}.` : "");
       if (!tooltipText) {
         return;
       }
@@ -10117,7 +10496,7 @@
       }
       const text = button.textContent.replace(/\s+/g, " ").trim();
       if (text) {
-        button.title = `Funkcja: ${text}.`;
+        button.title = `${t("Funkcja", "Action")}: ${text}.`;
       }
     });
   }
