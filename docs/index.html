@@ -3,6 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script
+      async
+      src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3602841906587206"
+      crossorigin="anonymous"
+    ></script>
     <title>MadCAD 2D - Aplikacja CAD 2D</title>
     <meta
       name="description"
@@ -1173,7 +1178,7 @@
         const DEFAULT_REGISTRY_API_URL = "https://madcad-license-registry.kkasprzak15.workers.dev/v1/license-registry";
         const DEFAULT_ISSUE_PRIVATE_URL = "https://madcad-license-registry.kkasprzak15.workers.dev/v1/license-tokens/issue-private";
         const PAYPAL_DONATION_URL = "https://paypal.me/refek1";
-        const ADSENSE_CLIENT_ID = "";
+        const ADSENSE_CLIENT_ID = "ca-pub-3602841906587206";
         let adminUnlocked = false;
         let registryApiSyncBusy = false;
         let registryApiSyncDebounceTimer = null;
@@ -1193,6 +1198,25 @@
             return Promise.resolve();
           }
           if (adsScriptLoadPromise) {
+            return adsScriptLoadPromise;
+          }
+          const existingScript = document.querySelector(
+            'script[src*="pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"]'
+          );
+          if (existingScript) {
+            adsScriptLoadPromise = new Promise((resolve, reject) => {
+              let checks = 0;
+              const timer = setInterval(() => {
+                checks += 1;
+                if (window.adsbygoogle) {
+                  clearInterval(timer);
+                  resolve();
+                } else if (checks >= 40) {
+                  clearInterval(timer);
+                  reject(new Error("AdSense load timeout"));
+                }
+              }, 200);
+            });
             return adsScriptLoadPromise;
           }
           adsScriptLoadPromise = new Promise((resolve, reject) => {
