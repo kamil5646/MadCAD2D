@@ -69,5 +69,6 @@ contextBridge.exposeInMainWorld('desktopApp', {
   chooseOdaConverterPath: () => ipcRenderer.invoke('madcad:choose-oda-path'),
   openOdaDownload: () => ipcRenderer.invoke('madcad:open-oda-download'),
   appendLicenseAudit: (payload) => ipcRenderer.invoke('madcad:append-license-audit', payload),
+  clearLicenseStorage: () => ipcRenderer.invoke('madcad:clear-license-storage'),
   setAppLanguage: (payload) => ipcRenderer.invoke('madcad:set-language', payload)
 });

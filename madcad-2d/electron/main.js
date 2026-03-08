@@ -1912,6 +1912,32 @@ ipcMain.handle('madcad:append-license-audit', async (_event, payload) => {
   }
 });
 
+ipcMain.handle('madcad:clear-license-storage', async (event) => {
+  try {
+    const senderSession = event && event.sender ? event.sender.session : null;
+    if (!senderSession || typeof senderSession.clearStorageData !== 'function') {
+      return {
+        ok: false,
+        error: t('Brak dostępu do sesji aplikacji.', 'App session is unavailable.')
+      };
+    }
+
+    // Czyścimy localStorage dla sesji renderera (origin file:// dla aplikacji desktop).
+    await senderSession.clearStorageData({
+      storages: ['localstorage']
+    });
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error && error.message
+          ? String(error.message)
+          : t('Nie udało się wyczyścić localStorage licencji.', 'Failed to clear license localStorage.')
+    };
+  }
+});
+
 ipcMain.handle('madcad:set-language', async (_event, payload) => {
   try {
     const requested = normalizeLanguage(payload && payload.language);

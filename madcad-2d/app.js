@@ -2552,8 +2552,15 @@
       });
     }
     if (licenseClearTokenBtn) {
-      licenseClearTokenBtn.addEventListener("click", () => {
+      licenseClearTokenBtn.addEventListener("click", async () => {
         clearPersistedLicenseRecord();
+        if (window.desktopApp && typeof window.desktopApp.clearLicenseStorage === "function") {
+          try {
+            await window.desktopApp.clearLicenseStorage();
+          } catch (_error) {}
+          // Po czyszczeniu sesji Electron ustawiamy to jeszcze raz po stronie renderera.
+          clearPersistedLicenseRecord();
+        }
         licenseSession.token = "";
         licenseSession.payload = null;
         if (licenseTokenInput) {
