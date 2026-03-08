@@ -251,6 +251,50 @@
         line-height: 1.55;
       }
 
+      .ad-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .ad-card {
+        border: 1px solid rgba(140, 175, 220, 0.38);
+        border-radius: 11px;
+        background: rgba(255, 255, 255, 0.03);
+        padding: 12px;
+      }
+
+      .ad-card strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 13px;
+        color: #d8e9ff;
+      }
+
+      .ad-slot {
+        min-height: 130px;
+        border: 1px dashed rgba(140, 175, 220, 0.45);
+        border-radius: 9px;
+        display: grid;
+        place-items: center;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent),
+          rgba(7, 16, 30, 0.45);
+      }
+
+      .ad-slot.is-live {
+        border-style: solid;
+        border-color: rgba(140, 175, 220, 0.28);
+        background: rgba(7, 16, 30, 0.2);
+      }
+
+      .ad-placeholder {
+        font-size: 12px;
+        color: var(--muted);
+        text-align: center;
+        padding: 8px;
+      }
+
       .features {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -552,6 +596,10 @@
         .token-grid {
           grid-template-columns: 1fr;
         }
+
+        .ad-grid {
+          grid-template-columns: 1fr;
+        }
       }
 
       @media (max-width: 760px) {
@@ -593,6 +641,7 @@
         <div class="nav">
           <a href="#funkcje">Funkcje</a>
           <a href="#jak-dziala">Jak działa</a>
+          <a href="#reklamy">Reklamy</a>
           <a href="#token-prywatny">Klucz licencyjny</a>
           <a href="#wsparcie">Wsparcie</a>
           <a href="#pobierz">Pobierz</a>
@@ -687,6 +736,30 @@
             <p>Dodaj wymiary (także kąty), potem zapisz DXF/SVG lub wydrukuj dokument PDF.</p>
           </article>
         </div>
+      </section>
+
+      <section class="section" id="reklamy">
+        <h2>Reklamy partnerskie</h2>
+        <p id="adsLead" class="lead">
+          Reklamy pomagają finansować rozwój MadCAD 2D. Po podpięciu AdSense w tym miejscu będą wyświetlane sloty reklamowe.
+        </p>
+        <div class="ad-grid">
+          <article class="ad-card">
+            <strong id="adsTopLabel">Slot reklamowy A</strong>
+            <div id="adSlotTop" class="ad-slot" data-ad-slot="1234567890" data-ad-format="auto">
+              <span id="adSlotTopPlaceholder" class="ad-placeholder">Miejsce na reklamę</span>
+            </div>
+          </article>
+          <article class="ad-card">
+            <strong id="adsBottomLabel">Slot reklamowy B</strong>
+            <div id="adSlotBottom" class="ad-slot" data-ad-slot="2345678901" data-ad-format="auto">
+              <span id="adSlotBottomPlaceholder" class="ad-placeholder">Miejsce na reklamę</span>
+            </div>
+          </article>
+        </div>
+        <p id="adsHint" class="token-status">
+          Aby uruchomić reklamy, wpisz swój identyfikator AdSense (`ca-pub-...`) w skrypcie strony.
+        </p>
       </section>
 
       <section class="section" id="token-prywatny">
@@ -938,6 +1011,7 @@
           setText(".brand span", "Desktop CAD 2D - konstrukcje stalowe", "Desktop CAD 2D - steel structures");
           setText(".nav a[href='#funkcje']", "Funkcje", "Features");
           setText(".nav a[href='#jak-dziala']", "Jak działa", "How it works");
+          setText(".nav a[href='#reklamy']", "Reklamy", "Ads");
           setText(".nav a[href='#token-prywatny']", "Klucz licencyjny", "License key");
           setText(".nav a[href='#wsparcie']", "Wsparcie", "Support");
           setText(".nav a[href='#pobierz']", "Pobierz", "Download");
@@ -961,6 +1035,13 @@
           setText("#funkcje h2", "Najważniejsze funkcje", "Key features");
           setText("#funkcje .lead", "Interfejs jest przygotowany pod codzienną pracę warsztatową: szybkie rysowanie, poprawki, wymiarowanie oraz generowanie podstawowych układów stalowych.", "The interface is optimized for daily workshop work: quick drawing, edits, dimensioning and generating basic steel layouts.");
           setText("#jak-dziala h2", "Jak wygląda praca w MadCAD 2D", "How work looks in MadCAD 2D");
+          setText("#reklamy h2", "Reklamy partnerskie", "Partner ads");
+          setText("#adsLead", "Reklamy pomagają finansować rozwój MadCAD 2D. Po podpięciu AdSense w tym miejscu będą wyświetlane sloty reklamowe.", "Ads help fund MadCAD 2D development. After connecting AdSense, ad slots will be shown here.");
+          setText("#adsTopLabel", "Slot reklamowy A", "Ad slot A");
+          setText("#adsBottomLabel", "Slot reklamowy B", "Ad slot B");
+          setText("#adSlotTopPlaceholder", "Miejsce na reklamę", "Ad placement");
+          setText("#adSlotBottomPlaceholder", "Miejsce na reklamę", "Ad placement");
+          setText("#adsHint", "Aby uruchomić reklamy, wpisz swój identyfikator AdSense (`ca-pub-...`) w skrypcie strony.", "To enable ads, enter your AdSense publisher ID (`ca-pub-...`) in the page script.");
           setText("#token-prywatny h2", "Generator darmowego klucza licencyjnego", "Free license key generator");
           setText("#token-prywatny .lead", "Ten formularz generuje darmowy klucz licencyjny do aplikacji MadCAD 2D. Token jest przypisany do jednego urządzenia, dlatego najpierw skopiuj ID urządzenia z okna aktywacji w aplikacji.", "This form generates a free license key for MadCAD 2D. The token is bound to one device, so first copy the device ID from the activation window in the app.");
 
@@ -1062,6 +1143,8 @@
         const clearTokensBtn = document.getElementById("clearTokensBtn");
         const openTokenImportBtn = document.getElementById("openTokenImportBtn");
         const tokenImportInput = document.getElementById("tokenImportInput");
+        const adSlotTop = document.getElementById("adSlotTop");
+        const adSlotBottom = document.getElementById("adSlotBottom");
         const langPlBtn = document.getElementById("langPlBtn");
         const langEnBtn = document.getElementById("langEnBtn");
 
@@ -1090,9 +1173,80 @@
         const DEFAULT_REGISTRY_API_URL = "https://madcad-license-registry.kkasprzak15.workers.dev/v1/license-registry";
         const DEFAULT_ISSUE_PRIVATE_URL = "https://madcad-license-registry.kkasprzak15.workers.dev/v1/license-tokens/issue-private";
         const PAYPAL_DONATION_URL = "https://paypal.me/refek1";
+        const ADSENSE_CLIENT_ID = "";
         let adminUnlocked = false;
         let registryApiSyncBusy = false;
         let registryApiSyncDebounceTimer = null;
+        let adsBootstrapped = false;
+        let adsScriptLoadPromise = null;
+
+        function isValidAdSenseClientId(value) {
+          return /^ca-pub-\d{16}$/.test(String(value || "").trim());
+        }
+
+        function isValidAdSenseSlotId(value) {
+          return /^\d{10}$/.test(String(value || "").trim());
+        }
+
+        function loadAdSenseScript(clientId) {
+          if (window.adsbygoogle) {
+            return Promise.resolve();
+          }
+          if (adsScriptLoadPromise) {
+            return adsScriptLoadPromise;
+          }
+          adsScriptLoadPromise = new Promise((resolve, reject) => {
+            const script = document.createElement("script");
+            script.async = true;
+            script.crossOrigin = "anonymous";
+            script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${encodeURIComponent(clientId)}`;
+            script.addEventListener("load", () => resolve());
+            script.addEventListener("error", () => reject(new Error("AdSense load failed")));
+            document.head.appendChild(script);
+          });
+          return adsScriptLoadPromise;
+        }
+
+        async function bootstrapAdsense() {
+          if (adsBootstrapped) {
+            return;
+          }
+          adsBootstrapped = true;
+          const slots = [adSlotTop, adSlotBottom].filter(Boolean);
+          if (slots.length === 0) {
+            return;
+          }
+          const clientId = String(ADSENSE_CLIENT_ID || "").trim();
+          if (!isValidAdSenseClientId(clientId)) {
+            return;
+          }
+          const allSlotsValid = slots.every((slot) => isValidAdSenseSlotId(slot.dataset.adSlot || ""));
+          if (!allSlotsValid) {
+            return;
+          }
+          try {
+            await loadAdSenseScript(clientId);
+            for (const slot of slots) {
+              const slotId = String(slot.dataset.adSlot || "").trim();
+              const adFormat = String(slot.dataset.adFormat || "auto").trim() || "auto";
+              slot.innerHTML = "";
+              const ins = document.createElement("ins");
+              ins.className = "adsbygoogle";
+              ins.style.display = "block";
+              ins.style.width = "100%";
+              ins.style.minHeight = "130px";
+              ins.setAttribute("data-ad-client", clientId);
+              ins.setAttribute("data-ad-slot", slotId);
+              ins.setAttribute("data-ad-format", adFormat);
+              ins.setAttribute("data-full-width-responsive", "true");
+              slot.appendChild(ins);
+              slot.classList.add("is-live");
+              (window.adsbygoogle = window.adsbygoogle || []).push({});
+            }
+          } catch (_error) {
+            // Keep placeholders when AdSense is unavailable.
+          }
+        }
 
         function setLastPrivateToken(token) {
           const value = String(token || "").trim();
@@ -2050,6 +2204,7 @@
         }
 
         applyRegistryApiSyncConfigToUi();
+        void bootstrapAdsense();
 
         const params = new URLSearchParams(window.location.search);
         const queryDeviceId = String(params.get("deviceId") || "").trim();
