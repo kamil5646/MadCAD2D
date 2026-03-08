@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.1.5 (2026-03-08)
+
+- Podbito wersję release po poprawkach instalatora aktualizacji na macOS.
+- Zachowano wzmocniony mechanizm auto-update z logowaniem, retry i bezpiecznym restartem aplikacji.
+
 ## 3.1.4 (2026-03-07)
 
 - Wzmocniono instalator aktualizacji na macOS.
