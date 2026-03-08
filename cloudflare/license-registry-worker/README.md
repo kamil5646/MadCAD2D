@@ -6,6 +6,10 @@ Cloudflare Worker, który udostępnia publiczny rejestr licencji dla aplikacji o
 
 - `GET /v1/license-registry` - publiczny odczyt rejestru (dla aplikacji)
 - `POST /v1/license-registry` - prywatna aktualizacja rejestru (Bearer token)
+- `POST /v1/license-tokens/issue-private` - wystawienie tokenu private (self-service)
+- `POST /v1/license-tokens/verify` - weryfikacja tokenu przez aplikację desktop
+- `POST /v1/paypal/create-order` - utworzenie zamówienia PayPal dla licencji commercial
+- `POST /v1/paypal/capture-order` - finalizacja płatności PayPal i wystawienie tokenu commercial
 - `GET /healthz` - health check
 
 ## Wymagania
@@ -36,7 +40,22 @@ npx wrangler kv namespace create LICENSE_REGISTRY_KV
 npx wrangler secret put ADMIN_TOKEN
 ```
 
-5. Deploy:
+5. (Opcjonalnie) skonfiguruj PayPal:
+
+```bash
+npx wrangler secret put PAYPAL_CLIENT_ID
+npx wrangler secret put PAYPAL_SECRET
+```
+
+W `wrangler.toml` możesz dodać opcjonalne zmienne:
+
+- `PAYPAL_API_BASE` - np. `https://api-m.sandbox.paypal.com` (sandbox) lub pominąć dla production
+- `PAYPAL_COMMERCIAL_AMOUNT` - domyślna cena, np. `99.00`
+- `PAYPAL_CURRENCY` - np. `USD`, `PLN`
+- `PAYPAL_COMMERCIAL_DURATION_DAYS` - np. `365` (0 = bez terminu)
+- `PAYPAL_RETURN_URL` i `PAYPAL_CANCEL_URL` - URL powrotu/anulowania (jeśli używasz redirect flow)
+
+6. Deploy:
 
 ```bash
 npm run deploy

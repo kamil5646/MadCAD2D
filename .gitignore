@@ -1,5 +1,7 @@
 node_modules/
 release/
+.wrangler/
+cloudflare/license-registry-worker/.wrangler/
 dist/
 .DS_Store
 *.log
