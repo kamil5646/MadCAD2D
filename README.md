@@ -1,6 +1,6 @@
 # MadCAD 2D Desktop
 
-![MadCAD 2D Banner](./docs/readme-banner.svg)
+![MadCAD 2D Banner](./docs/readme-banner.png)
 
 ![Release](https://img.shields.io/github/v/release/kamil5646/MadCAD2D?display_name=tag&label=release)
 ![Platform](https://img.shields.io/badge/platform-macOS%20ARM64%20%7C%20Windows%20x64-1c7ed6)
