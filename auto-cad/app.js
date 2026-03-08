@@ -141,9 +141,43 @@
   const APP_LANGUAGE =
     window.desktopApp && window.desktopApp.appLanguage === "en" ? "en" : "pl";
   const t = (pl, en) => (APP_LANGUAGE === "en" ? en : pl);
+  const IS_MAC_UI =
+    (window.desktopApp && window.desktopApp.platform === "darwin") ||
+    /(Mac|iPhone|iPad|iPod)/i.test(navigator.platform || "") ||
+    /Mac OS X/i.test(navigator.userAgent || "");
+
+  function formatShortcutTextForPlatform(value) {
+    const text = String(value || "");
+    if (!text || !IS_MAC_UI) {
+      return text;
+    }
+    return text
+      .replace(/CmdOrCtrl\+/g, "⌘")
+      .replace(/Ctrl\+/g, "⌘")
+      .replace(/Alt\+/g, "⌥")
+      .replace(/Shift\+/g, "⇧")
+      .replace(/\bBackspace\b/g, "⌫")
+      .replace(/\bDelete\b/g, "⌫")
+      .replace(/\bEnter\b/g, "↩");
+  }
+
+  function applyPlatformShortcutLabels(root = document) {
+    if (!IS_MAC_UI || !root || typeof root.querySelectorAll !== "function") {
+      return;
+    }
+    root.querySelectorAll("button, [title]").forEach((element) => {
+      if (typeof element.textContent === "string" && element.children.length === 0) {
+        element.textContent = formatShortcutTextForPlatform(element.textContent);
+      }
+      const title = element.getAttribute && element.getAttribute("title");
+      if (title) {
+        element.setAttribute("title", formatShortcutTextForPlatform(title));
+      }
+    });
+  }
 
   function localizeMessageText(value) {
-    const text = String(value || "");
+    const text = formatShortcutTextForPlatform(String(value || ""));
     if (APP_LANGUAGE !== "en" || !text) {
       return text;
     }
@@ -186,6 +220,7 @@
 
   function localizeStaticUi() {
     if (APP_LANGUAGE !== "en") {
+      applyPlatformShortcutLabels();
       return;
     }
     document.documentElement.lang = "en";
@@ -239,7 +274,7 @@
     for (const [selector, text] of entries) {
       const element = document.querySelector(selector);
       if (element) {
-        element.textContent = text;
+        element.textContent = formatShortcutTextForPlatform(text);
       }
     }
     const titleEntries = [
@@ -251,9 +286,10 @@
     for (const [selector, text] of titleEntries) {
       const element = document.querySelector(selector);
       if (element) {
-        element.setAttribute("title", text);
+        element.setAttribute("title", formatShortcutTextForPlatform(text));
       }
     }
+    applyPlatformShortcutLabels();
   }
 
   const licenseSession = {
@@ -909,7 +945,9 @@
     appRoot.style.setProperty("--palette-width", `${state.paletteWidth}px`);
 
     if (toggleRibbonBtn) {
-      toggleRibbonBtn.textContent = state.ribbonCollapsed ? "Rozwiń wstążkę (F4)" : "Zwiń wstążkę (F4)";
+      toggleRibbonBtn.textContent = formatShortcutTextForPlatform(
+        state.ribbonCollapsed ? "Rozwiń wstążkę (F4)" : "Zwiń wstążkę (F4)"
+      );
       toggleRibbonBtn.dataset.icon = state.ribbonCollapsed ? "\u25B6" : "\u25BC";
     }
 
@@ -9808,7 +9846,9 @@
     }
     if (installed) {
       exportDwgBtn.dataset.mode = "export-dwg";
-      exportDwgBtn.textContent = t("Eksport DWG (Alt+R)", "Export DWG (Alt+R)");
+      exportDwgBtn.textContent = formatShortcutTextForPlatform(
+        t("Eksport DWG (Alt+R)", "Export DWG (Alt+R)")
+      );
       return;
     }
     exportDwgBtn.dataset.mode = "install-oda";
@@ -9824,7 +9864,9 @@
     }
     if (installed) {
       importDwgBtn.dataset.mode = "import-dwg";
-      importDwgBtn.textContent = t("Wczytaj DWG (Alt+W)", "Import DWG (Alt+W)");
+      importDwgBtn.textContent = formatShortcutTextForPlatform(
+        t("Wczytaj DWG (Alt+W)", "Import DWG (Alt+W)")
+      );
       return;
     }
     importDwgBtn.dataset.mode = "install-oda";
