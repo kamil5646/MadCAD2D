@@ -619,10 +619,8 @@
               <span class="pill">Generator konstrukcji stalowych</span>
             </div>
             <div class="cta" id="pobierz">
-              <a class="btn" href="https://github.com/kamil5646/MadCAD2D/releases/download/5.1/MadCAD.2D-5.1-win-x64.exe">Pobierz PL Windows (.exe)</a>
-              <a class="btn" href="https://github.com/kamil5646/MadCAD2D/releases/download/5.1/MadCAD.2D-5.1-mac-arm64.zip">Pobierz PL macOS (.zip)</a>
-              <a class="btn" href="https://github.com/kamil5646/MadCAD2D/releases/download/5.1/MadCAD.2D-5.1-win-x64.exe">Download EN Windows (.exe)</a>
-              <a class="btn" href="https://github.com/kamil5646/MadCAD2D/releases/download/5.1/MadCAD.2D-5.1-mac-arm64.zip">Download EN macOS (.zip)</a>
+              <a class="btn" href="https://github.com/kamil5646/MadCAD2D/releases/download/5.1/MadCAD.2D-5.1-win-x64.exe">Pobierz Windows (.exe)</a>
+              <a class="btn" href="https://github.com/kamil5646/MadCAD2D/releases/download/5.1/MadCAD.2D-5.1-mac-arm64.zip">Pobierz macOS (.zip)</a>
               <a class="btn secondary" href="https://github.com/kamil5646/MadCAD2D/releases/tag/5.1">Release 5.1</a>
               <a class="btn secondary" href="https://github.com/kamil5646/MadCAD2D">Kod źródłowy</a>
             </div>
@@ -812,7 +810,7 @@
           <article class="box">
             <h3>Co zawiera wersja 5.1</h3>
             <ul>
-              <li>aktualne instalatory desktop PL/EN dla Windows i macOS (release 5.1),</li>
+              <li>aktualne instalatory desktop dla Windows i macOS (release 5.1),</li>
               <li>zaktualizowany panel licencji i czytelny skrót zasad w aplikacji,</li>
               <li>uporządkowana struktura repozytorium (kod aplikacji w katalogu madcad-2d),</li>
               <li>odświeżona dokumentacja i linki pobierania zgodne z wersją 5.1.</li>
@@ -822,16 +820,10 @@
             <h3>Linki bezpośrednie</h3>
             <ul>
               <li>
-                PL Windows: <a href="https://github.com/kamil5646/MadCAD2D/releases/download/5.1/MadCAD.2D-5.1-win-x64.exe">MadCAD.2D-5.1-win-x64.exe</a>
+                Windows: <a href="https://github.com/kamil5646/MadCAD2D/releases/download/5.1/MadCAD.2D-5.1-win-x64.exe">MadCAD.2D-5.1-win-x64.exe</a>
               </li>
               <li>
-                PL macOS: <a href="https://github.com/kamil5646/MadCAD2D/releases/download/5.1/MadCAD.2D-5.1-mac-arm64.zip">MadCAD.2D-5.1-mac-arm64.zip</a>
-              </li>
-              <li>
-                EN Windows: <a href="https://github.com/kamil5646/MadCAD2D/releases/download/5.1/MadCAD.2D-5.1-win-x64.exe">MadCAD.2D-5.1-win-x64.exe</a>
-              </li>
-              <li>
-                EN macOS: <a href="https://github.com/kamil5646/MadCAD2D/releases/download/5.1/MadCAD.2D-5.1-mac-arm64.zip">MadCAD.2D-5.1-mac-arm64.zip</a>
+                macOS: <a href="https://github.com/kamil5646/MadCAD2D/releases/download/5.1/MadCAD.2D-5.1-mac-arm64.zip">MadCAD.2D-5.1-mac-arm64.zip</a>
               </li>
               <li>
                 Repo: <a href="https://github.com/kamil5646/MadCAD2D">github.com/kamil5646/MadCAD2D</a>
@@ -913,11 +905,9 @@
           if (pills[3]) pills[3].textContent = t("Generator konstrukcji stalowych", "Steel structure generator");
 
           const ctaButtons = Array.from(document.querySelectorAll("#pobierz .btn"));
-          if (ctaButtons[0]) ctaButtons[0].textContent = t("Pobierz PL Windows (.exe)", "Download PL Windows (.exe)");
-          if (ctaButtons[1]) ctaButtons[1].textContent = t("Pobierz PL macOS (.zip)", "Download PL macOS (.zip)");
-          if (ctaButtons[2]) ctaButtons[2].textContent = t("Download EN Windows (.exe)", "Download EN Windows (.exe)");
-          if (ctaButtons[3]) ctaButtons[3].textContent = t("Download EN macOS (.zip)", "Download EN macOS (.zip)");
-          if (ctaButtons[5]) ctaButtons[5].textContent = t("Kod źródłowy", "Source code");
+          if (ctaButtons[0]) ctaButtons[0].textContent = t("Pobierz Windows (.exe)", "Download Windows (.exe)");
+          if (ctaButtons[1]) ctaButtons[1].textContent = t("Pobierz macOS (.zip)", "Download macOS (.zip)");
+          if (ctaButtons[3]) ctaButtons[3].textContent = t("Kod źródłowy", "Source code");
 
           const statusRows = Array.from(document.querySelectorAll(".status span:last-child"));
           if (statusRows[0]) statusRows[0].textContent = t("Status projektu: aktywnie rozwijany", "Project status: actively developed");
