@@ -593,7 +593,7 @@
         <div class="nav">
           <a href="#funkcje">Funkcje</a>
           <a href="#jak-dziala">Jak działa</a>
-          <a href="#token-prywatny">Token prywatny</a>
+          <a href="#token-prywatny">Klucz licencyjny</a>
           <a href="#wsparcie">Wsparcie</a>
           <a href="#pobierz">Pobierz</a>
           <a href="#faq">FAQ</a>
@@ -690,9 +690,9 @@
       </section>
 
       <section class="section" id="token-prywatny">
-        <h2>Generator darmowego tokenu prywatnego</h2>
+        <h2>Generator darmowego klucza licencyjnego</h2>
         <p class="lead">
-          Ten formularz generuje token licencji prywatnej do aplikacji MadCAD 2D.
+          Ten formularz generuje darmowy klucz licencyjny do aplikacji MadCAD 2D.
           Token jest przypisany do jednego urządzenia, dlatego najpierw skopiuj <strong>ID urządzenia</strong> z okna aktywacji w aplikacji.
         </p>
 
@@ -707,7 +707,7 @@
               <input id="tokenEmail" type="email" placeholder="jan@przyklad.pl" />
             </div>
             <div class="field">
-              <label for="tokenPurpose">Cel prywatnego użycia</label>
+              <label for="tokenPurpose">Cel użycia</label>
               <input id="tokenPurpose" type="text" placeholder="Projekt domowy / nauka" />
             </div>
             <div class="field">
@@ -717,7 +717,7 @@
           </div>
 
           <div class="token-actions">
-            <button id="generatePrivateTokenBtn" class="btn" type="button">Generuj token prywatny</button>
+            <button id="generatePrivateTokenBtn" class="btn" type="button">Generuj klucz licencyjny</button>
             <button id="buyCommercialTokenBtn" class="btn secondary" type="button">Wsparcie w rozwoju projektu!</button>
             <button id="copyPrivateTokenBtn" class="btn secondary" type="button">Kopiuj token</button>
           </div>
@@ -763,9 +763,9 @@
       </section>
 
       <section class="section token-admin" id="token-admin">
-        <h2>Prywatny panel zarządzania tokenami</h2>
+        <h2>Panel zarządzania tokenami</h2>
         <p class="lead">
-          Panel administratora działa tylko po wejściu przez link prywatny i odblokowaniu PIN-em.
+          Panel administratora działa tylko po wejściu przez link administratora i odblokowaniu PIN-em.
           Dane są zapisywane lokalnie w przeglądarce (nie są publicznie publikowane na stronie).
         </p>
 
@@ -938,7 +938,7 @@
           setText(".brand span", "Desktop CAD 2D - konstrukcje stalowe", "Desktop CAD 2D - steel structures");
           setText(".nav a[href='#funkcje']", "Funkcje", "Features");
           setText(".nav a[href='#jak-dziala']", "Jak działa", "How it works");
-          setText(".nav a[href='#token-prywatny']", "Token prywatny", "Private token");
+          setText(".nav a[href='#token-prywatny']", "Klucz licencyjny", "License key");
           setText(".nav a[href='#wsparcie']", "Wsparcie", "Support");
           setText(".nav a[href='#pobierz']", "Pobierz", "Download");
           setText(".subtitle", "Aplikacja CAD 2D na Windows i macOS do szybkiego projektowania bram, ogrodzeń i balkonów. Lekki interfejs, generator stali i wymiarowanie w jednym miejscu.", "A 2D CAD app for Windows and macOS to quickly design gates, fences, and balconies. Lightweight UI, steel generator and dimensioning in one place.");
@@ -961,14 +961,14 @@
           setText("#funkcje h2", "Najważniejsze funkcje", "Key features");
           setText("#funkcje .lead", "Interfejs jest przygotowany pod codzienną pracę warsztatową: szybkie rysowanie, poprawki, wymiarowanie oraz generowanie podstawowych układów stalowych.", "The interface is optimized for daily workshop work: quick drawing, edits, dimensioning and generating basic steel layouts.");
           setText("#jak-dziala h2", "Jak wygląda praca w MadCAD 2D", "How work looks in MadCAD 2D");
-          setText("#token-prywatny h2", "Generator darmowego tokenu prywatnego", "Free private token generator");
-          setText("#token-prywatny .lead", "Ten formularz generuje token licencji prywatnej do aplikacji MadCAD 2D. Token jest przypisany do jednego urządzenia, dlatego najpierw skopiuj ID urządzenia z okna aktywacji w aplikacji.", "This form generates a private license token for MadCAD 2D. The token is bound to one device, so first copy the device ID from the activation window in the app.");
+          setText("#token-prywatny h2", "Generator darmowego klucza licencyjnego", "Free license key generator");
+          setText("#token-prywatny .lead", "Ten formularz generuje darmowy klucz licencyjny do aplikacji MadCAD 2D. Token jest przypisany do jednego urządzenia, dlatego najpierw skopiuj ID urządzenia z okna aktywacji w aplikacji.", "This form generates a free license key for MadCAD 2D. The token is bound to one device, so first copy the device ID from the activation window in the app.");
 
           setText("label[for='tokenOwnerName']", "Imię i nazwisko", "Full name");
           setText("label[for='tokenEmail']", "E-mail", "Email");
-          setText("label[for='tokenPurpose']", "Cel prywatnego użycia", "Private usage purpose");
+          setText("label[for='tokenPurpose']", "Cel użycia", "Usage purpose");
           setText("label[for='tokenDeviceId']", "ID urządzenia (z aplikacji)", "Device ID (from app)");
-          setText("#generatePrivateTokenBtn", "Generuj token prywatny", "Generate private token");
+          setText("#generatePrivateTokenBtn", "Generuj klucz licencyjny", "Generate license key");
           setText("#buyCommercialTokenBtn", "Wsparcie w rozwoju projektu!", "Support project development!");
           setText("#copyPrivateTokenBtn", "Kopiuj token", "Copy token");
           setText("#paypalFlowHelpLabel", "Wsparcie w rozwoju projektu:", "Support project development:");
@@ -979,8 +979,8 @@
           setText("#supportNowDescLabel", "Najprościej przez PayPal:", "The easiest way is PayPal:");
           setText("#supportNowBtn", "Wsparcie projektu", "Support project");
           setText("label[for='generatedPrivateToken']", "Wygenerowany token", "Generated token");
-          setText("#token-admin h2", "Prywatny panel zarządzania tokenami", "Private token management panel");
-          setText("#token-admin .lead", "Panel administratora działa tylko po wejściu przez link prywatny i odblokowaniu PIN-em. Dane są zapisywane lokalnie w przeglądarce. Jeśli ustawisz API backendu, zmiany będą synchronizowane automatycznie bez dostępu strony do repozytorium GitHub.", "The admin panel works only via a private link and PIN unlock. Data is stored locally in the browser. If you configure a backend API, changes are synchronized automatically without giving the website access to your GitHub repository.");
+          setText("#token-admin h2", "Panel zarządzania tokenami", "Token management panel");
+          setText("#token-admin .lead", "Panel administratora działa tylko po wejściu przez link administratora i odblokowaniu PIN-em. Dane są zapisywane lokalnie w przeglądarce. Jeśli ustawisz API backendu, zmiany będą synchronizowane automatycznie bez dostępu strony do repozytorium GitHub.", "The admin panel works only via an admin link and PIN unlock. Data is stored locally in the browser. If you configure a backend API, changes are synchronized automatically without giving the website access to your GitHub repository.");
           setText("#saveRegistryApiConfigBtn", "Włącz auto-sync API", "Enable API auto sync");
           setText("#syncRegistryApiNowBtn", "Synchronizuj API teraz", "Sync API now");
           setText("#disableRegistryApiSyncBtn", "Wyłącz auto-sync API", "Disable API auto sync");
@@ -1660,7 +1660,7 @@
             return;
           }
           if (!purpose) {
-            setStatus("Podaj cel prywatnego użycia.", "err");
+            setStatus("Podaj cel użycia.", "err");
             return;
           }
           if (!deviceId || deviceId.length < 8) {
@@ -2068,7 +2068,7 @@
           tokenAdminSection.classList.add("visible");
           setAdminStatus(
             getStoredPinHash()
-              ? "Panel prywatny gotowy. Wpisz PIN, aby zobaczyć tokeny."
+              ? "Panel administratora gotowy. Wpisz PIN, aby zobaczyć tokeny."
               : "Ustaw najpierw PIN administratora, aby zabezpieczyć dostęp.",
             "ok"
           );
