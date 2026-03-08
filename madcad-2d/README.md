@@ -85,8 +85,8 @@ npm run dist:release:trusted
 ```
 
 ## Uwaga O Numerze Wersji
-- Techniczna wersja builda jest semver (`5.1.0`) i wynika z `package.json`.
-- W komunikacji/release używana jest skrócona forma (`5.1`).
+- Techniczna wersja builda jest semver (`5.2.0`) i wynika z `package.json`.
+- W komunikacji/release używana jest skrócona forma (`5.2`).
 
 ## ODA File Converter (DWG)
 Jeśli import/eksport DWG nie działa, skonfiguruj ODA ręcznie:
