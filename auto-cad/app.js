@@ -40,7 +40,6 @@
   const snapToggle = document.getElementById("snapToggle");
   const showGridToggle = document.getElementById("showGridToggle");
   const orthoToggle = document.getElementById("orthoToggle");
-  const languageSelect = document.getElementById("languageSelect");
   const gridSizeInput = document.getElementById("gridSizeInput");
   const strokeColorInput = document.getElementById("strokeColorInput");
   const lineWidthInput = document.getElementById("lineWidthInput");
@@ -137,6 +136,7 @@
 
   const LICENSE_STORAGE_KEY = "madcad-license-v1";
   const UI_LANGUAGE_STORAGE_KEY = "madcad-ui-language";
+  const UI_LANGUAGE_ONBOARDING_KEY = "madcad-ui-language-onboarded-v1";
   const LICENSE_SIGNATURE_SALT = "MadCAD2D-Private-NoMods-SingleDevice-2026";
   const LICENSE_TOKEN_PREFIX = "M2D1";
   const LICENSE_PRIVATE_FORM_URL = "https://kamil5646.github.io/MadCAD2D/#token-prywatny";
@@ -159,6 +159,20 @@
     }
     try {
       window.localStorage.setItem(UI_LANGUAGE_STORAGE_KEY, normalized);
+    } catch (_error) {}
+  }
+
+  function hasCompletedLanguageOnboarding() {
+    try {
+      return window.localStorage.getItem(UI_LANGUAGE_ONBOARDING_KEY) === "1";
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  function markLanguageOnboardingCompleted() {
+    try {
+      window.localStorage.setItem(UI_LANGUAGE_ONBOARDING_KEY, "1");
     } catch (_error) {}
   }
 
@@ -513,6 +527,38 @@
     }
 
     window.location.reload();
+  }
+
+  async function ensureLanguageOnFirstLaunch() {
+    const storedLanguage = getStoredUiLanguage();
+    if (storedLanguage) {
+      markLanguageOnboardingCompleted();
+      return true;
+    }
+    if (hasCompletedLanguageOnboarding()) {
+      return true;
+    }
+
+    const useEnglish = window.confirm(
+      "Select app language:\nOK = English\nCancel = Polski"
+    );
+    const selectedLanguage = useEnglish ? "en" : "pl";
+    markLanguageOnboardingCompleted();
+    saveUiLanguage(selectedLanguage);
+
+    if (selectedLanguage !== APP_LANGUAGE) {
+      await changeAppLanguage(selectedLanguage);
+      return false;
+    }
+
+    if (window.desktopApp && typeof window.desktopApp.setAppLanguage === "function") {
+      try {
+        await window.desktopApp.setAppLanguage({ language: selectedLanguage });
+      } catch (error) {
+        console.warn("Failed to persist language choice in desktop shell:", error);
+      }
+    }
+    return true;
   }
 
   function localizeStaticUi() {
@@ -10464,10 +10510,6 @@
       snapToggle: "Przyciąga kursor do siatki i punktów charakterystycznych.",
       showGridToggle: "Włącza lub wyłącza siatkę roboczą.",
       orthoToggle: "Ogranicza rysowanie do kierunku poziomego i pionowego.",
-      languageSelect: t(
-        "Przełącza język interfejsu aplikacji.",
-        "Switches the application interface language."
-      ),
       activeLayerSelect: "Wybiera aktywną warstwę dla nowych obiektów.",
       gridSizeInput: "Ustawia rozmiar oczka siatki roboczej.",
       rectConfigWidthInput: "Ustawia szerokość prostokąta oraz szerokość zaznaczonego prostokąta.",
@@ -10619,9 +10661,6 @@
     steelInnerFrameToggle.checked = state.steelInnerFrame;
     steelDiagonalToggle.checked = state.steelDiagonal;
     syncSteelTemplateMeta();
-    if (languageSelect) {
-      languageSelect.value = APP_LANGUAGE;
-    }
     activeLayerSelect.value = state.activeLayerId;
     syncLayoutTabs();
     syncStartSummary();
@@ -11271,12 +11310,6 @@
       echoCommand(`Poziom/Pion: ${state.ortho ? "WŁ." : "WYŁ."}`);
     });
 
-    if (languageSelect) {
-      languageSelect.addEventListener("change", () => {
-        void changeAppLanguage(languageSelect.value);
-      });
-    }
-
     gridSizeInput.addEventListener("change", () => {
       state.gridSize = Math.max(1, Number(gridSizeInput.value) || 10);
       gridSizeInput.value = String(state.gridSize);
@@ -11913,6 +11946,10 @@
   }
 
   async function bootstrap() {
+    const canContinue = await ensureLanguageOnFirstLaunch();
+    if (!canContinue) {
+      return;
+    }
     localizeStaticUi();
     applyTheme("dark");
     const licensedAtBoot = initializeLicenseManager();
