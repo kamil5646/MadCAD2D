@@ -143,6 +143,7 @@
   const LICENSE_PRIVATE_FORM_URL = "https://kamil5646.github.io/MadCAD2D/#token-prywatny";
   const LICENSE_PUBLIC_REGISTRY_URL = "https://kamil5646.github.io/MadCAD2D/license-registry.json";
   const LICENSE_REMOTE_CHECK_TTL_MS = 10000;
+  const LICENSE_REMOTE_RECHECK_INTERVAL_MS = 30000;
   function normalizeAppLanguage(value) {
     return value === "en" || value === "pl" ? value : null;
   }
@@ -747,6 +748,7 @@
     lastResultOk: null,
     inFlight: null
   };
+  let licenseRemoteRecheckTimer = null;
 
   const appUpdateState = {
     busy: false,
@@ -2419,6 +2421,30 @@
     });
   }
 
+  function stopRemoteLicenseRecheck() {
+    if (licenseRemoteRecheckTimer !== null) {
+      clearInterval(licenseRemoteRecheckTimer);
+      licenseRemoteRecheckTimer = null;
+    }
+  }
+
+  function startRemoteLicenseRecheck() {
+    if (licenseRemoteRecheckTimer !== null || !licenseSession.active || !licenseSession.token) {
+      return;
+    }
+    licenseRemoteRecheckTimer = setInterval(() => {
+      if (!licenseSession.active || !licenseSession.token) {
+        stopRemoteLicenseRecheck();
+        return;
+      }
+      void validateLicenseWithPublicRegistry({
+        force: true,
+        audit: false,
+        context: "Cykliczna walidacja online"
+      });
+    }, LICENSE_REMOTE_RECHECK_INTERVAL_MS);
+  }
+
   async function validateLicenseWithPublicRegistry(options) {
     const opts = options && typeof options === "object" ? options : {};
     if (!licenseSession.active || !licenseSession.token) {
@@ -2450,11 +2476,12 @@
       try {
         registry = await fetchPublicLicenseRegistry();
       } catch (error) {
-        if (navigator.onLine === false) {
-          return true;
-        }
+        const reason = String(error && error.message ? error.message : "nieznany błąd");
+        licenseRemoteState.lastCheckedAt = Date.now();
+        licenseRemoteState.lastTokenHash = tokenHash;
+        licenseRemoteState.lastResultOk = false;
         invalidateCurrentLicense(
-          "Nie udało się zweryfikować licencji online. Wymagana ponowna aktywacja.",
+          `Nie udało się zweryfikować licencji online (${reason}). Licencja została zablokowana.`,
           contextLabel
         );
         return false;
@@ -2485,6 +2512,12 @@
       if (!isValid) {
         invalidateCurrentLicense(invalidReason, contextLabel);
         return false;
+      }
+      if (opts.audit === true) {
+        appendPrivateLicenseAudit(contextLabel, "Token potwierdzony w publicznym rejestrze licencji.", {
+          deviceId: getLicenseDeviceId(),
+          mode: registry.mode
+        });
       }
       return true;
     })();
@@ -2617,6 +2650,11 @@
       licenseCloseBtn.hidden = isLocked;
     }
     setLicenseOverlayVisible(isLocked);
+    if (isLocked) {
+      stopRemoteLicenseRecheck();
+    } else {
+      startRemoteLicenseRecheck();
+    }
     updateLicenseSummaryChip();
   }
 
@@ -2818,6 +2856,7 @@
         if (result.ok) {
           const remoteOk = await validateLicenseWithPublicRegistry({
             force: true,
+            audit: true,
             context: "Walidacja online po aktywacji"
           });
           if (remoteOk) {
@@ -12325,6 +12364,7 @@
     if (licensedAtBoot) {
       licensedAtBoot = await validateLicenseWithPublicRegistry({
         force: true,
+        audit: true,
         context: "Walidacja online przy uruchomieniu"
       });
     }
