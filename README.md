@@ -9,7 +9,7 @@
 MadCAD 2D to desktopowa aplikacja CAD 2D do szybkiego projektowania elementów technicznych i konstrukcji stalowych.
 
 ## Szybkie Linki
-- Release `5.1`: https://github.com/kamil5646/MadCAD2D/releases/tag/5.1
+- Najnowszy release: https://github.com/kamil5646/MadCAD2D/releases/latest
 - GitHub Pages: https://kamil5646.github.io/MadCAD2D/
 - Dokumentacja aplikacji: [`auto-cad/README.md`](./auto-cad/README.md)
 
@@ -26,8 +26,8 @@ MadCAD 2D łączy klasyczne narzędzia CAD 2D z gotowym workflow pod bramy, ogro
 - Aktualizacje aplikacji z poziomu interfejsu.
 
 ### Pobieranie
-- macOS (arm64): https://github.com/kamil5646/MadCAD2D/releases/download/5.1/MadCAD.2D-5.1-mac-arm64.zip
-- Windows (x64): https://github.com/kamil5646/MadCAD2D/releases/download/5.1/MadCAD.2D-5.1-win-x64.exe
+- Najnowsze wydanie (Assets): https://github.com/kamil5646/MadCAD2D/releases/latest
+- Buildy: macOS (arm64), Windows (x64)
 
 ### Szybki Start (dev)
 ```bash
@@ -62,8 +62,8 @@ MadCAD 2D is a desktop 2D CAD app focused on technical drawing and steel-structu
 - Built-in update flow from the app UI.
 
 ### Download
-- macOS (arm64): https://github.com/kamil5646/MadCAD2D/releases/download/5.1/MadCAD.2D-5.1-mac-arm64.zip
-- Windows (x64): https://github.com/kamil5646/MadCAD2D/releases/download/5.1/MadCAD.2D-5.1-win-x64.exe
+- Latest release (Assets): https://github.com/kamil5646/MadCAD2D/releases/latest
+- Builds: macOS (arm64), Windows (x64)
 
 ### Quick Start (dev)
 ```bash
