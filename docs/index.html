@@ -1006,6 +1006,36 @@
         const TOKEN_ADMIN_PIN_HASH_KEY = "madcad-token-admin-pin-hash-v1";
         let adminUnlocked = false;
 
+        function setLastPrivateToken(token) {
+          const value = String(token || "").trim();
+          if (!value) {
+            return;
+          }
+          try {
+            localStorage.setItem(TOKEN_LAST_PRIVATE_KEY, value);
+            localStorage.removeItem(TOKEN_LEGACY_LAST_KEY);
+          } catch {}
+        }
+
+        function clearLastPrivateToken() {
+          try {
+            localStorage.removeItem(TOKEN_LAST_PRIVATE_KEY);
+            localStorage.removeItem(TOKEN_LEGACY_LAST_KEY);
+          } catch {}
+        }
+
+        function getLastPrivateToken() {
+          try {
+            const current = String(localStorage.getItem(TOKEN_LAST_PRIVATE_KEY) || "").trim();
+            if (current) {
+              return current;
+            }
+            return String(localStorage.getItem(TOKEN_LEGACY_LAST_KEY) || "").trim();
+          } catch {
+            return "";
+          }
+        }
+
         function fnv1aHash(input, seed) {
           const text = String(input || "");
           let hash = Number.isFinite(seed) ? seed >>> 0 : 0x811c9dc5;
@@ -1202,18 +1232,13 @@
         }
 
         function migrateLegacyTokens() {
-          let changed = false;
-          const candidates = [
-            localStorage.getItem(TOKEN_LAST_PRIVATE_KEY),
-            localStorage.getItem(TOKEN_LEGACY_LAST_KEY),
-            output ? output.value : ""
-          ];
-          for (const candidate of candidates) {
-            if (ensureTokenInRegistry(candidate)) {
-              changed = true;
-            }
+          const candidate = getLastPrivateToken();
+          if (!candidate) {
+            clearLastPrivateToken();
+            return false;
           }
-          return changed;
+          setLastPrivateToken(candidate);
+          return ensureTokenInRegistry(candidate);
         }
 
         function upsertRegistryEntry(nextEntry) {
@@ -1308,8 +1333,6 @@
         function wipeAllTokenData() {
           const keys = [
             TOKEN_REGISTRY_KEY,
-            TOKEN_LAST_PRIVATE_KEY,
-            TOKEN_LEGACY_LAST_KEY,
             TOKEN_ADMIN_PIN_HASH_KEY
           ];
           keys.forEach((key) => {
@@ -1317,6 +1340,7 @@
               localStorage.removeItem(key);
             } catch {}
           });
+          clearLastPrivateToken();
           if (output) {
             output.value = "";
           }
@@ -1373,10 +1397,7 @@
           if (output) {
             output.value = token;
           }
-          try {
-            localStorage.setItem(TOKEN_LAST_PRIVATE_KEY, token);
-            localStorage.setItem(TOKEN_LEGACY_LAST_KEY, token);
-          } catch {}
+          setLastPrivateToken(token);
           upsertRegistryEntry(buildRegistryEntry(payload, token));
           if (adminUnlocked) {
             renderTokenAdminTable();
@@ -1421,10 +1442,7 @@
               setAdminStatus("Nie udało się dodać tokenu. Sprawdź format i podpis.", "err");
               return;
             }
-            try {
-              localStorage.setItem(TOKEN_LAST_PRIVATE_KEY, raw);
-              localStorage.setItem(TOKEN_LEGACY_LAST_KEY, raw);
-            } catch {}
+            setLastPrivateToken(raw);
             if (manualTokenInput) {
               manualTokenInput.value = "";
             }
@@ -1484,8 +1502,13 @@
               return;
             }
             if (action === "delete") {
+              const deletedToken = String(entry && entry.token ? entry.token : "");
               entries.splice(index, 1);
               writeTokenRegistry(entries);
+              const currentLastToken = getLastPrivateToken();
+              if (deletedToken && currentLastToken && deletedToken === currentLastToken) {
+                clearLastPrivateToken();
+              }
               setAdminStatus("Wpis tokenu został usunięty.", "ok");
               renderTokenAdminTable();
             }
@@ -1597,6 +1620,10 @@
               return;
             }
             writeTokenRegistry([]);
+            clearLastPrivateToken();
+            if (output) {
+              output.value = "";
+            }
             renderTokenAdminTable();
             setAdminStatus("Wyczyszczono cały rejestr tokenów.", "ok");
           });
