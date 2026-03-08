@@ -2474,7 +2474,10 @@
     }
   }
 
-  function validateStoredLicenseAtStartup(storedRecord) {
+  function validateStoredLicenseAtStartup(storedRecord, options) {
+    const opts = options && typeof options === "object" ? options : {};
+    const auditEnabled = opts.audit !== false;
+    const contextLabel = String(opts.context || "Walidacja przy uruchomieniu");
     const record = storedRecord && typeof storedRecord === "object" ? storedRecord : null;
     const token = String(record && record.token ? record.token : "").trim();
     if (!token) {
@@ -2494,19 +2497,23 @@
       }
       setLicenseLocked(true);
       setLicenseStatus("Licencja została wcześniej usunięta. Wymagana ponowna aktywacja.", "error");
-      appendPrivateLicenseAudit("Walidacja przy uruchomieniu", "Odrzucono token zapisany przed czyszczeniem.", {
-        deviceId: getLicenseDeviceId()
-      });
+      if (auditEnabled) {
+        appendPrivateLicenseAudit(contextLabel, "Odrzucono token zapisany przed czyszczeniem.", {
+          deviceId: getLicenseDeviceId()
+        });
+      }
       return false;
     }
 
     const result = activateLicenseToken(token, { persist: false, silent: true });
     if (result.ok) {
       updateLicenseSummaryChip();
-      appendPrivateLicenseAudit("Walidacja przy uruchomieniu", "Token poprawny.", {
-        deviceId: getLicenseDeviceId(),
-        scope: result.scope
-      });
+      if (auditEnabled) {
+        appendPrivateLicenseAudit(contextLabel, "Token poprawny.", {
+          deviceId: getLicenseDeviceId(),
+          scope: result.scope
+        });
+      }
       return true;
     }
 
@@ -2518,9 +2525,11 @@
     }
     setLicenseLocked(true);
     setLicenseStatus(`Token nieważny: ${result.error}. Wymagana ponowna aktywacja.`, "error");
-    appendPrivateLicenseAudit("Walidacja przy uruchomieniu", `Token odrzucony: ${result.error}`, {
-      deviceId: getLicenseDeviceId()
-    });
+    if (auditEnabled) {
+      appendPrivateLicenseAudit(contextLabel, `Token odrzucony: ${result.error}`, {
+        deviceId: getLicenseDeviceId()
+      });
+    }
     return false;
   }
 
@@ -12084,13 +12093,28 @@
       setFileMenuOpen(false);
     });
     window.addEventListener("focus", () => {
-      if (licenseSession.active) {
+      const storedRecord = readPersistedLicenseRecord();
+      const isStillValid = validateStoredLicenseAtStartup(storedRecord, {
+        audit: false,
+        context: "Walidacja przy wejściu do aplikacji"
+      });
+      if (isStillValid && licenseSession.active) {
         enforceLicenseStorageIntegrity({ silent: true });
       }
     });
     window.addEventListener("storage", (event) => {
-      if (event.key === LICENSE_STORAGE_KEY && licenseSession.active) {
-        enforceLicenseStorageIntegrity();
+      if (
+        event.key === LICENSE_STORAGE_KEY ||
+        event.key === LICENSE_CLEARED_MARK_KEY
+      ) {
+        const storedRecord = readPersistedLicenseRecord();
+        const isStillValid = validateStoredLicenseAtStartup(storedRecord, {
+          audit: false,
+          context: "Walidacja po zmianie storage"
+        });
+        if (isStillValid && licenseSession.active) {
+          enforceLicenseStorageIntegrity();
+        }
       }
     });
     window.addEventListener("online", () => {
