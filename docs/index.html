@@ -778,6 +778,7 @@
             <input id="tokenSearchInput" type="text" placeholder="Szukaj: właściciel, e-mail, ID urządzenia..." />
             <input id="manualTokenInput" type="text" placeholder="Wklej istniejący token M2D1... aby dodać do rejestru" />
             <button id="addManualTokenBtn" class="btn secondary" type="button">Dodaj token ręcznie</button>
+            <button id="exportPublicRegistryBtn" class="btn secondary" type="button">Eksport license-registry.json</button>
             <button id="exportTokensJsonBtn" class="btn secondary" type="button">Eksport JSON</button>
             <button id="exportTokensCsvBtn" class="btn secondary" type="button">Eksport CSV</button>
             <button id="clearTokensBtn" class="btn secondary" type="button">Wyczyść wszystko</button>
@@ -928,6 +929,7 @@
           setText("label[for='generatedPrivateToken']", "Wygenerowany token", "Generated token");
           setText("#token-admin h2", "Prywatny panel zarządzania tokenami", "Private token management panel");
           setText("#token-admin .lead", "Panel administratora działa tylko po wejściu przez link prywatny i odblokowaniu PIN-em. Dane są zapisywane lokalnie w przeglądarce (nie są publicznie publikowane na stronie).", "The admin panel works only via a private link and PIN unlock. Data is stored locally in the browser (not publicly published on the website).");
+          setText("#exportPublicRegistryBtn", "Eksport license-registry.json", "Export license-registry.json");
           setText("#release h2", "Wydanie 5.1", "Release 5.1");
           setText("#release .box h3", "Co zawiera wersja 5.1", "What version 5.1 includes");
           setText("#faq h2", "FAQ", "FAQ");
@@ -978,6 +980,7 @@
         const tokenCountRevoked = document.getElementById("tokenCountRevoked");
         const exportTokensJsonBtn = document.getElementById("exportTokensJsonBtn");
         const exportTokensCsvBtn = document.getElementById("exportTokensCsvBtn");
+        const exportPublicRegistryBtn = document.getElementById("exportPublicRegistryBtn");
         const clearTokensBtn = document.getElementById("clearTokensBtn");
         const openTokenImportBtn = document.getElementById("openTokenImportBtn");
         const tokenImportInput = document.getElementById("tokenImportInput");
@@ -1064,6 +1067,55 @@
           const b = fnv1aHash(`${LICENSE_SIGNATURE_SALT}|${source}|B`, 0x9e3779b9);
           const c = fnv1aHash(`${source}|${LICENSE_SIGNATURE_SALT}|C`, 0x85ebca6b);
           return `${a}${b}${c}`.toUpperCase();
+        }
+
+        async function sha256Hex(text) {
+          const value = String(text || "");
+          if (!value) {
+            return "";
+          }
+          try {
+            if (window.crypto && window.crypto.subtle && typeof TextEncoder !== "undefined") {
+              const data = new TextEncoder().encode(value);
+              const digest = await window.crypto.subtle.digest("SHA-256", data);
+              return Array.from(new Uint8Array(digest))
+                .map((byte) => byte.toString(16).padStart(2, "0"))
+                .join("");
+            }
+          } catch {}
+          return `${fnv1aHash(value)}${fnv1aHash(value, 0x9e3779b9)}${fnv1aHash(value, 0x85ebca6b)}`;
+        }
+
+        async function buildPublicRegistryFromEntries(entries) {
+          const safeEntries = Array.isArray(entries) ? entries : [];
+          const tokens = [];
+          const seen = new Set();
+          for (const entry of safeEntries) {
+            if (!entry || typeof entry !== "object") {
+              continue;
+            }
+            const token = String(entry.token || "").trim();
+            if (!token) {
+              continue;
+            }
+            const tokenHash = (await sha256Hex(token)).toLowerCase();
+            if (!/^[a-f0-9]{24,128}$/.test(tokenHash) || seen.has(tokenHash)) {
+              continue;
+            }
+            seen.add(tokenHash);
+            const status = String(entry.status || "").toLowerCase() === "revoked" ? "revoked" : "active";
+            tokens.push({
+              tokenHash,
+              status,
+              reason: status === "active" ? "Token aktywny" : "Token uniewazniony"
+            });
+          }
+          return {
+            version: 1,
+            mode: "allowlist",
+            updatedAt: new Date().toISOString(),
+            tokens
+          };
         }
 
         function setStatus(message, kind) {
@@ -1610,6 +1662,19 @@
             );
             downloadText("madcad-tokeny.csv", [header, ...rows].join("\n"));
             setAdminStatus("Wyeksportowano CSV z tokenami.", "ok");
+          });
+        }
+
+        if (exportPublicRegistryBtn) {
+          exportPublicRegistryBtn.addEventListener("click", async () => {
+            try {
+              const entries = readTokenRegistry();
+              const registry = await buildPublicRegistryFromEntries(entries);
+              downloadText("license-registry.json", `${JSON.stringify(registry, null, 2)}\n`);
+              setAdminStatus("Wyeksportowano publiczny plik license-registry.json.", "ok");
+            } catch (error) {
+              setAdminStatus(`Błąd eksportu rejestru: ${error && error.message ? error.message : "nieznany"}`, "err");
+            }
           });
         }
 
