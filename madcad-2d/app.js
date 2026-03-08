@@ -2427,6 +2427,38 @@
     }
   }
 
+  function validateStoredLicenseAtStartup(storedToken) {
+    const token = String(storedToken || "").trim();
+    if (!token) {
+      setLicenseLocked(true);
+      setLicenseStatus("Wymagana aktywacja. Wygeneruj darmowy token i wklej go tutaj.", "error");
+      return false;
+    }
+
+    const result = activateLicenseToken(token, { persist: false, silent: true });
+    if (result.ok) {
+      updateLicenseSummaryChip();
+      appendPrivateLicenseAudit("Walidacja przy uruchomieniu", "Token poprawny.", {
+        deviceId: getLicenseDeviceId(),
+        scope: result.scope
+      });
+      return true;
+    }
+
+    clearPersistedLicenseRecord();
+    licenseSession.token = "";
+    licenseSession.payload = null;
+    if (licenseTokenInput) {
+      licenseTokenInput.value = "";
+    }
+    setLicenseLocked(true);
+    setLicenseStatus(`Token nieważny: ${result.error}. Wymagana ponowna aktywacja.`, "error");
+    appendPrivateLicenseAudit("Walidacja przy uruchomieniu", `Token odrzucony: ${result.error}`, {
+      deviceId: getLicenseDeviceId()
+    });
+    return false;
+  }
+
   function activateLicenseToken(rawToken, options) {
     const verified = verifyLicenseToken(rawToken);
     if (!verified.ok) {
@@ -2577,18 +2609,7 @@
     updateLicenseSummaryChip();
 
     const storedToken = readPersistedLicenseToken();
-
-    if (storedToken) {
-      const result = activateLicenseToken(storedToken, { persist: false, silent: true });
-      if (result.ok) {
-        updateLicenseSummaryChip();
-        return true;
-      }
-    }
-
-    setLicenseLocked(true);
-    setLicenseStatus("Wymagana aktywacja. Wygeneruj darmowy token i wklej go tutaj.", "error");
-    return false;
+    return validateStoredLicenseAtStartup(storedToken);
   }
 
   function resetViewTransform() {
