@@ -135,6 +135,7 @@
   const licenseStatus = document.getElementById("licenseStatus");
 
   const LICENSE_STORAGE_KEY = "madcad-license-v1";
+  const LICENSE_CLEARED_MARK_KEY = "madcad-license-cleared-at-v1";
   const UI_LANGUAGE_STORAGE_KEY = "madcad-ui-language";
   const UI_LANGUAGE_ONBOARDING_KEY = "madcad-ui-language-onboarded-v1";
   const LICENSE_SIGNATURE_SALT = "MadCAD2D-Private-NoMods-SingleDevice-2026";
@@ -2285,6 +2286,51 @@
     }
   }
 
+  function readPersistedLicenseRecord() {
+    try {
+      const raw = localStorage.getItem(LICENSE_STORAGE_KEY);
+      if (!raw) {
+        return null;
+      }
+      const record = JSON.parse(raw);
+      if (!record || typeof record !== "object") {
+        return null;
+      }
+      return {
+        token: String(record.token || "").trim(),
+        activatedAt: String(record.activatedAt || "").trim()
+      };
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function parseIsoTimestamp(value) {
+    const ts = Date.parse(String(value || "").trim());
+    return Number.isFinite(ts) ? ts : null;
+  }
+
+  function getLicenseClearedMarkerTimestamp() {
+    try {
+      const raw = localStorage.getItem(LICENSE_CLEARED_MARK_KEY);
+      return parseIsoTimestamp(raw);
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function setLicenseClearedMarker() {
+    try {
+      localStorage.setItem(LICENSE_CLEARED_MARK_KEY, new Date().toISOString());
+    } catch (_error) {}
+  }
+
+  function clearLicenseClearedMarker() {
+    try {
+      localStorage.removeItem(LICENSE_CLEARED_MARK_KEY);
+    } catch (_error) {}
+  }
+
   function normalizeLicenseOwner(payload) {
     if (!payload || typeof payload !== "object") {
       return "";
@@ -2414,6 +2460,7 @@
         activatedAt: new Date().toISOString()
       };
       localStorage.setItem(LICENSE_STORAGE_KEY, JSON.stringify(record));
+      clearLicenseClearedMarker();
     } catch (error) {
       console.warn("Nie udało się zapisać licencji:", error);
     }
@@ -2427,11 +2474,29 @@
     }
   }
 
-  function validateStoredLicenseAtStartup(storedToken) {
-    const token = String(storedToken || "").trim();
+  function validateStoredLicenseAtStartup(storedRecord) {
+    const record = storedRecord && typeof storedRecord === "object" ? storedRecord : null;
+    const token = String(record && record.token ? record.token : "").trim();
     if (!token) {
       setLicenseLocked(true);
       setLicenseStatus("Wymagana aktywacja. Wygeneruj darmowy token i wklej go tutaj.", "error");
+      return false;
+    }
+
+    const clearMarkerTs = getLicenseClearedMarkerTimestamp();
+    const activatedAtTs = parseIsoTimestamp(record && record.activatedAt ? record.activatedAt : "");
+    if (clearMarkerTs !== null && (activatedAtTs === null || activatedAtTs <= clearMarkerTs)) {
+      clearPersistedLicenseRecord();
+      licenseSession.token = "";
+      licenseSession.payload = null;
+      if (licenseTokenInput) {
+        licenseTokenInput.value = "";
+      }
+      setLicenseLocked(true);
+      setLicenseStatus("Licencja została wcześniej usunięta. Wymagana ponowna aktywacja.", "error");
+      appendPrivateLicenseAudit("Walidacja przy uruchomieniu", "Odrzucono token zapisany przed czyszczeniem.", {
+        deviceId: getLicenseDeviceId()
+      });
       return false;
     }
 
@@ -2593,6 +2658,7 @@
           // Po czyszczeniu sesji Electron ustawiamy to jeszcze raz po stronie renderera.
           clearPersistedLicenseRecord();
         }
+        setLicenseClearedMarker();
         licenseSession.token = "";
         licenseSession.payload = null;
         if (licenseTokenInput) {
@@ -2608,8 +2674,8 @@
 
     updateLicenseSummaryChip();
 
-    const storedToken = readPersistedLicenseToken();
-    return validateStoredLicenseAtStartup(storedToken);
+    const storedRecord = readPersistedLicenseRecord();
+    return validateStoredLicenseAtStartup(storedRecord);
   }
 
   function resetViewTransform() {
