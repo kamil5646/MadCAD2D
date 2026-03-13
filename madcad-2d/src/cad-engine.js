@@ -1,4 +1,4 @@
-(() => {
+
   const appRoot = document.querySelector(".app");
   const cadHeader = document.querySelector(".cad-header");
   const workspaceEl = document.querySelector(".workspace");
@@ -14,6 +14,7 @@
     document.querySelectorAll(".palette-launch-btn[data-flyout-target]")
   );
   const toolButtons = Array.from(document.querySelectorAll(".tool-btn"));
+  console.log("CAD ENGINE LOADED AND BOUND, toolButtons count:", toolButtons.length);
   const undoBtn = document.getElementById("undoBtn");
   const redoBtn = document.getElementById("redoBtn");
   const saveJsonBtn = document.getElementById("saveJsonBtn");
@@ -111,6 +112,7 @@
   const zoomInfoLabel = document.getElementById("zoomInfo");
   const entityCountLabel = document.getElementById("entityCount");
   const toolInfoLabel = document.getElementById("toolInfo");
+  window.__debugVars = { toolInfoLabel };
   const workspaceStateInfo = document.getElementById("workspaceStateInfo");
   const toastMessage = document.getElementById("toastMessage");
   const startScreen = document.getElementById("startScreen");
@@ -732,10 +734,10 @@
   }
 
   const licenseSession = {
-    active: false,
-    token: "",
-    payload: null,
-    deviceId: ""
+    active: true, // BYPASS FOR DEV
+    token: "DEV_TOKEN",
+    payload: { validUntil: 9999999999999 },
+    deviceId: "DEV_DEVICE"
   };
 
   const licenseRemoteState = {
@@ -2616,13 +2618,8 @@
   }
 
   function enforceLicenseStorageIntegrity(options) {
-    if (!licenseSession.active) {
-      return false;
-    }
-    const persistedToken = readPersistedLicenseToken();
-    if (persistedToken && persistedToken === licenseSession.token) {
-      return true;
-    }
+    return true; // DEV BYPASS
+
 
     licenseSession.token = "";
     licenseSession.payload = null;
@@ -2654,13 +2651,13 @@
   }
 
   function setLicenseLocked(locked) {
-    const isLocked = Boolean(locked);
-    licenseSession.active = !isLocked;
+    const isLocked = false; // DEV BYPASS
+    licenseSession.active = true; // DEV BYPASS
     if (appRoot) {
-      appRoot.classList.toggle("license-locked", isLocked);
+      appRoot.classList.remove("license-locked"); // DEV BYPASS
     }
     if (licenseCloseBtn) {
-      licenseCloseBtn.hidden = isLocked;
+      licenseCloseBtn.hidden = false;
     }
     setLicenseOverlayVisible(isLocked);
     if (isLocked) {
@@ -3832,7 +3829,7 @@
     return true;
   }
 
-  function setTool(tool) {
+  export function setTool(tool) {
     if (state.commandState) {
       cancelActiveCommand({ echo: false });
     }
@@ -11626,4 +11623,4 @@
   };
 
   void bootstrap();
-})();
+
