@@ -534,9 +534,13 @@ function mapUpdaterError(error, fallbackPl, fallbackEn) {
 async function resolveOdaDmgUrls() {
   const htmlBuffer = await httpsGetBuffer(ODA_DOWNLOAD_URL);
   const html = htmlBuffer.toString('utf8');
+
+  // ODA now uses /guestfiles/get?filename=...dmg redirect links
+  // Collect both old-style direct .dmg URLs and new-style /guestfiles/get?filename= links
   const rawMatches = [
     ...html.matchAll(/https?:\/\/[^"'\s>]+\.dmg/gi),
-    ...html.matchAll(/href=["']([^"']+\.dmg)["']/gi)
+    ...html.matchAll(/href=["']([^"']*\.dmg)["']/gi),
+    ...html.matchAll(/href=["']([^"']*guestfiles[^"']*filename=[^"']*\.dmg[^"']*)["']/gi)
   ];
 
   const candidates = rawMatches
@@ -546,7 +550,7 @@ async function resolveOdaDmgUrls() {
         ? raw
         : `https://${ODA_DOWNLOAD_PAGE_HOST}${raw.startsWith('/') ? '' : '/'}${raw}`;
     })
-    .filter((candidate) => /oda|converter/i.test(candidate));
+    .filter((candidate) => /oda|converter|guestfiles/i.test(candidate));
 
   if (candidates.length === 0) {
     throw new Error('Nie znaleziono linku DMG ODA na stronie pobierania.');
@@ -600,9 +604,12 @@ async function resolveOdaDmgUrls() {
 async function resolveOdaWindowsInstallerUrls() {
   const htmlBuffer = await httpsGetBuffer(ODA_DOWNLOAD_URL);
   const html = htmlBuffer.toString('utf8');
+
+  // ODA now uses /guestfiles/get?filename=...msi redirect links
   const rawMatches = [
     ...html.matchAll(/https?:\/\/[^"'\s>]+\.msi/gi),
-    ...html.matchAll(/href=["']([^"']+\.msi)["']/gi)
+    ...html.matchAll(/href=["']([^"']*\.msi)["']/gi),
+    ...html.matchAll(/href=["']([^"']*guestfiles[^"']*filename=[^"']*\.msi[^"']*)["']/gi)
   ];
 
   const candidates = rawMatches
@@ -612,7 +619,7 @@ async function resolveOdaWindowsInstallerUrls() {
         ? raw
         : `https://${ODA_DOWNLOAD_PAGE_HOST}${raw.startsWith('/') ? '' : '/'}${raw}`;
     })
-    .filter((candidate) => /oda|converter/i.test(candidate));
+    .filter((candidate) => /oda|converter|guestfiles/i.test(candidate));
 
   if (candidates.length === 0) {
     throw new Error('Nie znaleziono instalatora MSI ODA na stronie pobierania.');
