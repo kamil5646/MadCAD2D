@@ -1,6 +1,6 @@
 {
   "name": "madcad-2d-desktop",
-  "version": "5.3.0",
+  "version": "5.4.0",
   "description": "Desktopowa aplikacja CAD 2D MadCAD 2D, dla konstrukcji stalowych.",
   "main": "electron/main.js",
   "author": "Kamil Kasprzak",

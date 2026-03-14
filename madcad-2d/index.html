@@ -297,139 +297,155 @@
             data-modes="draw,steel"
           >
             <div class="ribbon-panel-body ribbon-panel-body-steel">
-              <label class="control inline steel-control" data-steel-field="template">
-                <span class="has-icon" data-icon="&#128736;">Szablon konstrukcji</span>
-                <select id="steelTemplateSelect">
-                  <option value="gate">Brama</option>
-                  <option value="fence">Ogrodzenie</option>
-                  <option value="balcony">Balkon</option>
-                </select>
-              </label>
-              <div class="steel-template-meta">
-                <p id="steelTemplateHint" class="steel-template-hint"></p>
-                <div id="steelTemplateBadges" class="steel-template-badges"></div>
-              </div>
-              <div class="steel-grid">
-                <label class="control steel-control" data-steel-field="width">
-                  <span class="has-icon" data-icon="&#8596;">Szerokość całkowita [mm]</span>
-                  <input id="steelWidthInput" type="number" value="4000" min="200" step="10" />
-                  <small class="steel-help">Światło konstrukcji w osi poziomej.</small>
-                </label>
-                <label class="control steel-control" data-steel-field="height">
-                  <span class="has-icon" data-icon="&#8597;">Wysokość całkowita [mm]</span>
-                  <input id="steelHeightInput" type="number" value="1500" min="200" step="10" />
-                  <small class="steel-help">Wysokość od dołu konstrukcji do górnej krawędzi.</small>
-                </label>
-              </div>
-              <div class="steel-grid">
-                <label class="control steel-control" data-steel-field="frameProfile">
-                  <span class="has-icon" data-icon="&#9638;">Profil boczny [mm]</span>
-                  <select id="steelFrameProfileSelect">
-                    <option value="40" selected>40</option>
-                    <option value="50">50</option>
-                    <option value="60">60</option>
-                    <option value="80">80</option>
-                    <option value="100">100</option>
+
+              <!-- ── SZABLON ── -->
+              <div class="steel-card">
+                <div class="steel-card-title">🏗 Szablon</div>
+                <label class="control inline steel-control" data-steel-field="template">
+                  <span>Typ konstrukcji</span>
+                  <select id="steelTemplateSelect">
+                    <option value="gate">🚪 Brama</option>
+                    <option value="fence">📏 Ogrodzenie</option>
+                    <option value="balcony">🏠 Balkon</option>
                   </select>
-                  <small class="steel-help">Przekrój profili bocznych ramy.</small>
                 </label>
-              </div>
-              <div class="steel-grid">
-                <label class="control steel-control" data-steel-field="postWidth">
-                  <span class="has-icon" data-icon="&#9646;">Szerokość słupka [mm]</span>
-                  <input id="steelPostWidthInput" type="number" value="60" min="20" step="5" />
-                  <small id="steelPostWidthHint" class="steel-help">Dotyczy słupków ogrodzenia.</small>
-                </label>
-                <label class="control steel-control" data-steel-field="postLength">
-                  <span class="has-icon" data-icon="&#8597;">Długość słupka [mm]</span>
-                  <input id="steelPostLengthInput" type="number" value="1700" min="200" step="10" />
-                  <small id="steelPostLengthHint" class="steel-help">Nadmiar długości słupka schodzi w dół poniżej przęsła.</small>
-                </label>
-              </div>
-              <label class="control inline steel-control" data-steel-field="barWidth">
-                <span class="has-icon" data-icon="&#9475;">Profil wypełnienia [mm]</span>
-                <input id="steelBarWidthInput" type="number" value="20" min="5" step="1" />
-                <small class="steel-help">Grubość sztachet/szczebli wewnątrz ramy.</small>
-              </label>
-              <label class="control inline steel-control" data-steel-field="panelCount">
-                <span class="has-icon" data-icon="&#8644;">Ilość paneli [szt./sekcja]</span>
-                <input id="steelPanelCountInput" type="number" value="18" min="1" step="1" />
-                <small id="steelPanelCountHint" class="steel-help">Przerwy są dobierane automatycznie, aby równomiernie rozłożyć panele w sekcji.</small>
-              </label>
-              <label class="control inline steel-control" data-steel-field="infillPattern">
-                <span class="has-icon" data-icon="&#10065;">Typ wypełnienia</span>
-                <select id="steelInfillPatternSelect">
-                  <option value="vertical">Pionowe</option>
-                  <option value="horizontal" selected>Poziome</option>
-                  <option value="grid">Siatka</option>
-                  <option value="cross">Krzyżowe X</option>
-                </select>
-                <small class="steel-help">Układ elementów wewnątrz każdej sekcji.</small>
-              </label>
-              <div class="steel-grid">
-                <div class="control steel-control" data-steel-field="topPanel">
-                  <span class="has-icon" data-icon="&#11165;">Panel górny</span>
-                  <label class="steel-check-inline">
-                    <input id="steelTopPanelToggle" type="checkbox" checked />
-                    <span>Włącz</span>
-                  </label>
-                  <label class="steel-size-inline">
-                    <span>Rozmiar [mm]</span>
-                    <input id="steelTopPanelSizeInput" type="number" value="20" min="2" step="1" />
-                  </label>
-                  <small class="steel-help">Poziomy panel przy górnej krawędzi sekcji.</small>
-                </div>
-                <div class="control steel-control" data-steel-field="bottomPanel">
-                  <span class="has-icon" data-icon="&#11167;">Panel dolny</span>
-                  <label class="steel-check-inline">
-                    <input id="steelBottomPanelToggle" type="checkbox" checked />
-                    <span>Włącz</span>
-                  </label>
-                  <label class="steel-size-inline">
-                    <span>Rozmiar [mm]</span>
-                    <input id="steelBottomPanelSizeInput" type="number" value="20" min="2" step="1" />
-                  </label>
-                  <small class="steel-help">Poziomy panel przy dolnej krawędzi sekcji.</small>
+                <div class="steel-template-meta">
+                  <p id="steelTemplateHint" class="steel-template-hint"></p>
+                  <div id="steelTemplateBadges" class="steel-template-badges"></div>
                 </div>
               </div>
-              <div class="steel-grid">
-                <label class="control steel-control" data-steel-field="sectionCount">
-                  <span class="has-icon" data-icon="&#11034;">Ilość pól</span>
-                  <input id="steelSectionCountInput" type="number" value="1" min="1" max="6" step="1" />
-                  <small class="steel-help">Podział skrzydła/przęsła na pola.</small>
+
+              <!-- ── WYMIARY ── -->
+              <div class="steel-card">
+                <div class="steel-card-title">📐 Wymiary</div>
+                <div class="steel-row">
+                  <label class="control steel-control" data-steel-field="width">
+                    <span>Szerokość [mm]</span>
+                    <input id="steelWidthInput" type="number" value="4000" min="200" step="10" />
+                  </label>
+                  <label class="control steel-control" data-steel-field="height">
+                    <span>Wysokość [mm]</span>
+                    <input id="steelHeightInput" type="number" value="1500" min="200" step="10" />
+                  </label>
+                </div>
+                <div class="steel-row">
+                  <label class="control steel-control" data-steel-field="frameProfile">
+                    <span>Profil ramy [mm]</span>
+                    <select id="steelFrameProfileSelect">
+                      <option value="40" selected>40</option>
+                      <option value="50">50</option>
+                      <option value="60">60</option>
+                      <option value="80">80</option>
+                      <option value="100">100</option>
+                    </select>
+                  </label>
+                  <label class="control steel-control" data-steel-field="groundClearance">
+                    <span>Prześwit [mm]</span>
+                    <input id="steelGroundClearanceInput" type="number" value="40" min="0" step="5" />
+                  </label>
+                </div>
+                <div class="steel-row">
+                  <label class="control steel-control" data-steel-field="basePlateHeight">
+                    <span>Podmurówka [mm]</span>
+                    <input id="steelBasePlateHeightInput" type="number" value="0" min="0" step="5" />
+                  </label>
+                  <label class="control steel-control" data-steel-field="sectionCount">
+                    <span>Liczba pól</span>
+                    <input id="steelSectionCountInput" type="number" value="1" min="1" max="6" step="1" />
+                  </label>
+                </div>
+              </div>
+
+              <!-- ── WYPEŁNIENIE ── -->
+              <div class="steel-card">
+                <div class="steel-card-title">🔲 Wypełnienie</div>
+                <div class="steel-row">
+                  <label class="control steel-control" data-steel-field="infillPattern">
+                    <span>Typ wypełnienia</span>
+                    <select id="steelInfillPatternSelect">
+                      <option value="vertical">Pionowe</option>
+                      <option value="horizontal" selected>Poziome</option>
+                      <option value="grid">Siatka</option>
+                      <option value="cross">Krzyżowe X</option>
+                    </select>
+                  </label>
+                  <label class="control steel-control" data-steel-field="barWidth">
+                    <span>Profil szczebli [mm]</span>
+                    <input id="steelBarWidthInput" type="number" value="20" min="5" step="1" />
+                  </label>
+                </div>
+                <label class="control inline steel-control" data-steel-field="panelCount">
+                  <span>Liczba paneli / sekcję</span>
+                  <input id="steelPanelCountInput" type="number" value="18" min="1" step="1" />
+                  <small id="steelPanelCountHint" class="steel-help"></small>
                 </label>
-                <label class="control steel-control" data-steel-field="groundClearance">
-                  <span class="has-icon" data-icon="&#10549;">Prześwit od dołu [mm]</span>
-                  <input id="steelGroundClearanceInput" type="number" value="40" min="0" step="5" />
-                  <small class="steel-help">Wolna przestrzeń między gruntem a wypełnieniem.</small>
+                <div class="steel-row">
+                  <div class="control steel-control" data-steel-field="topPanel">
+                    <span>Panel górny</span>
+                    <div class="steel-check-row">
+                      <label class="steel-toggle-label">
+                        <input id="steelTopPanelToggle" type="checkbox" checked />
+                        <span>Włącz</span>
+                      </label>
+                      <label class="steel-size-label">
+                        <span>Rozmiar</span>
+                        <input id="steelTopPanelSizeInput" type="number" value="20" min="2" step="1" />
+                      </label>
+                    </div>
+                  </div>
+                  <div class="control steel-control" data-steel-field="bottomPanel">
+                    <span>Panel dolny</span>
+                    <div class="steel-check-row">
+                      <label class="steel-toggle-label">
+                        <input id="steelBottomPanelToggle" type="checkbox" checked />
+                        <span>Włącz</span>
+                      </label>
+                      <label class="steel-size-label">
+                        <span>Rozmiar</span>
+                        <input id="steelBottomPanelSizeInput" type="number" value="20" min="2" step="1" />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ── OPCJE ZAAWANSOWANE ── -->
+              <div class="steel-card">
+                <div class="steel-card-title">⚙ Opcje</div>
+                <label class="control inline steel-control" data-steel-field="gateLeafCount">
+                  <span>Skrzydła bramy</span>
+                  <select id="steelGateLeafCountSelect">
+                    <option value="1">1</option>
+                    <option value="2" selected>2</option>
+                  </select>
+                  <small id="steelGateLeafCountHint" class="steel-help"></small>
+                </label>
+                <div class="steel-row">
+                  <label class="control steel-control" data-steel-field="postWidth">
+                    <span>Szer. słupka [mm]</span>
+                    <input id="steelPostWidthInput" type="number" value="60" min="20" step="5" />
+                    <small id="steelPostWidthHint" class="steel-help"></small>
+                  </label>
+                  <label class="control steel-control" data-steel-field="postLength">
+                    <span>Dług. słupka [mm]</span>
+                    <input id="steelPostLengthInput" type="number" value="1700" min="200" step="10" />
+                    <small id="steelPostLengthHint" class="steel-help"></small>
+                  </label>
+                </div>
+                <label class="control inline steel-control" data-steel-field="innerFrame">
+                  <input id="steelInnerFrameToggle" type="checkbox" />
+                  <span>Rama wewnętrzna</span>
+                </label>
+                <label class="control inline steel-control" data-steel-field="diagonal">
+                  <input id="steelDiagonalToggle" type="checkbox" checked />
+                  <span>Zastrzał ukośny</span>
+                  <small class="steel-help" id="steelDiagonalHint"></small>
                 </label>
               </div>
-              <label class="control inline steel-control" data-steel-field="gateLeafCount">
-                <span class="has-icon" data-icon="&#8646;">Skrzydła bramy [szt.]</span>
-                <select id="steelGateLeafCountSelect">
-                  <option value="1">1</option>
-                  <option value="2" selected>2</option>
-                </select>
-                <small id="steelGateLeafCountHint" class="steel-help">Podział szerokości na skrzydła (dotyczy tylko bramy).</small>
-              </label>
-              <div class="steel-grid">
-                <label class="control steel-control" data-steel-field="basePlateHeight">
-                  <span class="has-icon" data-icon="&#9608;">Wysokość podmurówki [mm]</span>
-                  <input id="steelBasePlateHeightInput" type="number" value="0" min="0" step="5" />
-                  <small class="steel-help">Dolny pełny pas (np. podmurówka prefabrykowana).</small>
-                </label>
-              </div>
-              <label class="control inline steel-control" data-steel-field="innerFrame">
-                <span class="has-icon" data-icon="&#9633;">Rama wewnętrzna</span>
-                <input id="steelInnerFrameToggle" type="checkbox" />
-                <small class="steel-help">Dodaje dodatkową ramę wewnątrz światła konstrukcji.</small>
-              </label>
-              <label class="control inline steel-control" data-steel-field="diagonal">
-                <span class="has-icon" data-icon="&#10799;">Zastrzał ukośny</span>
-                <input id="steelDiagonalToggle" type="checkbox" checked />
-                <small class="steel-help" id="steelDiagonalHint">Dodatkowe usztywnienie po przekątnej.</small>
-              </label>
-              <button id="steelGenerateBtn" class="ribbon-btn has-icon" data-icon="&#128296;">Generuj element (Alt+Enter)</button>
+
+              <!-- ── GENERUJ ── -->
+              <button id="steelGenerateBtn" class="ribbon-btn steel-generate-btn has-icon" data-icon="&#128296;">Generuj (Alt+Enter)</button>
+
             </div>
             <h2 class="has-icon" data-icon="&#127959;">Konstrukcje stalowe</h2>
           </section>
