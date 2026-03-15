@@ -44,6 +44,14 @@
     "directories": {
       "output": "release"
     },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "kamil5646",
+        "repo": "MadCAD2D",
+        "releaseType": "release"
+      }
+    ],
     "extraResources": [
       {
         "from": "tools/oda",
