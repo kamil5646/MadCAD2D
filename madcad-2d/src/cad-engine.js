@@ -193,6 +193,251 @@
     /(Mac|iPhone|iPad|iPod)/i.test(navigator.platform || "") ||
     /Mac OS X/i.test(navigator.userAgent || "");
 
+  const ICON_MASK_SVG = {
+    default:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="black"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>',
+    home:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-6h6v6"/></svg>',
+    eye:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.8"/></svg>',
+    layers:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 8l10 5 10-5-10-5z"/><path d="m2 12 10 5 10-5"/><path d="m2 16 10 5 10-5"/></svg>',
+    undo:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7H3v6"/><path d="M3 13c2.5-5 10-7 15-2 2.8 2.8 2.8 7.2 0 10"/></svg>',
+    redo:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 7h6v6"/><path d="M21 13c-2.5-5-10-7-15-2-2.8 2.8-2.8 7.2 0 10"/></svg>',
+    tool:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 5 5 5"/><path d="M3 21h4l11-11-4-4L3 17v4z"/><path d="M14 3 11 6"/></svg>',
+    target:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>',
+    chevron_down:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+    chevron_right:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>',
+    refresh:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>',
+    lock:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+    file:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h8l5 5v13H7z"/><path d="M15 3v5h5"/></svg>',
+    arrow_up:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 4 4 4h-3v8h-2V8H8z"/><path d="M5 20h14"/></svg>',
+    arrow_down:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 20-4-4h3V8h2v8h3z"/><path d="M5 4h14"/></svg>',
+    print:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 8V3h10v5"/><rect x="5" y="8" width="14" height="8" rx="2"/><path d="M7 16h10v5H7z"/></svg>',
+    pencil:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 20 5-.8L20 8 16 4 4.8 15z"/><path d="m14 6 4 4"/></svg>',
+    square:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="5" width="14" height="14" rx="1.5"/></svg>',
+    circle:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/></svg>',
+    paint:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a5 5 0 0 0-5 5c0 2 1.2 3.5 3 4l-1 4h6l-1-4c1.8-.5 3-2 3-4a5 5 0 0 0-5-5z"/><path d="M9 20h6"/></svg>',
+    measure:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 17 13-13 3 3-13 13H4z"/><path d="m12 6 6 6"/></svg>',
+    hand:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M2 12h20"/><path d="m6 6 12 12"/><path d="m18 6-12 12"/></svg>',
+    move:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4-4v3h10v2H9v3z"/></svg>',
+    copy:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="1.5"/><path d="M5 15V5h11"/></svg>',
+    swap:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h14l-3-3"/><path d="m18 7-3 3"/><path d="M20 17H6l3-3"/><path d="m6 17 3 3"/></svg>',
+    trash:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"/><path d="M8 6V4h8v2"/><path d="m7 6 1 14h8l1-14"/></svg>',
+    search:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6"/><path d="m16 16 5 5"/></svg>',
+    x:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.4" stroke-linecap="round"><path d="M6 6 18 18M18 6 6 18"/></svg>',
+    settings:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg>',
+    pin:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 4 4-2 2v4l-2 2-2-2V9L8 7z"/><path d="M11 15v6"/></svg>',
+    grid:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><rect x="14" y="14" width="6" height="6"/></svg>',
+    ortho:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v18"/></svg>',
+    modes:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/><circle cx="9" cy="7" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="11" cy="17" r="2"/></svg>',
+    plus:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+    check:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m4 12 5 5 11-11"/></svg>',
+    globe:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a13 13 0 0 1 0 18"/><path d="M12 3a13 13 0 0 0 0 18"/></svg>',
+    heart:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="black"><path d="M12 21s-8-5.5-8-11a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 5.5-8 11-8 11z"/></svg>',
+    money:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M7 9h.01M17 15h.01"/></svg>',
+    warning:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 21h20L12 3z"/><path d="M12 9v6"/><path d="M12 18h.01"/></svg>',
+    play:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="black"><path d="m7 5 12 7-12 7z"/></svg>',
+    briefcase:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5h6v2"/><path d="M3 12h18"/></svg>',
+    line:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.4" stroke-linecap="round"><path d="M4 12h16"/></svg>',
+    polyline:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 16 6-8 5 4 5-7"/></svg>'
+  };
+
+  const ICON_MASK_URI = Object.fromEntries(
+    Object.entries(ICON_MASK_SVG).map(([key, svg]) => [key, `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`])
+  );
+
+  const ICON_GLYPH_TO_KEY = {
+    "\u2302": "home",
+    "\uD83C\uDFE0": "home",
+    "\uD83D\uDCCF": "measure",
+    "\uD83C\uDFD7": "tool",
+    "\uD83D\uDC41": "eye",
+    "\uD83D\uDCD1": "layers",
+    "\u21B6": "undo",
+    "\u21B7": "redo",
+    "\uD83D\uDD28": "tool",
+    "\uD83C\uDFAF": "target",
+    "\u25BC": "chevron_down",
+    "\u25B6": "chevron_right",
+    "\uD83D\uDD04": "refresh",
+    "\uD83D\uDD12": "lock",
+    "\uD83D\uDCBE": "file",
+    "\uD83D\uDCC1": "file",
+    "\uD83D\uDCC2": "file",
+    "\uD83D\uDEE0": "tool",
+    "\uD83D\uDCE4": "arrow_up",
+    "\uD83D\uDCE5": "arrow_down",
+    "\uD83D\uDCC4": "file",
+    "\uD83D\uDDB6": "print",
+    "\u2B59": "target",
+    "\u25C9": "target",
+    "\uD83D\uDD8B": "pencil",
+    "\u25AD": "square",
+    "\u25EF": "circle",
+    "\u25CB": "circle",
+    "\uD83C\uDFA8": "paint",
+    "\u270D": "pencil",
+    "\uD83D\uDCD0": "measure",
+    "\u270B": "hand",
+    "\u279C": "move",
+    "\uD83D\uDCCB": "copy",
+    "\u21C4": "swap",
+    "\uD83D\uDDD1": "trash",
+    "\u2B06": "arrow_up",
+    "\u2B07": "arrow_down",
+    "\uD83D\uDD0D": "search",
+    "\u274C": "x",
+    "\u274E": "x",
+    "\uD83D\uDD27": "settings",
+    "\u2194": "measure",
+    "\u21C6": "measure",
+    "\u2220": "measure",
+    "\u2221": "measure",
+    "\u2699": "settings",
+    "\uD83D\uDCCC": "pin",
+    "\u229E": "grid",
+    "\u2223": "ortho",
+    "\u2694": "modes",
+    "\u2795": "plus",
+    "\uD83D\uDCCD": "pin",
+    "\u25A6": "layers",
+    "\uD83D\uDDD2": "layers",
+    "\u2713": "check",
+    "\u2714": "check",
+    "\u2715": "x",
+    "\u2716": "x",
+    "\uD83C\uDF10": "globe",
+    "\uD83D\uDC99": "heart",
+    "\uD83D\uDCB0": "money",
+    "\u2705": "check",
+    "\u26A0": "warning",
+    "\u23F5": "play",
+    "\uD83D\uDCBC": "briefcase",
+    "\u2500": "line",
+    "\u223F": "polyline",
+    "\u21A6": "measure"
+  };
+
+  function decodeIconGlyph(rawValue) {
+    const raw = String(rawValue || "").trim();
+    if (!raw) {
+      return "";
+    }
+    const dec = raw.match(/^&#([0-9]+);$/i);
+    if (dec) {
+      const codepoint = Number.parseInt(dec[1], 10);
+      if (Number.isFinite(codepoint) && codepoint > 0) {
+        return String.fromCodePoint(codepoint);
+      }
+    }
+    const hex = raw.match(/^&#x([0-9a-f]+);$/i);
+    if (hex) {
+      const codepoint = Number.parseInt(hex[1], 16);
+      if (Number.isFinite(codepoint) && codepoint > 0) {
+        return String.fromCodePoint(codepoint);
+      }
+    }
+    return raw;
+  }
+
+  function resolveSvgIconMask(glyph) {
+    if (!glyph) {
+      return ICON_MASK_URI.default;
+    }
+    if (Object.prototype.hasOwnProperty.call(ICON_MASK_URI, glyph)) {
+      return ICON_MASK_URI[glyph];
+    }
+    const mappedKey = ICON_GLYPH_TO_KEY[glyph] || "default";
+    return ICON_MASK_URI[mappedKey] || ICON_MASK_URI.default;
+  }
+
+  function applySvgIconMask(element) {
+    if (!(element instanceof HTMLElement) || !element.classList.contains("has-icon")) {
+      return;
+    }
+    const glyph = decodeIconGlyph(element.getAttribute("data-icon"));
+    const mask = resolveSvgIconMask(glyph);
+    element.style.setProperty("--icon-mask", `url("${mask}")`);
+  }
+
+  function refreshSvgIcons(root = document) {
+    const target = root instanceof HTMLElement || root instanceof Document ? root : document;
+    if (target instanceof HTMLElement && target.classList.contains("has-icon")) {
+      applySvgIconMask(target);
+    }
+    if (typeof target.querySelectorAll === "function") {
+      target.querySelectorAll(".has-icon").forEach((node) => applySvgIconMask(node));
+    }
+  }
+
+  let iconMutationObserver = null;
+  function watchSvgIconMutations() {
+    if (iconMutationObserver || typeof MutationObserver !== "function" || !document.body) {
+      return;
+    }
+    iconMutationObserver = new MutationObserver((records) => {
+      records.forEach((record) => {
+        if (record.type === "attributes") {
+          applySvgIconMask(record.target);
+          return;
+        }
+        if (record.type === "childList") {
+          record.addedNodes.forEach((node) => {
+            if (node instanceof HTMLElement) {
+              refreshSvgIcons(node);
+            }
+          });
+        }
+      });
+    });
+    iconMutationObserver.observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["data-icon"]
+    });
+  }
+
   function formatShortcutTextForPlatform(value) {
     const text = String(value || "");
     if (!text || !IS_MAC_UI) {
@@ -736,10 +981,10 @@
   }
 
   const licenseSession = {
-    active: true, // BYPASS FOR DEV
-    token: "DEV_TOKEN",
-    payload: { validUntil: 9999999999999 },
-    deviceId: "DEV_DEVICE"
+    active: false,
+    token: "",
+    payload: null,
+    deviceId: ""
   };
 
   const licenseRemoteState = {
@@ -1406,6 +1651,7 @@
         state.ribbonCollapsed ? "Rozwiń wstążkę (F4)" : "Zwiń wstążkę (F4)"
       );
       toggleRibbonBtn.dataset.icon = state.ribbonCollapsed ? "\u25B6" : "\u25BC";
+      applySvgIconMask(toggleRibbonBtn);
     }
 
     if (state.paletteHidden || state.ribbonCollapsed) {
@@ -5463,6 +5709,7 @@
         `;
       })
       .join("");
+    refreshSvgIcons(layerList);
   }
 
   function render() {
@@ -11572,6 +11819,8 @@
       return;
     }
     localizeStaticUi();
+    refreshSvgIcons();
+    watchSvgIconMutations();
     applyTheme("dark");
     let licensedAtBoot = initializeLicenseManager();
     if (licensedAtBoot) {

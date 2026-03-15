@@ -114,33 +114,39 @@
       }
 
       .lang-btn {
-        border: 1px solid rgba(127, 160, 204, 0.35);
+        border: 1px solid rgba(146, 184, 230, 0.62);
         border-radius: 9px;
-        color: #d7e8ff;
+        color: #eaf3ff;
         padding: 5px 9px;
         font-size: 12px;
-        background: rgba(255, 255, 255, 0.04);
+        background: linear-gradient(180deg, rgba(123, 176, 244, 0.26), rgba(83, 130, 196, 0.2));
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.14),
+          0 1px 2px rgba(0, 0, 0, 0.24);
         cursor: pointer;
       }
 
       .lang-btn.active {
         border-color: rgba(165, 202, 250, 0.9);
-        background: rgba(93, 169, 255, 0.22);
+        background: linear-gradient(180deg, rgba(96, 176, 255, 0.48), rgba(96, 176, 255, 0.28));
       }
 
       .nav a {
         text-decoration: none;
-        border: 1px solid rgba(127, 160, 204, 0.35);
+        border: 1px solid rgba(146, 184, 230, 0.62);
         border-radius: 9px;
-        color: #d7e8ff;
+        color: #eaf3ff;
         padding: 5px 9px;
         font-size: 12px;
-        background: rgba(255, 255, 255, 0.04);
+        background: linear-gradient(180deg, rgba(123, 176, 244, 0.26), rgba(83, 130, 196, 0.2));
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.14),
+          0 1px 2px rgba(0, 0, 0, 0.24);
       }
 
       .nav a:hover {
-        border-color: rgba(167, 198, 241, 0.7);
-        background: rgba(255, 255, 255, 0.09);
+        border-color: rgba(185, 216, 255, 0.92);
+        background: linear-gradient(180deg, rgba(113, 194, 255, 0.42), rgba(91, 147, 216, 0.3));
       }
 
       .nav a[href*="admin"] {
@@ -228,11 +234,27 @@
         font-weight: 700;
         font-size: 14px;
         background: linear-gradient(180deg, rgba(92, 167, 255, 0.32), rgba(92, 167, 255, 0.16));
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.18),
+          0 2px 4px rgba(0, 0, 0, 0.28);
       }
 
       .btn:hover {
         border-color: rgba(165, 202, 250, 0.9);
         background: linear-gradient(180deg, rgba(96, 176, 255, 0.4), rgba(96, 176, 255, 0.22));
+      }
+
+      .btn:active,
+      .lang-btn:active,
+      .nav a:active {
+        transform: translateY(1px);
+      }
+
+      .btn:focus-visible,
+      .lang-btn:focus-visible,
+      .nav a:focus-visible {
+        outline: 2px solid rgba(132, 200, 255, 0.95);
+        outline-offset: 1px;
       }
 
       .btn.secondary {
