@@ -1,6 +1,6 @@
 {
   "name": "madcad-2d-desktop",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "Desktopowa aplikacja CAD 2D MadCAD 2D, dla konstrukcji stalowych.",
   "repository": {
     "type": "git",
@@ -33,7 +33,7 @@
     "appId": "pl.kamilkasprzak.madcad2d",
     "productName": "MadCAD 2D",
     "asar": true,
-    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "artifactName": "MadCAD-2D-${version}-${os}-${arch}.${ext}",
     "files": [
       "dist/**/*",
       "LICENSE",
