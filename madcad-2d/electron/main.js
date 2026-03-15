@@ -203,6 +203,10 @@ function isVersionGreater(candidate, current) {
   return false;
 }
 
+function isUpdateVersionDifferent(candidate, current) {
+  return normalizeVersionText(candidate) !== normalizeVersionText(current);
+}
+
 function selectReleaseAssetForPlatform(assets) {
   const list = Array.isArray(assets) ? assets : [];
   const normalized = list
@@ -1329,7 +1333,9 @@ ipcMain.handle('madcad:check-for-updates', async () => {
     }
     const currentVersion = normalizeVersionText(app.getVersion());
     const latest = await fetchLatestMadcadRelease();
-    const hasNewerVersion = isVersionGreater(latest.latestVersion, currentVersion);
+    const hasNewerVersion =
+      isVersionGreater(latest.latestVersion, currentVersion) ||
+      isUpdateVersionDifferent(latest.latestVersion, currentVersion);
     const hasAssetForPlatform = Boolean(latest.asset && latest.asset.url);
     return {
       ok: true,
@@ -1401,7 +1407,7 @@ ipcMain.handle('madcad:download-and-install-update', async (_event, payload) => 
     }
 
     const currentVersion = normalizeVersionText(app.getVersion());
-    if (latestVersion && !isVersionGreater(latestVersion, currentVersion)) {
+    if (latestVersion && !isUpdateVersionDifferent(latestVersion, currentVersion)) {
       return {
         ok: true,
         installing: false,
