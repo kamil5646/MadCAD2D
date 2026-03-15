@@ -140,6 +140,8 @@
   const LICENSE_PRIVATE_FORM_URL = "https://kamil5646.github.io/MadCAD2D/#token-prywatny";
   const LICENSE_SUPPORT_URL = "https://paypal.me/refek1";
   const LICENSE_REGISTRY_ENDPOINTS_CONFIG_URL = "https://kamil5646.github.io/MadCAD2D/license-endpoints.json";
+  const LICENSE_REGISTRY_DEFAULT_API_HOST = "madcad-license-registry.kkasprzak15.workers.dev";
+  const LICENSE_REGISTRY_ALLOWED_WEB_ORIGIN = "https://kamil5646.github.io";
   const LICENSE_VERIFY_ENDPOINT_URLS = [
     "https://madcad-license-registry.kkasprzak15.workers.dev/v1/license-tokens/verify"
   ];
@@ -2371,6 +2373,25 @@
     }
   }
 
+  function shouldSkipRemoteRegistryCall(rawUrl) {
+    if (window.desktopApp && window.desktopApp.isDesktop) {
+      return false;
+    }
+    const currentOrigin = String(window.location && window.location.origin ? window.location.origin : "").trim();
+    if (!currentOrigin || currentOrigin === "null") {
+      return false;
+    }
+    try {
+      const target = new URL(String(rawUrl || ""));
+      if (target.host !== LICENSE_REGISTRY_DEFAULT_API_HOST) {
+        return false;
+      }
+    } catch {
+      return false;
+    }
+    return currentOrigin !== LICENSE_REGISTRY_ALLOWED_WEB_ORIGIN;
+  }
+
   async function readApiError(response) {
     const fallbackResponse = response && typeof response.clone === "function" ? response.clone() : null;
     try {
@@ -2471,6 +2492,12 @@
       const deviceId = getLicenseDeviceId();
       let lastError = null;
       for (const verifyUrl of verifyUrls) {
+        if (shouldSkipRemoteRegistryCall(verifyUrl)) {
+          lastError = new Error(
+            "Weryfikacja online działa tylko na stronie produkcyjnej lub w aplikacji desktop."
+          );
+          continue;
+        }
         try {
           const response = await fetch(`${verifyUrl}?ts=${Date.now()}`, {
             method: "POST",
@@ -2618,13 +2645,22 @@
   }
 
   function enforceLicenseStorageIntegrity(options) {
-    return true; // DEV BYPASS
-
-
+    const opts = options && typeof options === "object" ? options : {};
+    const storedRecord = readPersistedLicenseRecord();
+    const storedToken = String(storedRecord && storedRecord.token ? storedRecord.token : "").trim();
+    const activeToken = String(licenseSession.token || "").trim();
+    if (storedToken && activeToken && storedToken === activeToken) {
+      return true;
+    }
     licenseSession.token = "";
     licenseSession.payload = null;
+    clearPersistedLicenseRecord();
+    setLicenseClearedMarker();
+    if (licenseTokenInput) {
+      licenseTokenInput.value = "";
+    }
     setLicenseLocked(true);
-    if (!options || options.silent !== true) {
+    if (opts.silent !== true) {
       setLicenseStatus("Wykryto brak lub zmianę klucza licencji. Wymagana ponowna aktywacja.", "error");
       echoCommand("Licencja została usunięta lub zmieniona. Aplikacja została zablokowana.", true);
     }
@@ -2651,13 +2687,13 @@
   }
 
   function setLicenseLocked(locked) {
-    const isLocked = false; // DEV BYPASS
-    licenseSession.active = true; // DEV BYPASS
+    const isLocked = Boolean(locked);
+    licenseSession.active = !isLocked;
     if (appRoot) {
-      appRoot.classList.remove("license-locked"); // DEV BYPASS
+      appRoot.classList.toggle("license-locked", isLocked);
     }
     if (licenseCloseBtn) {
-      licenseCloseBtn.hidden = false;
+      licenseCloseBtn.hidden = isLocked;
     }
     setLicenseOverlayVisible(isLocked);
     if (isLocked) {
@@ -11623,4 +11659,3 @@
   };
 
   void bootstrap();
-
