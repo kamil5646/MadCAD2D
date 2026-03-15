@@ -1,143 +1,146 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  /* ── Core surfaces ── */
-  --shell-bg: #0d1520;
-  --title-bg: #111d2e;
-  --ribbon-bg: #0f1e33;
-  --ribbon-tab-bg: #0c1828;
-  --ribbon-tab-active: #07101d;
-  --workspace-bg: #090f1a;
-  --canvas-bg: #111d30;
-  --palette-bg: #101a29;
-  --panel-bg: #152134;
-  --panel-soft: #0f1a2a;
+  /* ── AutoCAD-style graphite surfaces ── */
+  --shell-bg: #1a1a1a;
+  --title-bg: #2b2b2b;
+  --ribbon-bg: #2d2d2d;
+  --ribbon-tab-bg: #252525;
+  --ribbon-tab-active: #1f1f1f;
+  --workspace-bg: #0f0f0f;
+  --canvas-bg: #191919;
+  --palette-bg: #222222;
+  --panel-bg: #2d2d2d;
+  --panel-soft: #252525;
 
   /* ── Borders & text ── */
-  --border: #253a55;
-  --text: #e2eaf6;
-  --muted: #7a94b5;
-  --accent: #38bdf8;
-  --accent-strong: #fbbf24;
-  --accent-alt: #a78bfa;
-  --danger: #f87171;
-  --success: #34d399;
+  --border: #404040;
+  --border-mid: #4a4a4a;
+  --text: #d4d4d4;
+  --text-bright: #f0f0f0;
+  --muted: #888888;
+  --accent: #0096d6;
+  --accent-hover: #00b4f5;
+  --accent-strong: #e86d1f;
+  --accent-alt: #6cb4e0;
+  --danger: #e05252;
+  --success: #5aad5a;
 
   /* ── Canvas primitives ── */
-  --grid: #16253a;
-  --axis-x: #f59e0b;
-  --axis-y: #22c55e;
-  --preview: #38bdf8;
-  --selection: #60a5fa;
-  --crosshair: #1e3550;
+  --grid: #212121;
+  --axis-x: #cc5500;
+  --axis-y: #29a229;
+  --preview: #26a9e0;
+  --selection: #337ab7;
+  --crosshair: #2a2a2a;
 
   /* ── Title bar ── */
-  --title-btn-bg: #1a2d46;
-  --title-btn-border: #2e4a6d;
-  --title-control-bg: #142038;
-  --title-control-border: #284060;
-  --title-control-text: #dbeafe;
-  --title-control-muted: #6b89ac;
-  --title-chip-bg: #182d48;
-  --title-chip-border: #2d4a6e;
-  --title-chip-text: #c9ddf5;
+  --title-btn-bg: #333333;
+  --title-btn-border: #404040;
+  --title-control-bg: #2a2a2a;
+  --title-control-border: #404040;
+  --title-control-text: #d0d0d0;
+  --title-control-muted: #888888;
+  --title-chip-bg: #2e2e2e;
+  --title-chip-border: #3f3f3f;
+  --title-chip-text: #c0c0c0;
 
   /* ── Doc tabs ── */
-  --doc-tabs-bg: #0a1422;
-  --doc-tab-bg: #152236;
-  --doc-tab-text: #8aa8cc;
+  --doc-tabs-bg: #1a1a1a;
+  --doc-tab-bg: #2a2a2a;
+  --doc-tab-text: #999999;
 
   /* ── Ribbon ── */
-  --ribbon-group-bg: #122033;
-  --ribbon-btn-bg: #1c3050;
-  --ribbon-btn-border: rgba(56, 189, 248, 0.22);
-  --ribbon-caption-bg: rgba(0, 0, 0, 0.25);
-  --ribbon-icon: #fbbf24;
+  --ribbon-group-bg: #2d2d2d;
+  --ribbon-btn-bg: #3a3a3a;
+  --ribbon-btn-border: #4a4a4a;
+  --ribbon-caption-bg: rgba(0, 0, 0, 0.3);
+  --ribbon-icon: #e86d1f;
 
   /* ── Start screen ── */
-  --start-surface: #0f1d2f;
-  --start-card: #152234;
-  --start-border: #253d5c;
-  --start-muted: #7a94b5;
-  --start-hero: rgba(56, 189, 248, 0.1);
+  --start-surface: #1e1e1e;
+  --start-card: #262626;
+  --start-border: #383838;
+  --start-muted: #888888;
+  --start-hero: rgba(0, 150, 214, 0.08);
 
   /* ── Office-style top bar ── */
-  --office-top: #0f1e33;
-  --office-top-deep: #09131f;
-  --office-tab: #0c1828;
-  --office-tab-active: #172b44;
-  --office-tab-text: #9dc4e8;
+  --office-top: #2d2d2d;
+  --office-top-deep: #222222;
+  --office-tab: #292929;
+  --office-tab-active: #1e1e1e;
+  --office-tab-text: #b0b0b0;
   --office-tab-active-text: #ffffff;
 
   /* ── Layout misc ── */
   --steel-dock-width: 430px;
-  --ui-radius: 4px;
-  --ui-gap-xs: 3px;
-  --ui-gap-sm: 6px;
-  --ui-gap-md: 10px;
+  --ui-radius: 2px;
+  --ui-gap-xs: 2px;
+  --ui-gap-sm: 5px;
+  --ui-gap-md: 8px;
   --ui-font-xxs: 10px;
   --ui-font-xs: 11px;
   --ui-font-sm: 12px;
   --ui-font-md: 13px;
   --ui-font-family: "Inter", "SF Pro Text", "Segoe UI Variable", "Segoe UI", sans-serif;
-  --ui-control-h: 28px;
+  --ui-control-h: 26px;
   --traffic-space: 0px;
   --window-controls-space: 0px;
 }
 
 :root[data-theme="light"] {
-  --shell-bg: #f0f4fa;
-  --title-bg: #e4ecf7;
-  --ribbon-bg: #eef4fd;
-  --ribbon-tab-bg: #e4edf9;
+  --shell-bg: #f0f0f0;
+  --title-bg: #e0e0e0;
+  --ribbon-bg: #e8e8e8;
+  --ribbon-tab-bg: #d8d8d8;
   --ribbon-tab-active: #ffffff;
-  --workspace-bg: #dce6f5;
-  --canvas-bg: #f4f8ff;
-  --palette-bg: #e9f1fb;
+  --workspace-bg: #d0d0d0;
+  --canvas-bg: #f5f5f5;
+  --palette-bg: #e4e4e4;
   --panel-bg: #ffffff;
-  --panel-soft: #f3f7fd;
-  --border: #b8ccde;
-  --text: #1a2740;
-  --muted: #516882;
-  --accent: #0284c7;
-  --accent-strong: #d97706;
-  --accent-alt: #7c3aed;
-  --danger: #dc2626;
-  --success: #059669;
-  --grid: #cddaec;
-  --axis-x: #ea580c;
-  --axis-y: #16a34a;
-  --preview: #0284c7;
-  --selection: #2563eb;
-  --crosshair: #9db8d2;
-  --title-btn-bg: #f4f9ff;
-  --title-btn-border: #b0c6dc;
+  --panel-soft: #f5f5f5;
+  --border: #b8b8b8;
+  --text: #202020;
+  --muted: #606060;
+  --accent: #0077aa;
+  --accent-strong: #c85a00;
+  --accent-alt: #5585a0;
+  --danger: #cc2222;
+  --success: #228822;
+  --grid: #d5d5d5;
+  --axis-x: #aa3300;
+  --axis-y: #228822;
+  --preview: #0077aa;
+  --selection: #2255cc;
+  --crosshair: #cccccc;
+  --title-btn-bg: #f0f0f0;
+  --title-btn-border: #c0c0c0;
   --title-control-bg: #ffffff;
-  --title-control-border: #b5c9de;
-  --title-control-text: #1a2740;
-  --title-control-muted: #6a84a2;
-  --title-chip-bg: #eef6ff;
-  --title-chip-border: #b5ccde;
-  --title-chip-text: #243654;
-  --doc-tabs-bg: #e0ecf9;
-  --doc-tab-bg: #d3e5f7;
-  --doc-tab-text: #445e7a;
-  --ribbon-group-bg: #f4f8ff;
+  --title-control-border: #b0b0b0;
+  --title-control-text: #202020;
+  --title-control-muted: #606060;
+  --title-chip-bg: #f0f0f0;
+  --title-chip-border: #c0c0c0;
+  --title-chip-text: #303030;
+  --doc-tabs-bg: #dcdcdc;
+  --doc-tab-bg: #e8e8e8;
+  --doc-tab-text: #505050;
+  --ribbon-group-bg: #f0f0f0;
   --ribbon-btn-bg: #ffffff;
-  --ribbon-btn-border: rgba(150, 180, 210, 0.75);
-  --ribbon-caption-bg: rgba(0,0,0,0.03);
-  --ribbon-icon: #a16207;
-  --start-surface: #eaf1fc;
+  --ribbon-btn-border: rgba(0,0,0,0.2);
+  --ribbon-caption-bg: rgba(0,0,0,0.04);
+  --ribbon-icon: #c85a00;
+  --start-surface: #e8e8e8;
   --start-card: #ffffff;
-  --start-border: #bccfe4;
-  --start-muted: #516882;
-  --start-hero: rgba(2, 132, 199, 0.08);
-  --office-top: #1d4ed8;
-  --office-top-deep: #1e40af;
-  --office-tab: #1e4db8;
-  --office-tab-active: #f4f8ff;
-  --office-tab-text: #bdd7f7;
-  --office-tab-active-text: #1a2740;
+  --start-border: #c0c0c0;
+  --start-muted: #606060;
+  --start-hero: rgba(0, 119, 170, 0.08);
+  --office-top: #1565a8;
+  --office-top-deep: #0e52a0;
+  --office-tab: #156199;
+  --office-tab-active: #f5f5f5;
+  --office-tab-text: #c0d8f0;
+  --office-tab-active-text: #202020;
 }
 
 
@@ -225,12 +228,13 @@ select {
   user-select: none !important;
 }
 
+/* ── AutoCAD-inspired header and ribbon tabs ── */
 .cad-header {
   width: 100%;
   min-width: 0;
-  border-bottom: 1px solid rgba(56, 189, 248, 0.12);
-  background: linear-gradient(180deg, var(--office-top), var(--office-top-deep));
-  box-shadow: 0 1px 8px rgba(0,0,0,0.4), inset 0 -1px 0 rgba(56, 189, 248, 0.1);
+  border-bottom: 1px solid #111;
+  background: linear-gradient(180deg, #323232 0%, #2a2a2a 100%);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
   -webkit-app-region: no-drag;
   position: relative;
   z-index: 200;
@@ -657,15 +661,15 @@ select {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: stretch;
-  gap: 4px;
-  padding: 0 6px 0 calc(6px + var(--traffic-space));
-  border-bottom: 1px solid rgba(56, 189, 248, 0.15);
-  background: linear-gradient(180deg, #142440 0%, #0c1830 100%);
-  min-height: 30px;
+  gap: 2px;
+  padding: 0 4px 0 calc(4px + var(--traffic-space));
+  border-bottom: 1px solid #111;
+  background: linear-gradient(180deg, #323232 0%, #2a2a2a 100%);
+  min-height: 28px;
   min-width: 0;
   overflow-x: hidden;
   overflow-y: visible;
-  box-shadow: inset 0 -1px 0 rgba(56, 189, 248, 0.08);
+  box-shadow: none;
   position: relative;
   z-index: 120;
 }
@@ -836,22 +840,42 @@ select {
   box-shadow: 0 0 8px rgba(56, 189, 248, 0.2);
 }
 
+/* ── AutoCAD-style ribbon tabs ── */
+.ribbon-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px 4px;
+  border-radius: 0;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #b0b0b0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  position: relative;
+  white-space: nowrap;
+  transition: color 0.12s ease, border-color 0.12s ease;
+  -webkit-app-region: no-drag;
+  text-transform: uppercase;
+}
+
+.ribbon-tab:hover {
+  color: #e0e0e0;
+  background: rgba(255,255,255, 0.06);
+  border-bottom-color: rgba(255,255,255,0.2);
+}
+
 .ribbon-tab.active {
-  background: linear-gradient(180deg, rgba(56, 189, 248, 0.18), rgba(56, 189, 248, 0.06));
-  color: #e8f6ff;
-  border-color: rgba(56, 189, 248, 0.4);
-  box-shadow: 0 -1px 6px rgba(56, 189, 248, 0.12);
+  color: #ffffff;
+  border-bottom-color: #0096d6;
+  background: rgba(0, 150, 214, 0.12);
 }
 
 .ribbon-tab.active::after {
-  content: "";
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #38bdf8, transparent);
-  border-radius: 2px 2px 0 0;
+  display: none;
 }
 
 .ribbon-tab.tab-disabled {
@@ -859,16 +883,18 @@ select {
   cursor: not-allowed;
 }
 
+/* ═══ RIBBON BAR ═══ */
 .ribbon {
   display: flex;
-  align-items: stretch;
-  align-content: stretch;
+  align-items: flex-start;
+  align-content: flex-start;
   flex-wrap: nowrap;
-  gap: 3px;
-  padding: 4px 6px 3px;
-  background: linear-gradient(180deg, #162844, #0d1e33);
-  border-top: 1px solid rgba(56, 189, 248, 0.15);
-  overflow-x: hidden;
+  gap: 0;
+  padding: 0;
+  background: #2b2b2b;
+  border-top: 1px solid #444;
+  border-bottom: 1px solid #111;
+  overflow-x: auto;
   overflow-y: visible;
   min-width: 0;
   width: 100%;
@@ -876,6 +902,7 @@ select {
   box-sizing: border-box;
   position: relative;
   z-index: 100;
+  height: 120px;
 }
 
 .platform-mac .top-quickbar {
@@ -940,29 +967,32 @@ select {
   z-index: 2600;
 }
 
+/* ═══ RIBBON GROUP — AutoCAD style ═══ */
 .ribbon-group {
-  min-height: 72px;
-  border: 1px solid rgba(56, 189, 248, 0.18);
-  border-radius: var(--ui-radius);
-  padding: 4px 4px 3px;
-  background: linear-gradient(180deg, rgba(22, 42, 72, 0.9), rgba(13, 26, 48, 0.95));
+  height: 120px;
+  border: none;
+  border-right: 1px solid #3a3a3a;
+  border-radius: 0;
+  padding: 4px 6px 0;
+  background: #2b2b2b;
   display: grid;
   grid-template-rows: 1fr auto;
-  gap: 2px;
+  gap: 0;
   align-content: stretch;
-  flex: 1 1 0;
+  flex: 0 0 auto;
   min-width: 0;
-  box-shadow: inset 0 1px 0 rgba(56, 189, 248, 0.08), 0 1px 3px rgba(0,0,0,0.3);
+  box-shadow: none;
 }
 
+
 .ribbon-group-draw {
-  min-width: 200px;
-  flex: 1.2 1 0;
+  min-width: 250px;
+  flex: 0 0 auto;
 }
 
 .ribbon-group-modify {
-  min-width: 206px;
-  flex: 1.2 1 0;
+  min-width: 180px;
+  flex: 0 0 auto;
 }
 
 .ribbon-group-properties {
@@ -1465,37 +1495,53 @@ select {
   display: none;
 }
 
+/* ═══ GROUP HEADER — bottom label like AutoCAD ═══ */
 .ribbon-group h2 {
   margin: 0;
   font-size: 9px;
-  color: #4a7a9e;
-  letter-spacing: 0.07em;
+  color: #999999;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  font-weight: 700;
+  font-weight: 400;
   text-align: center;
-  padding: 3px 2px;
-  border-top: 1px solid rgba(56, 189, 248, 0.15);
-  background: rgba(9, 18, 32, 0.4);
+  padding: 2px 4px 3px;
+  border-top: 1px solid #3a3a3a;
+  background: transparent;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ribbon-group h2.has-icon::before,
 .panel h2.has-icon::before {
-  color: #38bdf8;
-  font-size: 10px;
+  color: #bbb;
+  font-size: 9px;
 }
 
+/* ═══ RIBBON TOOLS LAYOUT ═══ */
 .ribbon-tools {
-  display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
-  gap: var(--ui-gap-xs);
-  min-height: 54px;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 2px 0;
 }
 
+/* Small buttons in 3-column grid (like AutoCAD Draw panel) */
 .ribbon-tool-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--ui-gap-xs);
+  grid-template-columns: repeat(2, minmax(88px, 1fr));
+  grid-auto-rows: 24px;
+  gap: 2px;
   align-content: start;
+  flex: 1;
+}
+
+/* Modify panel: compact 2-column grid */
+.ribbon-group-modify .ribbon-tool-grid {
+  grid-template-columns: repeat(2, minmax(80px, 1fr));
+  grid-auto-rows: 22px;
+  gap: 2px;
 }
 
 .ribbon-group-file .ribbon-file-grid {
@@ -1521,57 +1567,89 @@ select {
 .ribbon-group-layout .layout-tab.active,
 .ribbon-toggle-btn.active,
 .ribbon-toggle-btn[aria-pressed="true"] {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: linear-gradient(180deg, rgba(56, 189, 248, 0.2), rgba(56, 189, 248, 0.06));
+  border-color: #0096d6;
+  color: #ffffff;
+  background: linear-gradient(180deg, rgba(0, 150, 214, 0.25), rgba(0, 120, 180, 0.12));
 }
 
+/* ═══ RIBBON BUTTONS — AutoCAD vertical icon+label style ═══ */
 .ribbon-btn {
-  min-height: 25px;
+  min-height: 24px;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
-  border-radius: var(--ui-radius);
-  padding: 3px 8px;
-  color: #c8dff6;
-  border: 1px solid rgba(56, 189, 248, 0.2);
-  background: linear-gradient(180deg, rgba(28, 50, 82, 0.9), rgba(15, 30, 55, 0.95));
+  justify-content: flex-start;
+  gap: 5px;
+  border-radius: 2px;
+  padding: 2px 6px;
+  color: #cccccc;
+  border: 1px solid transparent;
+  background: transparent;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 400;
   letter-spacing: 0.01em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: border-color 0.14s ease, box-shadow 0.14s ease, background 0.14s ease;
+  cursor: pointer;
+  transition: background 0.08s ease, border-color 0.08s ease;
 }
 
 .ribbon-btn:hover {
-  border-color: rgba(56, 189, 248, 0.45);
-  background: linear-gradient(180deg, rgba(38, 65, 105, 0.95), rgba(22, 40, 72, 0.98));
-  box-shadow: 0 0 8px rgba(56, 189, 248, 0.12);
-  color: #e8f4ff;
+  border-color: #555555;
+  background: #3a3a3a;
+  color: #ffffff;
 }
 
 .ribbon-btn.has-icon::before {
-  font-size: 12px;
-  color: #fbbf24;
+  font-size: 13px;
+  color: #cccccc;
+  opacity: 0.9;
+  flex-shrink: 0;
 }
 
+/* Large icon button — AutoCAD large square button (e.g. Zaznacz) */
 .ribbon-btn-large {
-  min-height: 54px;
-  display: grid;
-  align-content: center;
-  justify-items: center;
-  gap: 2px;
+  min-height: 58px;
+  width: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   text-align: center;
-  padding: 4px 3px;
+  padding: 4px 2px;
   line-height: 1.1;
+  font-size: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #cccccc;
+  cursor: pointer;
+  flex-shrink: 0;
+  border-radius: 2px;
+  transition: background 0.08s, border-color 0.08s;
+}
+
+.ribbon-btn-large:hover {
+  border-color: #555;
+  background: #3a3a3a;
+}
+
+.ribbon-btn-large.active, .ribbon-btn-large.tool-btn.active {
+  background: rgba(0, 150, 214, 0.2);
+  border-color: #0096d6;
+  color: #7dd3f8;
+}
+
+.ribbon-btn-large.has-icon {
+  flex-direction: column;
 }
 
 .ribbon-btn-large.has-icon::before {
-  font-size: 14px;
-  color: #e3edff;
+  font-size: 24px;
+  color: #d8d8d8;
+  line-height: 1;
+  flex-shrink: 0;
+  display: block;
 }
 
 .control span {
@@ -1653,21 +1731,24 @@ select {
 }
 
 .ribbon-file-grid .ribbon-btn,
-.ribbon-group-modify .ribbon-btn {
+.ribbon-group-modify .ribbon-btn,
+.ribbon-group-modify .tool-btn {
   justify-content: flex-start;
+  padding-left: 8px;
+  gap: 7px;
 }
 
 button {
-  border: 1px solid var(--border);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent), var(--panel-bg);
+  border: 1px solid #404040;
+  background: #333333;
   color: var(--text);
-  padding: 6px 10px;
+  padding: 5px 10px;
   border-radius: var(--ui-radius);
   font-size: var(--ui-font-sm);
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.02em;
   cursor: pointer;
-  transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
+  transition: border-color 0.1s ease, background 0.1s ease;
 }
 
 button.has-icon::before {
@@ -1675,8 +1756,8 @@ button.has-icon::before {
 }
 
 button:hover {
-  border-color: #aebbd0;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  border-color: #585858;
+  background: #3e3e3e;
 }
 
 button:active {
@@ -1694,10 +1775,10 @@ button:disabled:hover {
 }
 
 .tool-btn.active {
-  background: linear-gradient(180deg, rgba(56, 189, 248, 0.22), rgba(56, 189, 248, 0.08));
-  color: #e0f4ff;
-  border-color: rgba(56, 189, 248, 0.5);
-  box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.2), 0 0 8px rgba(56, 189, 248, 0.1);
+  background: linear-gradient(180deg, rgba(0, 150, 214, 0.3), rgba(0, 120, 180, 0.2));
+  color: #e0f2ff;
+  border-color: #0096d6;
+  box-shadow: inset 0 0 0 1px rgba(0, 150, 214, 0.4);
 }
 
 #deleteBtn,
@@ -2101,15 +2182,15 @@ button:disabled:hover {
 }
 
 .statusbar {
-  min-height: 26px;
+  min-height: 24px;
   display: flex;
   align-items: center;
   flex-wrap: nowrap;
-  gap: 12px;
-  padding: 3px 12px;
-  border-top: 1px solid rgba(56, 189, 248, 0.12);
-  background: linear-gradient(180deg, #101e30, #0a1522);
-  color: #4a7090;
+  gap: 14px;
+  padding: 2px 12px;
+  border-top: 1px solid #111;
+  background: #1a1a1a;
+  color: #787878;
   font-size: 10px;
   letter-spacing: 0.04em;
   overflow: hidden;
@@ -2129,35 +2210,34 @@ button:disabled:hover {
   inset: auto;
   min-height: 0;
   overflow: visible;
-  padding: 7px;
-  background: linear-gradient(180deg, #101c2e, #090f1c);
+  padding: 6px;
+  background: #222222;
   pointer-events: auto;
-  border-left: 1px solid rgba(56, 189, 248, 0.12);
+  border-left: 1px solid #111;
   z-index: 20;
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 6px;
 }
 
 .panel {
-  background: linear-gradient(180deg, #142032, #0c1725);
-  border: 1px solid rgba(56, 189, 248, 0.15);
+  background: #272727;
+  border: 1px solid #363636;
   border-radius: var(--ui-radius);
-  padding: 8px;
+  padding: 7px;
   margin: 0;
-  box-shadow: inset 0 1px 0 rgba(56, 189, 248, 0.05);
 }
 
 .panel h2 {
-  margin: -8px -8px 8px;
-  padding: 6px 8px;
-  border-bottom: 1px solid rgba(56, 189, 248, 0.10);
-  background: rgba(0, 0, 0, 0.3);
+  margin: -7px -7px 7px;
+  padding: 5px 8px;
+  border-bottom: 1px solid #333;
+  background: #1e1e1e;
   font-size: 9px;
   letter-spacing: 0.07em;
   text-transform: uppercase;
   font-weight: 700;
-  color: #38749a;
+  color: #888888;
 }
 
 .control {
@@ -2177,21 +2257,21 @@ button:disabled:hover {
 
 .control input,
 .control select {
-  border: 1px solid rgba(37, 60, 90, 0.8);
+  border: 1px solid #3a3a3a;
   border-radius: var(--ui-radius);
   min-height: var(--ui-control-h);
-  padding: 5px 8px;
+  padding: 4px 7px;
   font-size: var(--ui-font-sm);
-  color: var(--text);
-  background: #0c192a;
-  transition: border-color 0.14s ease, box-shadow 0.14s ease;
+  color: #d0d0d0;
+  background: #1e1e1e;
+  transition: border-color 0.12s ease;
 }
 
 .control input:focus,
 .control select:focus {
   outline: none;
-  border-color: rgba(56, 189, 248, 0.5);
-  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.08);
+  border-color: #0096d6;
+  box-shadow: 0 0 0 2px rgba(0, 150, 214, 0.12);
 }
 
 .control input[type="checkbox"] {
