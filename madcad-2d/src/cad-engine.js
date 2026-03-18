@@ -10390,7 +10390,7 @@
       fileMenuBtn: "Menu plików: otwieranie, zapis, import, eksport i ustawienia aplikacji.",
       updateAppBtn: "Sprawdza i instaluje aktualizacje aplikacji.",
       licenseCategoryBtn: "Otwiera panel informacji o licencji i aktywacji tokenu.",
-      loadJsonBtn: "Wczytuje projekt z pliku JSON.",
+      loadJsonBtn: "Wczytuje projekt z pliku JSON lub eksportu MadCAD Scan (.madcad.json).",
       saveJsonBtn: "Zapisuje projekt do pliku JSON.",
       importDxfBtn: "Importuje geometrię z pliku DXF.",
       importDwgBtn: "Importuje geometrię z pliku DWG przez konwerter ODA.",
@@ -11835,7 +11835,7 @@
 
     loadJsonBtn.addEventListener("click", () => {
       jsonFileInput.click();
-      echoCommand("Wybierz plik JSON do wczytania.");
+      echoCommand("Wybierz plik JSON lub eksport MadCAD Scan (.madcad.json) do wczytania.");
     });
     jsonFileInput.addEventListener("change", async () => {
       const [file] = jsonFileInput.files;

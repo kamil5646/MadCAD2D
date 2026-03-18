@@ -1,0 +1,35 @@
+name: MadCADScan
+options:
+  createIntermediateGroups: true
+configs:
+  Debug: debug
+  Release: release
+settings:
+  base:
+    SWIFT_VERSION: 6.0
+    IPHONEOS_DEPLOYMENT_TARGET: '17.0'
+    TARGETED_DEVICE_FAMILY: '1'
+    GENERATE_INFOPLIST_FILE: NO
+    SUPPORTS_MACCATALYST: NO
+    DEVELOPMENT_TEAM: ''
+targets:
+  MadCADScan:
+    type: application
+    platform: iOS
+    deploymentTarget: '17.0'
+    sources:
+      - path: MadCADScan
+    resources:
+      - path: MadCADScan/Resources/Assets.xcassets
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: pl.kamilkasprzak.madcadscan
+        PRODUCT_NAME: MadCAD Scan
+        INFOPLIST_FILE: MadCADScan/Support/Info.plist
+        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: 1.0.0
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        CODE_SIGN_STYLE: Automatic
+        ENABLE_PREVIEWS: YES
+    scheme:
+      testTargets: []

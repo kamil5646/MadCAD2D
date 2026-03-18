@@ -12,3 +12,9 @@ auto-cad/.playwright-cli/
 auto-cad/test-results/
 .venv-logo/
 auto-cad/.venv-icon/
+# Xcode / iOS
+DerivedData/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+build/
