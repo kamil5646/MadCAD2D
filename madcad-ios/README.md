@@ -46,7 +46,10 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
 3. `Zakończ skan`
 4. sprawdź podgląd w `Review`
 5. `Zapisz do Files` lub `Udostępnij`
-6. na desktopie MadCAD: `Pliki -> Wczytaj JSON`
+6. na desktopie MadCAD: `Pliki -> Import skanu iPhone` albo `Pliki -> Wczytaj JSON`
+
+Pelna checklista testu na prawdziwym iPhone Pro:
+- [DEVICE-TEST-CHECKLIST.md](DEVICE-TEST-CHECKLIST.md)
 
 ## Format eksportu
 Payload jest zgodny z desktopowym MadCAD i zawiera:

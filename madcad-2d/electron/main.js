@@ -1180,6 +1180,17 @@ function createMenu() {
     if (!focused || focused.isDestroyed()) {
       return;
     }
+    if (accelerator && accelerator.id) {
+      focused.webContents.executeJavaScript(
+        `(() => {
+          const element = document.getElementById(${JSON.stringify(String(accelerator.id))});
+          if (element) {
+            element.click();
+          }
+        })();`
+      );
+      return;
+    }
     const commandKey = isMac ? 'metaKey' : 'ctrlKey';
     focused.webContents.executeJavaScript(
       `window.dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(
@@ -1217,6 +1228,10 @@ function createMenu() {
           label: t('Wczytaj JSON', 'Open JSON'),
           accelerator: 'CmdOrCtrl+O',
           click: () => executeRendererShortcut({ key: 'o' })
+        },
+        {
+          label: t('Import skanu iPhone', 'Import iPhone scan'),
+          click: () => executeRendererShortcut({ id: 'importScanBtn' })
         },
         {
           label: t('Zapisz JSON', 'Save JSON'),

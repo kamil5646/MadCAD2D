@@ -19,6 +19,7 @@
   const redoBtn = document.getElementById("redoBtn");
   const saveJsonBtn = document.getElementById("saveJsonBtn");
   const loadJsonBtn = document.getElementById("loadJsonBtn");
+  const importScanBtn = document.getElementById("importScanBtn");
   const exportDxfBtn = document.getElementById("exportDxfBtn");
   const exportDwgBtn = document.getElementById("exportDwgBtn");
   const exportSvgBtn = document.getElementById("exportSvgBtn");
@@ -836,6 +837,7 @@
       ["#updateAppBtn", "Updates"],
       ["#fileMenuBtn", "Files (Alt+S)"],
       ["#loadJsonBtn", "Load JSON (Ctrl+O)"],
+      ["#importScanBtn", "Import iPhone scan"],
       ["#saveJsonBtn", "Save JSON (Ctrl+S)"],
       ["#importDxfBtn", "Import DXF (Alt+I)"],
       ["#importDwgBtn", "Import DWG (Alt+W)"],
@@ -900,6 +902,7 @@
       Pliki: "Files",
       "Projekt, import/eksport CAD, wydruk i ustawienia aplikacji": "Project, CAD import/export, printing and app settings",
       Projekt: "Project",
+      "Import skanu iPhone": "Import iPhone scan",
       CAD: "CAD",
       Aplikacja: "App",
       Wydruk: "Print",
@@ -10391,6 +10394,7 @@
       updateAppBtn: "Sprawdza i instaluje aktualizacje aplikacji.",
       licenseCategoryBtn: "Otwiera panel informacji o licencji i aktywacji tokenu.",
       loadJsonBtn: "Wczytuje projekt z pliku JSON lub eksportu MadCAD Scan (.madcad.json).",
+      importScanBtn: "Importuje plan zeskanowany na iPhonie Pro przez MadCAD Scan (.madcad.json).",
       saveJsonBtn: "Zapisuje projekt do pliku JSON.",
       importDxfBtn: "Importuje geometrię z pliku DXF.",
       importDwgBtn: "Importuje geometrię z pliku DWG przez konwerter ODA.",
@@ -11833,10 +11837,19 @@
       await saveTextWithFeedback("rysunek.json", JSON.stringify(payload, null, 2), "Zapisano plik: rysunek.json");
     });
 
-    loadJsonBtn.addEventListener("click", () => {
+    const openJsonImportPicker = (message) => {
       jsonFileInput.click();
-      echoCommand("Wybierz plik JSON lub eksport MadCAD Scan (.madcad.json) do wczytania.");
+      echoCommand(message);
+    };
+
+    loadJsonBtn.addEventListener("click", () => {
+      openJsonImportPicker("Wybierz plik JSON lub eksport MadCAD Scan (.madcad.json) do wczytania.");
     });
+    if (importScanBtn) {
+      importScanBtn.addEventListener("click", () => {
+        openJsonImportPicker("Wybierz plik skanu z iPhone'a (.madcad.json) do importu.");
+      });
+    }
     jsonFileInput.addEventListener("change", async () => {
       const [file] = jsonFileInput.files;
       if (!file) {
