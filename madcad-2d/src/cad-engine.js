@@ -25,7 +25,6 @@
   const printDrawingBtn = document.getElementById("printDrawingBtn");
   const importDxfBtn = document.getElementById("importDxfBtn");
   const importDwgBtn = document.getElementById("importDwgBtn");
-  const toggleRibbonBtn = document.getElementById("toggleRibbonBtn");
   const updateAppBtn = document.getElementById("updateAppBtn");
   const fileMenu = document.getElementById("fileMenu");
   const fileMenuBtn = document.getElementById("fileMenuBtn");
@@ -34,7 +33,6 @@
   const licenseSummaryChip = document.getElementById("licenseSummaryChip") || licenseCategoryBtn;
   const fitViewBtn = document.getElementById("fitViewBtn");
   const clearBtn = document.getElementById("clearBtn");
-  const steelGenerateQuickBtn = document.getElementById("steelGenerateQuickBtn");
   const jsonFileInput = document.getElementById("jsonFileInput");
   const dxfFileInput = document.getElementById("dxfFileInput");
 
@@ -57,6 +55,13 @@
   const circleConfigRadiusInput = document.getElementById("circleConfigRadiusInput");
 
   const activeLayerSelect = document.getElementById("activeLayerSelect");
+  const bottomLayerSelect = document.getElementById("bottomLayerSelect");
+  const bottomAddLayerBtn = document.getElementById("bottomAddLayerBtn");
+  const layerQuickAddOverlay = document.getElementById("layerQuickAddOverlay");
+  const layerQuickAddInput = document.getElementById("layerQuickAddInput");
+  const layerQuickAddConfirmBtn = document.getElementById("layerQuickAddConfirmBtn");
+  const layerQuickAddCancelBtn = document.getElementById("layerQuickAddCancelBtn");
+  const layerQuickAddCloseBtn = document.getElementById("layerQuickAddCloseBtn");
   const newLayerNameInput = document.getElementById("newLayerNameInput");
   const addLayerBtn = document.getElementById("addLayerBtn");
   const layerList = document.getElementById("layerList");
@@ -107,6 +112,9 @@
   const deleteBtn = document.getElementById("deleteBtn");
   const toFrontBtn = document.getElementById("toFrontBtn");
   const toBackBtn = document.getElementById("toBackBtn");
+  const viewPanBtn = document.getElementById("viewPanBtn");
+  const viewResetBtn = document.getElementById("viewResetBtn");
+  const steelOptionsCardTitle = document.getElementById("steelOptionsCardTitle");
 
   const coordsLabel = document.getElementById("coords");
   const zoomInfoLabel = document.getElementById("zoomInfo");
@@ -114,13 +122,13 @@
   const toolInfoLabel = document.getElementById("toolInfo");
   window.__debugVars = { toolInfoLabel };
   const workspaceStateInfo = document.getElementById("workspaceStateInfo");
+  const angleInfoLabel = document.getElementById("angleInfo");
   const toastMessage = document.getElementById("toastMessage");
   const startScreen = document.getElementById("startScreen");
   const startEntitiesCount = document.getElementById("startEntitiesCount");
   const startLayersCount = document.getElementById("startLayersCount");
   const startToolName = document.getElementById("startToolName");
   const startScaleValue = document.getElementById("startScaleValue");
-  const layoutTabs = Array.from(document.querySelectorAll(".layout-tab[data-layout]"));
   const licenseOverlay = document.getElementById("licenseOverlay");
   const licenseDeviceIdInput = document.getElementById("licenseDeviceIdInput");
   const licenseOpenWebFormBtn = document.getElementById("licenseOpenWebFormBtn");
@@ -824,11 +832,9 @@
       ["#undoBtn", "Undo (Ctrl+Z)"],
       ["#redoBtn", "Redo (Ctrl+Y)"],
       ["#flyoutLayersBtn", "Layers"],
-      ["#steelGenerateQuickBtn", "Generate (Alt+G)"],
       ["#flyoutSelectionBtn", "Selection (Alt+Q)"],
-      ["#toggleRibbonBtn", "Collapse ribbon (F4)"],
       ["#updateAppBtn", "Updates"],
-      ["#fileMenuBtn", "Save/Print (Alt+S)"],
+      ["#fileMenuBtn", "Files (Alt+S)"],
       ["#loadJsonBtn", "Load JSON (Ctrl+O)"],
       ["#saveJsonBtn", "Save JSON (Ctrl+S)"],
       ["#importDxfBtn", "Import DXF (Alt+I)"],
@@ -837,6 +843,10 @@
       ["#exportDwgBtn", "Export DWG (Alt+R)"],
       ["#exportSvgBtn", "Export SVG (Alt+V)"],
       ["#printDrawingBtn", "Print/PDF (Ctrl+P)"],
+      ["#viewPanBtn", "Pan view (H)"],
+      ["#viewResetBtn", "Reset view (Shift+0)"],
+      ["#activeLayerInfo", "Layer"],
+      ["#angleInfo", "Angle: —"],
       [".ribbon-tab[data-page='home']", "Home"],
       [".ribbon-tab[data-page='references']", "Dimensioning"],
       [".ribbon-tab[data-page='design']", "Steel"],
@@ -865,6 +875,7 @@
       ["#showGridToggle", "Grid (G)"],
       ["#selectionInfo", "No object selected"],
       ["#addLayerBtn", "Add (Alt+N)"],
+      ["#bottomAddLayerBtn", "+"],
       ["#steelGenerateBtn", "Generate element (Alt+Enter)"]
     ];
     for (const [selector, text] of entries) {
@@ -886,16 +897,20 @@
       }
     }
     const uiTextMap = {
-      "Zapisz / Drukuj": "Save / Print",
-      "Projekt, import/eksport CAD i podgląd wydruku": "Project, CAD import/export and print preview",
+      Pliki: "Files",
+      "Projekt, import/eksport CAD, wydruk i ustawienia aplikacji": "Project, CAD import/export, printing and app settings",
       Projekt: "Project",
       CAD: "CAD",
+      Aplikacja: "App",
       Wydruk: "Print",
       Rysuj: "Draw",
       Modyfikuj: "Modify",
       Właściwości: "Properties",
-      Tryby: "Modes",
       Warstwy: "Layers",
+      Nawigacja: "Navigation",
+      "Typ wymiaru": "Dimension type",
+      Ustawienia: "Settings",
+      "Kąt i snap": "Angle and snap",
       "Konstrukcje stalowe": "Steel structures",
       "Właściwości zaznaczenia": "Selection properties",
       "Brak zaznaczonego obiektu": "No object selected",
@@ -910,10 +925,10 @@
       Precyzja: "Precision",
       "Tekst wymiaru": "Dimension text",
       "Kolor wymiaru": "Dimension color",
-      "Wymiar wyrównany (Alt+1)": "Aligned dimension (Alt+1)",
-      "Wymiar liniowy (Alt+2)": "Linear dimension (Alt+2)",
-      "Wymiar obrócony (Alt+3)": "Rotated dimension (Alt+3)",
-      "Wymiar kątowy (Alt+4)": "Angular dimension (Alt+4)",
+      "Wyrównany (Alt+1)": "Aligned (Alt+1)",
+      "Liniowy (Alt+2)": "Linear (Alt+2)",
+      "Obrócony (Alt+3)": "Rotated (Alt+3)",
+      "Kątowy (Alt+4)": "Angular (Alt+4)",
       Kolor: "Color",
       Grubość: "Thickness",
       Styl: "Style",
@@ -926,8 +941,12 @@
       Język: "Language",
       Polski: "Polish",
       "Aktywna": "Active",
+      "Warstwa": "Layer",
       "Nowa warstwa": "New layer",
       "Szablon konstrukcji": "Structure template",
+      "Opcje bramy": "Gate options",
+      "Opcje ogrodzenia": "Fence options",
+      "Opcje balkonu": "Balcony options",
       Brama: "Gate",
       Ogrodzenie: "Fence",
       Balkon: "Balcony",
@@ -1646,14 +1665,6 @@
     appRoot.classList.toggle("splitter-dragging", state.splitterDragging);
     appRoot.style.setProperty("--palette-width", `${state.paletteWidth}px`);
 
-    if (toggleRibbonBtn) {
-      toggleRibbonBtn.textContent = formatShortcutTextForPlatform(
-        state.ribbonCollapsed ? "Rozwiń wstążkę (F4)" : "Zwiń wstążkę (F4)"
-      );
-      toggleRibbonBtn.dataset.icon = state.ribbonCollapsed ? "\u25B6" : "\u25BC";
-      applySvgIconMask(toggleRibbonBtn);
-    }
-
     if (state.paletteHidden || state.ribbonCollapsed) {
       state.activeFlyout = null;
       setFileMenuOpen(false);
@@ -2002,11 +2013,8 @@
     if (["home", "główne", "glowne"].includes(value)) {
       return "home";
     }
-    if (["design", "manage", "zarzadzaj", "zarządzaj", "projekt", "stal", "steel"].includes(value)) {
+    if (["design", "projekt", "stal", "steel"].includes(value)) {
       return "design";
-    }
-    if (["layout", "output", "wyjście", "wyjscie", "układ", "uklad"].includes(value)) {
-      return "home";
     }
     if (["references", "reference", "annotate", "adnotacje", "adnotacja", "wymiarowanie", "wymiary"].includes(value)) {
       return "references";
@@ -2014,14 +2022,8 @@
     if (["view", "widok"].includes(value)) {
       return "view";
     }
-    if (["layers", "layer", "warstwy", "warstwa"].includes(value)) {
+    if (["layers", "layer", "warstwy", "warstwa", "manage", "zarzadzaj", "zarządzaj"].includes(value)) {
       return "layers";
-    }
-    if (["shortcuts", "skr", "skrót", "skrot", "skróty", "skroty"].includes(value)) {
-      return "home";
-    }
-    if (["insert", "wstaw", "wstawianie", "mailings", "mailing", "review", "recenzja", "sprawdzenie"].includes(value)) {
-      return "home";
     }
     return "home";
   }
@@ -2037,9 +2039,6 @@
     }
     if (normalized === "design") {
       return t("Stal", "Steel");
-    }
-    if (normalized === "layout") {
-      return t("Układ", "Layout");
     }
     if (normalized === "view") {
       return t("Widok", "View");
@@ -2071,9 +2070,6 @@
   function syncLayoutTabs() {
     const normalized = normalizeLayoutTab(state.layoutTab);
     state.layoutTab = normalized;
-    layoutTabs.forEach((tab) => {
-      tab.classList.toggle("active", tab.dataset.layout === normalized);
-    });
     if (appRoot) {
       appRoot.classList.toggle("layout-sheet", normalized === "sheet1");
     }
@@ -2088,13 +2084,6 @@
     state.ribbonPage = page;
     if (appRoot) {
       appRoot.dataset.ribbonPage = page;
-    }
-
-    // Zakładka Stal zawsze pracuje w trybie modelu stalowego.
-    if (page === "design" && (state.workspaceView !== "model" || normalizeWorkspaceMode(state.workspaceMode) !== "steel")) {
-      state.workspaceView = "model";
-      state.workspaceMode = "steel";
-      syncWorkspaceView();
     }
 
     ribbonTabs.forEach((tab) => {
@@ -4141,18 +4130,42 @@
 
   function updateStatus(pointer) {
     const point = pointer || state.pointerWorld;
-    coordsLabel.textContent = `X: ${point.x.toFixed(2)} Y: ${point.y.toFixed(2)}`;
-    zoomInfoLabel.textContent = `${t("Skala", "Scale")}: ${(state.view.scale * 100).toFixed(0)}%`;
-    entityCountLabel.textContent = `${t("Obiekty", "Objects")}: ${state.entities.length}`;
+    if (coordsLabel) {
+      coordsLabel.textContent = `X: ${point.x.toFixed(2)} Y: ${point.y.toFixed(2)}`;
+    }
+    if (zoomInfoLabel) {
+      zoomInfoLabel.textContent = `${t("Skala", "Scale")}: ${(state.view.scale * 100).toFixed(0)}%`;
+    }
+    if (entityCountLabel) {
+      entityCountLabel.textContent = `${t("Obiekty", "Objects")}: ${state.entities.length}`;
+    }
     if (state.commandState) {
-      toolInfoLabel.textContent = `${t("Polecenie", "Command")}: ${String(state.commandState.name || "").toUpperCase()}`;
-      toolInfoLabel.dataset.icon = "\u23F5";
+      if (toolInfoLabel) {
+        toolInfoLabel.textContent = `${t("Polecenie", "Command")}: ${String(state.commandState.name || "").toUpperCase()}`;
+        toolInfoLabel.dataset.icon = "\u23F5";
+      }
     } else {
       const lengthPreview = String(state.lengthInputBuffer || "").trim();
       const lengthSuffix = lengthPreview ? ` | ${t("Długość", "Length")}: ${lengthPreview}` : "";
       const snapSuffix = state.snap ? ` | SNAP: ${t("WŁ", "ON")}` : ` | SNAP: ${t("WYŁ", "OFF")}`;
-      toolInfoLabel.textContent = `${t("Narzędzie", "Tool")}: ${TOOL_LABELS[state.tool] || state.tool}${lengthSuffix}${snapSuffix}`;
-      toolInfoLabel.dataset.icon = TOOL_ICONS[state.tool] || "\u2699";
+      if (toolInfoLabel) {
+        toolInfoLabel.textContent = `${t("Narzędzie", "Tool")}: ${TOOL_LABELS[state.tool] || state.tool}${lengthSuffix}${snapSuffix}`;
+        toolInfoLabel.dataset.icon = TOOL_ICONS[state.tool] || "\u2699";
+      }
+    }
+    if (angleInfoLabel) {
+      let angleText = "—";
+      if (state.drawStart && ["line", "measure", "dimension"].includes(state.tool)) {
+        const targetPoint = state.previewPoint || point || state.pointerWorld;
+        if (targetPoint) {
+          const dx = targetPoint.x - state.drawStart.x;
+          const dy = targetPoint.y - state.drawStart.y;
+          if (Math.abs(dx) > 0.0001 || Math.abs(dy) > 0.0001) {
+            angleText = `${normalizeAngleDegrees((Math.atan2(dy, dx) * 180) / Math.PI).toFixed(2)}°`;
+          }
+        }
+      }
+      angleInfoLabel.textContent = `${t("Kąt", "Angle")}: ${angleText}`;
     }
     if (workspaceStateInfo) {
       const modeLabel = state.workspaceMode === "steel" ? t("Generator stali", "Steel generator") : t("Rysowanie 2D", "2D drawing");
@@ -5652,7 +5665,7 @@
       counts.set(entity.layerId, (counts.get(entity.layerId) || 0) + 1);
     }
 
-    activeLayerSelect.innerHTML = state.layers
+    const verboseLayerOptions = state.layers
       .map((layer) => {
         const suffix = [layer.locked ? t("zabl.", "locked") : "", !layer.visible ? t("ukryta", "hidden") : ""]
           .filter(Boolean)
@@ -5662,7 +5675,17 @@
         }</option>`;
       })
       .join("");
-    activeLayerSelect.value = state.activeLayerId;
+    const compactLayerOptions = state.layers
+      .map((layer) => `<option value="${layer.id}">${escapeHtml(layer.name)}</option>`)
+      .join("");
+    if (activeLayerSelect) {
+      activeLayerSelect.innerHTML = verboseLayerOptions;
+      activeLayerSelect.value = state.activeLayerId;
+    }
+    if (bottomLayerSelect) {
+      bottomLayerSelect.innerHTML = compactLayerOptions;
+      bottomLayerSelect.value = state.activeLayerId;
+    }
 
     layerList.innerHTML = state.layers
       .map((layer) => {
@@ -7480,22 +7503,6 @@
     return true;
   }
 
-  function openCustomSteelSetup() {
-    setWorkspaceMode("steel");
-    setRibbonPage("design", { persist: false });
-    if (state.ribbonCollapsed) {
-      setRibbonCollapsed(false, { persist: false });
-    }
-    setPaletteHidden(false);
-    steelTemplateSelect.focus();
-    echoCommand(
-      t(
-        "Stal: wybierz szablon (Brama/Ogrodzenie/Balkon), ustaw parametry i kliknij Generuj element.",
-        "Steel: choose template (Gate/Fence/Balcony), set parameters, then click Generate element."
-      )
-    );
-  }
-
   function createLayer(name) {
     const trimmed = String(name || "").trim();
     const base = trimmed || `${t("Warstwa", "Layer")} ${state.layers.length}`;
@@ -7520,6 +7527,40 @@
     markDirty();
     queueRender();
     return newLayer;
+  }
+
+  function setLayerQuickAddOpen(open) {
+    if (!layerQuickAddOverlay) {
+      return;
+    }
+    const next = Boolean(open);
+    layerQuickAddOverlay.hidden = !next;
+    layerQuickAddOverlay.setAttribute("aria-hidden", next ? "false" : "true");
+    if (next) {
+      const suggestedName = `${t("Warstwa", "Layer")} ${state.layers.length}`;
+      if (layerQuickAddInput) {
+        layerQuickAddInput.value = suggestedName;
+        requestAnimationFrame(() => {
+          layerQuickAddInput.focus();
+          layerQuickAddInput.select();
+        });
+      }
+    } else if (layerQuickAddInput) {
+      layerQuickAddInput.value = "";
+    }
+  }
+
+  function submitQuickLayerAdd() {
+    const proposedName = layerQuickAddInput ? layerQuickAddInput.value : "";
+    const layer = createLayer(proposedName);
+    if (!layer) {
+      return false;
+    }
+    renderLayerPanel();
+    updateStatus();
+    echoCommand(`Dodano warstwę: ${layer.name}.`);
+    setLayerQuickAddOpen(false);
+    return true;
   }
 
   function deleteLayer(layerId) {
@@ -7736,6 +7777,53 @@
   function syncSteelTemplateMeta() {
     const template = normalizeSteelTemplate(state.steelPreset) || "gate";
     const meta = STEEL_TEMPLATE_META[template] || STEEL_TEMPLATE_META.gate;
+    const visibleFieldsByTemplate = {
+      gate: new Set([
+        "template",
+        "width",
+        "height",
+        "frameProfile",
+        "groundClearance",
+        "infillPattern",
+        "barWidth",
+        "panelCount",
+        "topPanel",
+        "bottomPanel",
+        "gateLeafCount",
+        "innerFrame",
+        "diagonal"
+      ]),
+      fence: new Set([
+        "template",
+        "width",
+        "height",
+        "frameProfile",
+        "groundClearance",
+        "basePlateHeight",
+        "sectionCount",
+        "infillPattern",
+        "barWidth",
+        "panelCount",
+        "topPanel",
+        "bottomPanel",
+        "postWidth",
+        "postLength"
+      ]),
+      balcony: new Set([
+        "template",
+        "width",
+        "height",
+        "frameProfile",
+        "infillPattern",
+        "barWidth",
+        "panelCount",
+        "topPanel",
+        "bottomPanel",
+        "sectionCount",
+        "postWidth"
+      ])
+    };
+    const visibleFields = visibleFieldsByTemplate[template] || visibleFieldsByTemplate.gate;
 
     if (steelTemplateHint) {
       steelTemplateHint.textContent = meta.hint;
@@ -7748,6 +7836,28 @@
         badge.textContent = badgeText;
         steelTemplateBadges.appendChild(badge);
       });
+    }
+
+    document.querySelectorAll(".steel-control[data-steel-field]").forEach((control) => {
+      const field = String(control.getAttribute("data-steel-field") || "").trim();
+      control.toggleAttribute("hidden", !visibleFields.has(field));
+    });
+    document.querySelectorAll(".steel-card").forEach((card) => {
+      const controls = Array.from(card.querySelectorAll(".steel-control[data-steel-field]"));
+      if (!controls.length) {
+        card.hidden = false;
+        return;
+      }
+      const anyVisible = controls.some((control) => !control.hasAttribute("hidden"));
+      card.toggleAttribute("hidden", !anyVisible);
+    });
+    if (steelOptionsCardTitle) {
+      steelOptionsCardTitle.textContent =
+        template === "fence"
+          ? t("Opcje ogrodzenia", "Fence options")
+          : template === "balcony"
+            ? t("Opcje balkonu", "Balcony options")
+            : t("Opcje bramy", "Gate options");
     }
 
     state.steelPanelCount = clamp(Math.round(Number(state.steelPanelCount) || 12), 1, 120, 12);
@@ -10277,7 +10387,7 @@
 
   function applyHoverHelpTooltips() {
     const tooltipById = {
-      fileMenuBtn: "Menu zapisu i druku: otwieranie, zapis, import i eksport rysunków.",
+      fileMenuBtn: "Menu plików: otwieranie, zapis, import, eksport i ustawienia aplikacji.",
       updateAppBtn: "Sprawdza i instaluje aktualizacje aplikacji.",
       licenseCategoryBtn: "Otwiera panel informacji o licencji i aktywacji tokenu.",
       loadJsonBtn: "Wczytuje projekt z pliku JSON.",
@@ -10288,6 +10398,8 @@
       exportDwgBtn: "Eksportuje rysunek do pliku DWG przez konwerter ODA.",
       exportSvgBtn: "Eksportuje rysunek do pliku SVG.",
       printDrawingBtn: "Otwiera podgląd wydruku i zapis do PDF.",
+      viewPanBtn: "Włącza narzędzie panoramowania widoku.",
+      viewResetBtn: "Przywraca domyślny widok roboczy.",
       undoBtn: "Cofa ostatnią operację.",
       redoBtn: "Ponawia cofniętą operację.",
       moveCmdBtn: "Przesuwa zaznaczone obiekty.",
@@ -10304,9 +10416,7 @@
       dimRotatedBtn: "Włącza wymiar obrócony według zadanego kąta.",
       dimAngularBtn: "Włącza wymiar kątowy (4 wskazania: wierzchołek, ramię 1, ramię 2, położenie łuku).",
       flyoutLayersBtn: "Otwiera panel warstw i ustawień siatki.",
-      steelGenerateQuickBtn: "Szybko generuje konstrukcję stalową z aktualnych parametrów.",
       flyoutSelectionBtn: "Otwiera panel właściwości zaznaczenia.",
-      toggleRibbonBtn: "Zwija lub rozwija wstążkę narzędzi.",
       layoutTabModel: "Przełącza na układ modelu roboczego.",
       layoutTabSheet1: "Przełącza na układ arkusza wydruku.",
       snapToggle: "Przyciąga kursor do siatki i punktów charakterystycznych.",
@@ -10321,6 +10431,12 @@
       dimensionAngleSnapInput: "Ustawia skok przyciągania kątowego podczas wskazywania punktów wymiaru.",
       newLayerNameInput: "Wpisz nazwę nowej warstwy.",
       addLayerBtn: "Dodaje nową warstwę do projektu.",
+      bottomLayerSelect: "Szybko wybiera aktywną warstwę dla nowych obiektów.",
+      bottomAddLayerBtn: "Szybko dodaje nową warstwę i ustawia ją jako aktywną.",
+      layerQuickAddInput: "Wpisz nazwę nowej warstwy w szybkim oknie dodawania.",
+      layerQuickAddConfirmBtn: "Tworzy nową warstwę i ustawia ją jako aktywną.",
+      layerQuickAddCancelBtn: "Zamyka szybkie dodawanie warstwy bez zapisu.",
+      layerQuickAddCloseBtn: "Zamyka szybkie dodawanie warstwy.",
       steelTopPanelSizeInput: "Ustawia wysokość panelu górnego w milimetrach.",
       steelBottomPanelSizeInput: "Ustawia wysokość panelu dolnego w milimetrach.",
       steelGenerateBtn: "Generuje konstrukcję według bieżących parametrów."
@@ -10463,7 +10579,12 @@
     steelInnerFrameToggle.checked = state.steelInnerFrame;
     steelDiagonalToggle.checked = state.steelDiagonal;
     syncSteelTemplateMeta();
-    activeLayerSelect.value = state.activeLayerId;
+    if (activeLayerSelect) {
+      activeLayerSelect.value = state.activeLayerId;
+    }
+    if (bottomLayerSelect) {
+      bottomLayerSelect.value = state.activeLayerId;
+    }
     syncLayoutTabs();
     syncStartSummary();
   }
@@ -10517,6 +10638,20 @@
         setPaletteHidden(true);
         echoCommand("Panele: ukryte.");
       }
+      return;
+    }
+
+    if (event.key === "F11") {
+      event.preventDefault();
+      setLayoutTab("model");
+      echoCommand("Aktywny układ: Model.");
+      return;
+    }
+
+    if (event.key === "F12") {
+      event.preventDefault();
+      setLayoutTab("sheet1");
+      echoCommand("Aktywny układ: Arkusz1 (podgląd wydruku).");
       return;
     }
 
@@ -10581,6 +10716,15 @@
     }
 
     const key = event.key.toLowerCase();
+
+    if (event.shiftKey && key === "0") {
+      event.preventDefault();
+      resetViewTransform();
+      queueRender();
+      markDirty();
+      echoCommand(t("Widok został zresetowany.", "View has been reset."));
+      return;
+    }
 
     if (event.ctrlKey || event.metaKey) {
       if (key === "z") {
@@ -10737,11 +10881,7 @@
       }
       if (key === "g") {
         event.preventDefault();
-        if (steelGenerateQuickBtn && state.activeRibbonPage === "design") {
-          steelGenerateQuickBtn.click();
-        } else {
-          steelGenerateBtn.click();
-        }
+        steelGenerateBtn.click();
         return;
       }
       if (key === "q") {
@@ -10861,8 +11001,45 @@
       return target instanceof Element && Boolean(target.closest("#licenseOverlay, #licenseCategoryBtn"));
     };
 
+    const isPassiveUiEventTarget = (target) => {
+      return (
+        target instanceof Element &&
+        Boolean(
+          target.closest(
+            [
+              ".ribbon-tab[data-page]",
+              "#fileMenuBtn",
+              "#fileMenuPanel",
+              "#updateAppBtn",
+              "#fitViewBtn",
+              "#viewPanBtn",
+              "#viewResetBtn",
+              "#bottomLayerSelect",
+              "#bottomAddLayerBtn",
+              "#layerQuickAddOverlay",
+              "#layerQuickAddInput",
+              "#layerQuickAddConfirmBtn",
+              "#layerQuickAddCancelBtn",
+              "#layerQuickAddCloseBtn",
+              "#snapToggle",
+              "#showGridToggle",
+              "#orthoToggle",
+              ".palette-launch-btn",
+              "#licenseCloseBtn",
+              "#licenseOpenWebFormBtn",
+              "#licenseCopyDeviceIdBtn",
+              "#licenseSupportProjectBtn"
+            ].join(",")
+          )
+        )
+      );
+    };
+
     const guardInteractionWhenLocked = (event) => {
       if (isLicenseUiEventTarget(event.target)) {
+        return;
+      }
+      if (isPassiveUiEventTarget(event.target)) {
         return;
       }
       if (licenseSession.active) {
@@ -10957,14 +11134,26 @@
       });
     }
 
+    if (viewPanBtn) {
+      viewPanBtn.addEventListener("click", () => {
+        setTool("pan");
+        echoCommand(`Narzędzie: ${String(TOOL_LABELS.pan || "Pan widoku").toUpperCase()}.`);
+      });
+    }
+
+    if (viewResetBtn) {
+      viewResetBtn.addEventListener("click", () => {
+        resetViewTransform();
+        queueRender();
+        markDirty();
+        echoCommand(t("Widok został zresetowany.", "View has been reset."));
+      });
+    }
+
     ribbonTabs.forEach((tab) => {
       tab.addEventListener("click", () => {
         setFileMenuOpen(false);
         const page = normalizeRibbonPage(tab.dataset.page);
-        if (page === "design") {
-          openCustomSteelSetup();
-          return;
-        }
         if (state.workspaceMode === "steel") {
           setWorkspaceMode("draw", { persist: false });
         }
@@ -10991,21 +11180,6 @@
         }
         const next = state.activeFlyout === target ? null : target;
         setActiveFlyout(next, { persist: false });
-      });
-    });
-
-    layoutTabs.forEach((tab) => {
-      tab.addEventListener("click", () => {
-        if (state.workspaceView === "start") {
-          setWorkspaceMode("draw");
-        }
-        const layout = normalizeLayoutTab(tab.dataset.layout);
-        setLayoutTab(layout);
-        if (layout === "sheet1") {
-          echoCommand("Aktywny układ: Arkusz1 (podgląd wydruku).");
-        } else {
-          echoCommand("Aktywny układ: Model.");
-        }
       });
     });
 
@@ -11121,13 +11295,6 @@
       }
       echoCommand("Wyczyszczono rysunek.");
     });
-    if (toggleRibbonBtn) {
-      toggleRibbonBtn.addEventListener("click", () => {
-        setRibbonCollapsed(!state.ribbonCollapsed);
-        echoCommand(`Wstążka: ${state.ribbonCollapsed ? "zwinięta" : "rozwinięta"}.`);
-      });
-    }
-
     snapToggle.addEventListener("click", () => {
       setSnapEnabled(!state.snap);
       echoCommand(`Przyciąganie: ${state.snap ? "WŁ." : "WYŁ."}`);
@@ -11527,19 +11694,21 @@
     steelGenerateBtn.addEventListener("click", () => {
       generateSteelTemplateFromState();
     });
-    if (steelGenerateQuickBtn) {
-      steelGenerateQuickBtn.addEventListener("click", () => {
-        if (state.workspaceView === "start") {
-          openCustomSteelSetup();
-        }
-        generateSteelTemplateFromState();
-      });
-    }
-
     activeLayerSelect.addEventListener("change", () => {
       setActiveLayer(activeLayerSelect.value);
+      renderLayerPanel();
+      updateStatus();
       echoCommand(`Aktywna warstwa: ${getLayerNameById(state.activeLayerId)}.`);
     });
+
+    if (bottomLayerSelect) {
+      bottomLayerSelect.addEventListener("change", () => {
+        setActiveLayer(bottomLayerSelect.value);
+        renderLayerPanel();
+        updateStatus();
+        echoCommand(`Aktywna warstwa: ${getLayerNameById(state.activeLayerId)}.`);
+      });
+    }
 
     addLayerBtn.addEventListener("click", () => {
       const layer = createLayer(newLayerNameInput.value);
@@ -11557,6 +11726,51 @@
         }
       }
     });
+
+    if (bottomAddLayerBtn) {
+      bottomAddLayerBtn.addEventListener("click", () => {
+        setLayerQuickAddOpen(true);
+      });
+    }
+
+    if (layerQuickAddConfirmBtn) {
+      layerQuickAddConfirmBtn.addEventListener("click", () => {
+        submitQuickLayerAdd();
+      });
+    }
+
+    if (layerQuickAddCancelBtn) {
+      layerQuickAddCancelBtn.addEventListener("click", () => {
+        setLayerQuickAddOpen(false);
+      });
+    }
+
+    if (layerQuickAddCloseBtn) {
+      layerQuickAddCloseBtn.addEventListener("click", () => {
+        setLayerQuickAddOpen(false);
+      });
+    }
+
+    if (layerQuickAddOverlay) {
+      layerQuickAddOverlay.addEventListener("click", (event) => {
+        if (event.target === layerQuickAddOverlay) {
+          setLayerQuickAddOpen(false);
+        }
+      });
+    }
+
+    if (layerQuickAddInput) {
+      layerQuickAddInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          submitQuickLayerAdd();
+        }
+        if (event.key === "Escape") {
+          event.preventDefault();
+          setLayerQuickAddOpen(false);
+        }
+      });
+    }
 
     layerList.addEventListener("click", (event) => {
       const target = event.target;

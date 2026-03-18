@@ -26,15 +26,6 @@
             <button id="undoBtn" class="ribbon-action-btn has-icon" data-icon="&#8630;" data-pages="home" title="Cofnij">Cofnij (Ctrl+Z)</button>
             <button id="redoBtn" class="ribbon-action-btn has-icon" data-icon="&#8631;" data-pages="home" title="Ponów">Ponów (Ctrl+Y)</button>
             <button
-              id="steelGenerateQuickBtn"
-              class="ribbon-action-btn has-icon"
-              data-icon="&#128296;"
-              data-pages="design"
-              title="Generuje konstrukcję stalową według aktualnych ustawień."
-            >
-              Generuj (Alt+G)
-            </button>
-            <button
               id="flyoutSelectionBtn"
               class="ribbon-action-btn has-icon palette-launch-btn"
               data-icon="&#127919;"
@@ -43,41 +34,22 @@
             >
               Zaznaczenie (Alt+Q)
             </button>
-            <button id="toggleRibbonBtn" class="ribbon-action-btn has-icon" data-icon="&#9660;" data-pages="view">Zwiń wstążkę (F4)</button>
-            <button
-              id="updateAppBtn"
-              class="ribbon-action-btn has-icon"
-              data-icon="&#128260;"
-              type="button"
-              title="Sprawdza i instaluje aktualizacje aplikacji"
-            >
-              Aktualizacje
-            </button>
-            <button
-              id="licenseCategoryBtn"
-              class="license-summary-chip has-icon"
-              data-icon="&#128274;"
-              type="button"
-              title="Zarządzanie licencją"
-            >
-              Licencja: brak
-            </button>
             <div id="fileMenu" class="file-menu file-tab-menu file-tab-menu-right">
               <button
                 id="fileMenuBtn"
-                class="ribbon-tab ribbon-tab-file has-icon"
+                class="ribbon-action-btn file-menu-trigger has-icon"
                 data-icon="&#128190;"
                 aria-haspopup="true"
                 aria-expanded="false"
                 aria-controls="fileMenuPanel"
-                title="Menu zapisu i druku"
+                title="Menu plików"
               >
-                Zapisz/Drukuj (Alt+S)
+                Pliki (Alt+S)
               </button>
               <div id="fileMenuPanel" class="file-menu-panel file-tab-panel" role="menu" hidden>
                 <div class="file-menu-header has-icon" data-icon="&#128190;">
-                  <strong>Zapisz / Drukuj</strong>
-                  <span>Projekt, import/eksport CAD i podgląd wydruku</span>
+                  <strong>Pliki</strong>
+                  <span>Projekt, import/eksport CAD, wydruk i ustawienia aplikacji</span>
                 </div>
                 <div class="file-menu-section">
                   <p class="file-menu-section-title has-icon" data-icon="&#128193;">Projekt</p>
@@ -110,6 +82,29 @@
                   <p class="file-menu-section-title has-icon" data-icon="&#128438;">Wydruk</p>
                   <button id="printDrawingBtn" class="quick-btn has-icon" data-icon="&#128438;" role="menuitem">
                     Drukuj/PDF (Ctrl+P)
+                  </button>
+                </div>
+                <div class="file-menu-section">
+                  <p class="file-menu-section-title has-icon" data-icon="&#9881;">Aplikacja</p>
+                  <button
+                    id="updateAppBtn"
+                    class="quick-btn has-icon"
+                    data-icon="&#128260;"
+                    type="button"
+                    role="menuitem"
+                    title="Sprawdza i instaluje aktualizacje aplikacji"
+                  >
+                    Aktualizacje
+                  </button>
+                  <button
+                    id="licenseCategoryBtn"
+                    class="quick-btn has-icon license-menu-btn"
+                    data-icon="&#128274;"
+                    type="button"
+                    role="menuitem"
+                    title="Zarządzanie licencją"
+                  >
+                    Licencja: brak
                   </button>
                 </div>
               </div>
@@ -158,14 +153,13 @@
               <button id="deleteBtn" class="ribbon-btn has-icon" data-icon="&#128465;">Usuń (Delete)</button>
               <button id="toFrontBtn" class="ribbon-btn has-icon" data-icon="&#11014;">Na wierzch (Alt+J)</button>
               <button id="toBackBtn" class="ribbon-btn has-icon" data-icon="&#11015;">Na spod (Alt+K)</button>
-              <button id="fitViewBtn" class="ribbon-btn has-icon" data-icon="&#128269;">Dopasuj (Alt+0)</button>
               <button id="clearBtn" class="ribbon-btn has-icon" data-icon="&#10060;">Wyczyść (Alt+Delete)</button>
             </div>
             <h2 class="has-icon" data-icon="&#128295;">Modyfikuj</h2>
           </section>
 
-          <section class="ribbon-group ribbon-group-dimstyle" data-pages="references" data-modes="draw,steel">
-            <div class="ribbon-form-grid">
+          <section class="ribbon-group ribbon-group-dimtools" data-pages="references" data-modes="draw,steel">
+            <div class="ribbon-form-grid ribbon-form-grid-single">
               <label class="control inline">
                 <span>Tryb wymiaru</span>
                 <select id="dimensionModeSelect">
@@ -175,14 +169,18 @@
                   <option value="angular">Kątowy</option>
                 </select>
               </label>
-              <label class="control inline">
-                <span>Kąt wymiaru [°]</span>
-                <input id="dimensionRotationInput" type="number" min="-180" max="180" step="1" value="0" />
-              </label>
-              <label class="control inline">
-                <span>Skok kąta [°]</span>
-                <input id="dimensionAngleSnapInput" type="number" min="0" max="90" step="1" value="15" />
-              </label>
+              <div class="ribbon-tool-grid ribbon-tool-grid-dimension">
+                <button id="dimAlignedBtn" class="ribbon-btn has-icon" data-icon="&#8596;">Wyrównany (Alt+1)</button>
+                <button id="dimLinearBtn" class="ribbon-btn has-icon" data-icon="&#8646;">Liniowy (Alt+2)</button>
+                <button id="dimRotatedBtn" class="ribbon-btn has-icon" data-icon="&#8736;">Obrócony (Alt+3)</button>
+                <button id="dimAngularBtn" class="ribbon-btn has-icon" data-icon="&#8737;">Kątowy (Alt+4)</button>
+              </div>
+            </div>
+            <h2 class="has-icon" data-icon="&#128207;">Typ wymiaru</h2>
+          </section>
+
+          <section class="ribbon-group ribbon-group-dimsettings" data-pages="references" data-modes="draw,steel">
+            <div class="ribbon-form-grid">
               <label class="control inline">
                 <span>Jednostka</span>
                 <select id="dimensionUnitSelect">
@@ -203,12 +201,22 @@
                 <span>Kolor wymiaru</span>
                 <input id="dimensionColorInput" type="color" value="#ffd166" />
               </label>
-              <button id="dimAlignedBtn" class="ribbon-btn has-icon" data-icon="&#8596;">Wymiar wyrównany (Alt+1)</button>
-              <button id="dimLinearBtn" class="ribbon-btn has-icon" data-icon="&#8646;">Wymiar liniowy (Alt+2)</button>
-              <button id="dimRotatedBtn" class="ribbon-btn has-icon" data-icon="&#8736;">Wymiar obrócony (Alt+3)</button>
-              <button id="dimAngularBtn" class="ribbon-btn has-icon" data-icon="&#8737;">Wymiar kątowy (Alt+4)</button>
             </div>
-            <h2 class="has-icon" data-icon="&#128207;">Wymiarowanie</h2>
+            <h2 class="has-icon" data-icon="&#9881;">Ustawienia</h2>
+          </section>
+
+          <section class="ribbon-group ribbon-group-dimangle" data-pages="references" data-modes="draw,steel">
+            <div class="ribbon-form-grid ribbon-form-grid-single">
+              <label class="control inline">
+                <span>Kąt wymiaru [°]</span>
+                <input id="dimensionRotationInput" type="number" min="-180" max="180" step="1" value="0" />
+              </label>
+              <label class="control inline">
+                <span>Skok kąta [°]</span>
+                <input id="dimensionAngleSnapInput" type="number" min="0" max="90" step="1" value="15" />
+              </label>
+            </div>
+            <h2 class="has-icon" data-icon="&#8736;">Kąt i snap</h2>
           </section>
 
           <section
@@ -249,24 +257,24 @@
             <h2 class="has-icon" data-icon="&#9881;">Właściwości</h2>
           </section>
 
-          <section class="ribbon-group ribbon-group-modes" data-pages="home,view" data-modes="draw,steel">
+          <section class="ribbon-group ribbon-group-view-nav" data-pages="view" data-modes="draw,steel">
             <div class="ribbon-file-grid">
-              <button id="snapToggle" class="ribbon-btn has-icon ribbon-toggle-btn" data-icon="&#128204;" aria-pressed="true">
-                Przyciąganie (F3)
-              </button>
-              <button
-                id="showGridToggle"
-                class="ribbon-btn has-icon ribbon-toggle-btn"
-                data-icon="&#8862;"
-                aria-pressed="true"
-              >
-                Siatka (G)
-              </button>
-              <button id="orthoToggle" class="ribbon-btn has-icon ribbon-toggle-btn" data-icon="&#8739;" aria-pressed="false">
-                Poziom/Pion (F8)
-              </button>
+              <button id="fitViewBtn" class="ribbon-btn has-icon" data-icon="&#128269;">Dopasuj (Alt+0)</button>
+              <button id="viewPanBtn" class="ribbon-btn has-icon" data-icon="&#9995;">Pan widoku (H)</button>
+              <button id="viewResetBtn" class="ribbon-btn has-icon" data-icon="&#8635;">Reset widoku (Shift+0)</button>
             </div>
-            <h2 class="has-icon" data-icon="&#9876;">Tryby</h2>
+            <h2 class="has-icon" data-icon="&#128065;">Nawigacja</h2>
+          </section>
+
+          <section class="ribbon-group ribbon-group-view-grid" data-pages="view" data-modes="draw,steel">
+            <div class="ribbon-panel-body ribbon-panel-body-view">
+              <label class="control inline">
+                <span>Rozmiar siatki</span>
+                <input id="gridSizeInput" type="number" value="10" min="1" step="1" />
+              </label>
+              <p class="view-panel-note">Tryby siatki i przyciągania pozostają na dolnym pasku.</p>
+            </div>
+            <h2 class="has-icon" data-icon="&#8862;">Siatka</h2>
           </section>
 
           <section
@@ -278,10 +286,6 @@
               <label class="control inline">
                 <span>Aktywna</span>
                 <select id="activeLayerSelect"></select>
-              </label>
-              <label class="control inline">
-                <span>Siatka</span>
-                <input id="gridSizeInput" type="number" value="10" min="1" step="1" />
               </label>
               <div class="layer-create">
                 <input id="newLayerNameInput" type="text" placeholder="Nowa warstwa" />
@@ -300,14 +304,14 @@
             <div class="ribbon-panel-body ribbon-panel-body-steel">
 
               <!-- ── SZABLON ── -->
-              <div class="steel-card">
-                <div class="steel-card-title">🏗 Szablon</div>
+              <div class="steel-card" id="steelTemplateCard">
+                <div class="steel-card-title">Szablon</div>
                 <label class="control inline steel-control" data-steel-field="template">
                   <span>Typ konstrukcji</span>
                   <select id="steelTemplateSelect">
-                    <option value="gate">🚪 Brama</option>
-                    <option value="fence">📏 Ogrodzenie</option>
-                    <option value="balcony">🏠 Balkon</option>
+                      <option value="gate">Brama</option>
+                      <option value="fence">Ogrodzenie</option>
+                      <option value="balcony">Balkon</option>
                   </select>
                 </label>
                 <div class="steel-template-meta">
@@ -317,8 +321,8 @@
               </div>
 
               <!-- ── WYMIARY ── -->
-              <div class="steel-card">
-                <div class="steel-card-title">📐 Wymiary</div>
+              <div class="steel-card" id="steelDimensionsCard">
+                <div class="steel-card-title">Wymiary</div>
                 <div class="steel-row">
                   <label class="control steel-control" data-steel-field="width">
                     <span>Szerokość [mm]</span>
@@ -358,8 +362,8 @@
               </div>
 
               <!-- ── WYPEŁNIENIE ── -->
-              <div class="steel-card">
-                <div class="steel-card-title">🔲 Wypełnienie</div>
+              <div class="steel-card" id="steelInfillCard">
+                <div class="steel-card-title">Wypełnienie</div>
                 <div class="steel-row">
                   <label class="control steel-control" data-steel-field="infillPattern">
                     <span>Typ wypełnienia</span>
@@ -411,8 +415,8 @@
               </div>
 
               <!-- ── OPCJE ZAAWANSOWANE ── -->
-              <div class="steel-card">
-                <div class="steel-card-title">⚙ Opcje</div>
+              <div class="steel-card" id="steelOptionsCard">
+                <div class="steel-card-title" id="steelOptionsCardTitle">Opcje</div>
                 <label class="control inline steel-control" data-steel-field="gateLeafCount">
                   <span>Skrzydła bramy</span>
                   <select id="steelGateLeafCountSelect">
@@ -465,15 +469,6 @@
 
         </div>
 
-        <div class="top-workbar">
-          <div class="statusbar">
-            <span id="coords" class="has-icon" data-icon="&#128205;">X: 0 Y: 0</span>
-            <span id="zoomInfo" class="has-icon" data-icon="&#128269;">Skala: 100%</span>
-            <span id="entityCount" class="has-icon" data-icon="&#9638;">Obiekty: 0</span>
-            <span id="toolInfo" class="has-icon" data-icon="&#128295;">Narzędzie: Zaznacz</span>
-            <span id="workspaceStateInfo" class="has-icon" data-icon="&#128450;">Tryb: Rysowanie 2D | Układ: Model</span>
-          </div>
-        </div>
       </header>
 
       <main class="workspace">
@@ -481,6 +476,37 @@
           <canvas id="cadCanvas"></canvas>
         </section>
       </main>
+
+      <div class="top-workbar">
+        <div class="statusbar">
+          <span id="coords" class="has-icon" data-icon="&#128205;">X: 0 Y: 0</span>
+          <span id="zoomInfo" class="has-icon" data-icon="&#128269;">Skala: 100%</span>
+          <span id="toolInfo" class="has-icon" data-icon="&#128295;">Narzędzie: Zaznacz</span>
+          <span id="angleInfo" class="has-icon" data-icon="&#8736;">Kąt: —</span>
+          <div class="statusbar-mode-group">
+            <button id="snapToggle" class="statusbar-pill-btn has-icon ribbon-toggle-btn" data-icon="&#128204;" aria-pressed="true" type="button">
+              Przyciąganie (F3)
+            </button>
+            <button
+              id="showGridToggle"
+              class="statusbar-pill-btn has-icon ribbon-toggle-btn"
+              data-icon="&#8862;"
+              aria-pressed="true"
+              type="button"
+            >
+              Siatka (G)
+            </button>
+            <button id="orthoToggle" class="statusbar-pill-btn has-icon ribbon-toggle-btn" data-icon="&#8739;" aria-pressed="false" type="button">
+              Poziom/Pion (F8)
+            </button>
+          </div>
+          <div class="statusbar-layer-group">
+            <span id="activeLayerInfo" class="has-icon" data-icon="&#128209;">Warstwa</span>
+            <select id="bottomLayerSelect" aria-label="Aktywna warstwa"></select>
+            <button id="bottomAddLayerBtn" class="statusbar-icon-btn has-icon" data-icon="&#10133;" type="button" title="Dodaj warstwę">+</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <input id="jsonFileInput" type="file" accept=".json" hidden />
@@ -572,6 +598,23 @@
           <p id="licenseStatus" class="license-status" aria-live="polite"></p>
         </section>
 
+      </div>
+    </div>
+
+    <div id="layerQuickAddOverlay" class="layer-quick-overlay" aria-hidden="true" hidden>
+      <div class="layer-quick-dialog" role="dialog" aria-modal="true" aria-labelledby="layerQuickAddTitle">
+        <div class="layer-quick-header">
+          <h2 id="layerQuickAddTitle" class="has-icon" data-icon="&#128209;">Nowa warstwa</h2>
+          <button id="layerQuickAddCloseBtn" class="ribbon-btn has-icon" data-icon="&#10005;" type="button">Zamknij</button>
+        </div>
+        <label class="control">
+          <span>Nazwa warstwy</span>
+          <input id="layerQuickAddInput" type="text" placeholder="Warstwa" />
+        </label>
+        <div class="layer-quick-actions">
+          <button id="layerQuickAddConfirmBtn" class="ribbon-btn has-icon" data-icon="&#10133;" type="button">Dodaj</button>
+          <button id="layerQuickAddCancelBtn" class="ribbon-btn has-icon" data-icon="&#10005;" type="button">Anuluj</button>
+        </div>
       </div>
     </div>
 
