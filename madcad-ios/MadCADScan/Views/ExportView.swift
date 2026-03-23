@@ -8,9 +8,9 @@ struct ExportView: View {
         let document = store.exportBundle.map { MadCADScanDocument(data: $0.data) }
         NavigationStack {
             VStack(alignment: .leading, spacing: 20) {
-                Text("Plik gotowy")
+                Text("Eksport wymiarów")
                     .font(.largeTitle.bold())
-                Text("Zapisz plik do Files albo wyślij go przez Share Sheet. Potem w desktopowym MadCAD użyj Pliki -> Wczytaj JSON.")
+                Text("Zapisz plik do Files albo wyślij go przez Share Sheet. Na desktopie MadCAD użyj `Pliki -> Import pomiaru iPhone`, a aplikacja zapyta, czy tylko zasilić formularz `Stal`, czy od razu wygenerować geometrię.")
                     .foregroundStyle(.secondary)
 
                 VStack(alignment: .leading, spacing: 8) {
@@ -19,6 +19,19 @@ struct ExportView: View {
                     Text((store.projectName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? MadCADScanStore.defaultProjectName() : store.projectName) + ".madcad.json")
                         .font(.system(.body, design: .monospaced))
                 }
+                .padding(18)
+                .background(Color.white.opacity(0.04))
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Co trafia do pliku")
+                        .font(.headline)
+                    Label("Tryb produktu i potwierdzone wymiary", systemImage: "ruler")
+                    Label("Parametry montażowe potrzebne w karcie Stal", systemImage: "slider.horizontal.3")
+                    Label("Opcjonalna techniczna referencja ze skanu", systemImage: "square.dashed")
+                }
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
                 .padding(18)
                 .background(Color.white.opacity(0.04))
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
@@ -40,7 +53,7 @@ struct ExportView: View {
                     .buttonStyle(.bordered)
                 }
 
-                Button("Wróć do podglądu") {
+                Button("Wróć do potwierdzenia") {
                     store.goBackToReview()
                 }
                 .buttonStyle(.bordered)

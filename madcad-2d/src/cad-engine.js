@@ -97,6 +97,8 @@
   const selectionInfo = document.getElementById("selectionInfo");
   const moveCmdBtn = document.getElementById("moveCmdBtn");
   const copyCmdBtn = document.getElementById("copyCmdBtn");
+  const trimCmdBtn = document.getElementById("trimCmdBtn");
+  const extendCmdBtn = document.getElementById("extendCmdBtn");
   const offsetCmdBtn = document.getElementById("offsetCmdBtn");
   const dimensionModeSelect = document.getElementById("dimensionModeSelect");
   const dimensionRotationInput = document.getElementById("dimensionRotationInput");
@@ -837,7 +839,7 @@
       ["#updateAppBtn", "Updates"],
       ["#fileMenuBtn", "Files (Alt+S)"],
       ["#loadJsonBtn", "Load JSON (Ctrl+O)"],
-      ["#importScanBtn", "Import iPhone scan"],
+      ["#importScanBtn", "Import iPhone measurement"],
       ["#saveJsonBtn", "Save JSON (Ctrl+S)"],
       ["#importDxfBtn", "Import DXF (Alt+I)"],
       ["#importDwgBtn", "Import DWG (Alt+W)"],
@@ -865,6 +867,8 @@
       [".tool-btn[data-tool='pan']", "Pan view (H)"],
       ["#moveCmdBtn", "Move (Alt+M)"],
       ["#copyCmdBtn", "Copy (Alt+C)"],
+      ["#trimCmdBtn", "Trim (Alt+T)"],
+      ["#extendCmdBtn", "Extend (Alt+X)"],
       ["#offsetCmdBtn", "Offset (Alt+F)"],
       ["#duplicateBtn", "Duplicate (Ctrl+D)"],
       ["#deleteBtn", "Delete (Delete)"],
@@ -902,7 +906,7 @@
       Pliki: "Files",
       "Projekt, import/eksport CAD, wydruk i ustawienia aplikacji": "Project, CAD import/export, printing and app settings",
       Projekt: "Project",
-      "Import skanu iPhone": "Import iPhone scan",
+      "Import pomiaru iPhone": "Import iPhone measurement",
       CAD: "CAD",
       Aplikacja: "App",
       Wydruk: "Print",
@@ -3665,6 +3669,334 @@
     return { x: px, y: py };
   }
 
+  function lineCircleIntersectionPoints(a, b, circle) {
+    const radius = Math.max(0, Number(circle && circle.r) || 0);
+    if (radius <= 0) {
+      return [];
+    }
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const fx = a.x - circle.cx;
+    const fy = a.y - circle.cy;
+    const qa = dx * dx + dy * dy;
+    if (qa < 0.000001) {
+      return [];
+    }
+    const qb = 2 * (fx * dx + fy * dy);
+    const qc = fx * fx + fy * fy - radius * radius;
+    const discriminant = qb * qb - 4 * qa * qc;
+    if (discriminant < -0.000001) {
+      return [];
+    }
+    const epsilon = 0.000001;
+    const result = [];
+    const discriminantSafe = Math.max(0, discriminant);
+    const sqrtDisc = Math.sqrt(discriminantSafe);
+    const candidates = [
+      (-qb - sqrtDisc) / (2 * qa),
+      (-qb + sqrtDisc) / (2 * qa)
+    ];
+    for (const t of candidates) {
+      if (!Number.isFinite(t) || t < -epsilon || t > 1 + epsilon) {
+        continue;
+      }
+      const clampedT = clamp(t, 0, 1, 0);
+      const point = {
+        x: a.x + dx * clampedT,
+        y: a.y + dy * clampedT
+      };
+      if (result.some((entry) => Math.hypot(entry.x - point.x, entry.y - point.y) <= 0.0005)) {
+        continue;
+      }
+      result.push(point);
+    }
+    return result;
+  }
+
+  function lineCircleIntersectionParamsInfinite(a, b, circle) {
+    const radius = Math.max(0, Number(circle && circle.r) || 0);
+    if (radius <= 0) {
+      return [];
+    }
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const fx = a.x - circle.cx;
+    const fy = a.y - circle.cy;
+    const qa = dx * dx + dy * dy;
+    if (qa < 0.000001) {
+      return [];
+    }
+    const qb = 2 * (fx * dx + fy * dy);
+    const qc = fx * fx + fy * fy - radius * radius;
+    const discriminant = qb * qb - 4 * qa * qc;
+    if (discriminant < -0.000001) {
+      return [];
+    }
+    const discriminantSafe = Math.max(0, discriminant);
+    const sqrtDisc = Math.sqrt(discriminantSafe);
+    const candidates = [
+      (-qb - sqrtDisc) / (2 * qa),
+      (-qb + sqrtDisc) / (2 * qa)
+    ];
+    const result = [];
+    for (const t of candidates) {
+      if (!Number.isFinite(t)) {
+        continue;
+      }
+      if (result.some((entry) => Math.abs(entry - t) <= 0.0005)) {
+        continue;
+      }
+      result.push(t);
+    }
+    result.sort((aValue, bValue) => aValue - bValue);
+    return result;
+  }
+
+  function pointAtLineParam(line, tValue) {
+    const t = clamp(Number(tValue), 0, 1, 0);
+    return {
+      x: line.x1 + (line.x2 - line.x1) * t,
+      y: line.y1 + (line.y2 - line.y1) * t
+    };
+  }
+
+  function pointOnLineAtParam(line, tValue) {
+    const t = Number(tValue);
+    return {
+      x: line.x1 + (line.x2 - line.x1) * t,
+      y: line.y1 + (line.y2 - line.y1) * t
+    };
+  }
+
+  function cross2d(a, b) {
+    return a.x * b.y - a.y * b.x;
+  }
+
+  function lineInfiniteSegmentIntersectionParam(line, segment) {
+    if (!line || !segment) {
+      return null;
+    }
+    const p = { x: line.x1, y: line.y1 };
+    const r = { x: line.x2 - line.x1, y: line.y2 - line.y1 };
+    const q = segment.a;
+    const s = { x: segment.b.x - segment.a.x, y: segment.b.y - segment.a.y };
+    const rxs = cross2d(r, s);
+    if (Math.abs(rxs) < 0.000001) {
+      return null;
+    }
+    const qp = { x: q.x - p.x, y: q.y - p.y };
+    const t = cross2d(qp, s) / rxs;
+    const u = cross2d(qp, r) / rxs;
+    if (u < -0.000001 || u > 1.000001) {
+      return null;
+    }
+    return t;
+  }
+
+  function lineParamForPoint(line, point) {
+    const dx = line.x2 - line.x1;
+    const dy = line.y2 - line.y1;
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq < 0.000001) {
+      return 0;
+    }
+    return clamp(((point.x - line.x1) * dx + (point.y - line.y1) * dy) / lenSq, 0, 1, 0);
+  }
+
+  function getTrimSegmentsForEntity(entity) {
+    if (!entity) {
+      return [];
+    }
+    if (entity.type === "line") {
+      return [
+        {
+          a: { x: entity.x1, y: entity.y1 },
+          b: { x: entity.x2, y: entity.y2 }
+        }
+      ];
+    }
+    if (entity.type === "rect") {
+      const bounds = getEntityBounds(entity);
+      if (!bounds) {
+        return [];
+      }
+      const corners = [
+        { x: bounds.minX, y: bounds.minY },
+        { x: bounds.maxX, y: bounds.minY },
+        { x: bounds.maxX, y: bounds.maxY },
+        { x: bounds.minX, y: bounds.maxY }
+      ];
+      return corners.map((corner, index) => ({
+        a: corner,
+        b: corners[(index + 1) % corners.length]
+      }));
+    }
+    return [];
+  }
+
+  function collectTrimIntersectionParams(targetLine, cutterEntity) {
+    if (!targetLine || targetLine.type !== "line") {
+      return [];
+    }
+    const targetA = { x: targetLine.x1, y: targetLine.y1 };
+    const targetB = { x: targetLine.x2, y: targetLine.y2 };
+    const intersections = [];
+    const epsilon = 0.0005;
+
+    if (cutterEntity && cutterEntity.type === "circle") {
+      for (const hit of lineCircleIntersectionPoints(targetA, targetB, cutterEntity)) {
+        const t = lineParamForPoint(targetLine, hit);
+        if (t <= epsilon || t >= 1 - epsilon) {
+          continue;
+        }
+        if (intersections.some((entry) => Math.abs(entry.t - t) <= epsilon)) {
+          continue;
+        }
+        intersections.push({ t, point: hit });
+      }
+    } else {
+      for (const segment of getTrimSegmentsForEntity(cutterEntity)) {
+        const hit = segmentIntersectionPoint(targetA, targetB, segment.a, segment.b);
+        if (!hit) {
+          continue;
+        }
+        const t = lineParamForPoint(targetLine, hit);
+        if (t <= epsilon || t >= 1 - epsilon) {
+          continue;
+        }
+        if (intersections.some((entry) => Math.abs(entry.t - t) <= epsilon)) {
+          continue;
+        }
+        intersections.push({ t, point: hit });
+      }
+    }
+
+    intersections.sort((a, b) => a.t - b.t);
+    return intersections;
+  }
+
+  function buildTrimmedLineEntities(targetLine, cutterEntity, clickPoint) {
+    const intersections = collectTrimIntersectionParams(targetLine, cutterEntity);
+    if (intersections.length === 0) {
+      return null;
+    }
+
+    const boundaries = [0, ...intersections.map((entry) => entry.t), 1];
+    const intervals = [];
+    for (let index = 0; index < boundaries.length - 1; index += 1) {
+      const start = boundaries[index];
+      const end = boundaries[index + 1];
+      if (end - start <= 0.0005) {
+        continue;
+      }
+      intervals.push({
+        start,
+        end,
+        mid: (start + end) / 2
+      });
+    }
+
+    if (intervals.length <= 1) {
+      return null;
+    }
+
+    const clickT = lineParamForPoint(targetLine, clickPoint);
+    let trimmedInterval = intervals[0];
+    let bestDistance = Math.abs(clickT - trimmedInterval.mid);
+    for (let index = 1; index < intervals.length; index += 1) {
+      const distance = Math.abs(clickT - intervals[index].mid);
+      if (distance < bestDistance) {
+        trimmedInterval = intervals[index];
+        bestDistance = distance;
+      }
+    }
+
+    const keptIntervals = intervals.filter(
+      (interval) =>
+        Math.abs(interval.start - trimmedInterval.start) > 0.0005 ||
+        Math.abs(interval.end - trimmedInterval.end) > 0.0005
+    );
+    if (keptIntervals.length === 0) {
+      return null;
+    }
+
+    return keptIntervals.map((interval, index) => {
+      const copy = cloneEntity(targetLine);
+      copy.id = index === 0 ? targetLine.id : createId();
+      const startPoint = pointAtLineParam(targetLine, interval.start);
+      const endPoint = pointAtLineParam(targetLine, interval.end);
+      copy.x1 = startPoint.x;
+      copy.y1 = startPoint.y;
+      copy.x2 = endPoint.x;
+      copy.y2 = endPoint.y;
+      return copy;
+    });
+  }
+
+  function collectExtendIntersectionParams(targetLine, cutterEntity) {
+    if (!targetLine || targetLine.type !== "line") {
+      return [];
+    }
+    const intersections = [];
+    const epsilon = 0.0005;
+
+    if (cutterEntity && cutterEntity.type === "circle") {
+      for (const t of lineCircleIntersectionParamsInfinite(
+        { x: targetLine.x1, y: targetLine.y1 },
+        { x: targetLine.x2, y: targetLine.y2 },
+        cutterEntity
+      )) {
+        if (intersections.some((entry) => Math.abs(entry - t) <= epsilon)) {
+          continue;
+        }
+        intersections.push(t);
+      }
+    } else {
+      for (const segment of getTrimSegmentsForEntity(cutterEntity)) {
+        const t = lineInfiniteSegmentIntersectionParam(targetLine, segment);
+        if (!Number.isFinite(t)) {
+          continue;
+        }
+        if (intersections.some((entry) => Math.abs(entry - t) <= epsilon)) {
+          continue;
+        }
+        intersections.push(t);
+      }
+    }
+
+    intersections.sort((aValue, bValue) => aValue - bValue);
+    return intersections;
+  }
+
+  function buildExtendedLineEntity(targetLine, cutterEntity, clickPoint) {
+    const intersections = collectExtendIntersectionParams(targetLine, cutterEntity);
+    if (intersections.length === 0) {
+      return null;
+    }
+
+    const clickT = lineParamForPoint(targetLine, clickPoint);
+    const extendStart = clickT <= 0.5;
+    const epsilon = 0.0005;
+    const targetT = extendStart
+      ? intersections.filter((value) => value < -epsilon).sort((aValue, bValue) => bValue - aValue)[0]
+      : intersections.filter((value) => value > 1 + epsilon).sort((aValue, bValue) => aValue - bValue)[0];
+
+    if (!Number.isFinite(targetT)) {
+      return null;
+    }
+
+    const copy = cloneEntity(targetLine);
+    const extensionPoint = pointOnLineAtParam(targetLine, targetT);
+    if (extendStart) {
+      copy.x1 = extensionPoint.x;
+      copy.y1 = extensionPoint.y;
+    } else {
+      copy.x2 = extensionPoint.x;
+      copy.y2 = extensionPoint.y;
+    }
+    return copy;
+  }
+
   function pushSnapCandidate(output, x, y, priority) {
     if (!output) {
       return;
@@ -4200,6 +4532,12 @@
     if (copyCmdBtn) {
       copyCmdBtn.disabled = commandActive || !hasSelected || selectedLocked;
     }
+    if (trimCmdBtn) {
+      trimCmdBtn.disabled = commandActive;
+    }
+    if (extendCmdBtn) {
+      extendCmdBtn.disabled = commandActive;
+    }
     if (offsetCmdBtn) {
       offsetCmdBtn.disabled = commandActive;
     }
@@ -4376,6 +4714,44 @@
     return true;
   }
 
+  function startTrimCommand() {
+    clearDrawingPreview();
+    finishPolyline();
+    const selected = getEntityById(state.selectedId);
+    const canUseSelected =
+      selected && !isEntityLocked(selected) && ["line", "rect", "circle"].includes(selected.type);
+    state.commandState = {
+      name: "trim",
+      phase: canUseSelected ? "pick-target" : "pick-cutter",
+      cutterId: canUseSelected ? selected.id : null
+    };
+    if (canUseSelected) {
+      echoCommand("TRIM: kliknij fragment linii do odcięcia.");
+    } else {
+      echoCommand("TRIM: wskaż krawędź tnącą (linia, prostokąt lub okrąg).");
+    }
+    return true;
+  }
+
+  function startExtendCommand() {
+    clearDrawingPreview();
+    finishPolyline();
+    const selected = getEntityById(state.selectedId);
+    const canUseSelected =
+      selected && !isEntityLocked(selected) && ["line", "rect", "circle"].includes(selected.type);
+    state.commandState = {
+      name: "extend",
+      phase: canUseSelected ? "pick-target" : "pick-cutter",
+      cutterId: canUseSelected ? selected.id : null
+    };
+    if (canUseSelected) {
+      echoCommand("EXTEND: kliknij stronę linii do przedłużenia.");
+    } else {
+      echoCommand("EXTEND: wskaż krawędź ograniczającą (linia, prostokąt lub okrąg).");
+    }
+    return true;
+  }
+
   function createOffsetEntity(source, distance, sidePoint) {
     const d = Math.abs(Number(distance) || 0);
     if (!source || !sidePoint || d <= 0) {
@@ -4540,6 +4916,141 @@
         queueRender();
         echoCommand("OFFSET: utworzono obiekt.");
         state.commandState = null;
+        return true;
+      }
+    }
+
+    if (command.name === "trim") {
+      if (command.phase === "pick-cutter") {
+        const hitId = hitTest(rawPoint) || hitTest(snappedPoint);
+        const hit = getEntityById(hitId);
+        if (!hit || !["line", "rect", "circle"].includes(hit.type)) {
+          echoCommand("TRIM: wskaż linię, prostokąt lub okrąg jako krawędź tnącą.", true);
+          return true;
+        }
+        if (isEntityLocked(hit)) {
+          echoCommand("TRIM: obiekt jest na zablokowanej warstwie.", true);
+          return true;
+        }
+        command.cutterId = hit.id;
+        command.phase = "pick-target";
+        setPrimarySelection(hit.id);
+        queueRender();
+        echoCommand("TRIM: kliknij fragment linii do odcięcia.");
+        return true;
+      }
+
+      if (command.phase === "pick-target") {
+        const targetId = hitTest(rawPoint) || hitTest(snappedPoint);
+        const target = getEntityById(targetId);
+        const cutter = getEntityById(command.cutterId);
+        if (!cutter) {
+          cancelActiveCommand({ echo: false });
+          echoCommand("TRIM: krawędź tnąca nie istnieje.", true);
+          return true;
+        }
+        if (!target || target.type !== "line") {
+          echoCommand("TRIM: kliknij linię do przycięcia.", true);
+          return true;
+        }
+        if (target.id === cutter.id) {
+          echoCommand("TRIM: wybierz inną linię niż krawędź tnąca.", true);
+          return true;
+        }
+        if (isEntityLocked(target)) {
+          echoCommand("TRIM: linia jest na zablokowanej warstwie.", true);
+          return true;
+        }
+
+        const replacement = buildTrimmedLineEntities(target, cutter, point);
+        if (!replacement) {
+          echoCommand("TRIM: nie znaleziono fragmentu linii do odcięcia względem tej krawędzi.", true);
+          return true;
+        }
+
+        const targetIndex = state.entities.findIndex((entity) => entity.id === target.id);
+        if (targetIndex === -1) {
+          echoCommand("TRIM: wskazana linia nie istnieje.", true);
+          return true;
+        }
+
+        saveHistory();
+        state.entities.splice(targetIndex, 1, ...replacement);
+        setSelection(
+          replacement.map((entity) => entity.id),
+          replacement[replacement.length - 1].id
+        );
+        markDirty();
+        queueRender();
+        echoCommand(
+          replacement.length > 1
+            ? "TRIM: linia została rozcięta. Kliknij kolejny fragment linii do odcięcia."
+            : "TRIM: linia została przycięta. Kliknij kolejny fragment linii do odcięcia."
+        );
+        return true;
+      }
+    }
+
+    if (command.name === "extend") {
+      if (command.phase === "pick-cutter") {
+        const hitId = hitTest(rawPoint) || hitTest(snappedPoint);
+        const hit = getEntityById(hitId);
+        if (!hit || !["line", "rect", "circle"].includes(hit.type)) {
+          echoCommand("EXTEND: wskaż linię, prostokąt lub okrąg jako krawędź ograniczającą.", true);
+          return true;
+        }
+        if (isEntityLocked(hit)) {
+          echoCommand("EXTEND: obiekt jest na zablokowanej warstwie.", true);
+          return true;
+        }
+        command.cutterId = hit.id;
+        command.phase = "pick-target";
+        setPrimarySelection(hit.id);
+        queueRender();
+        echoCommand("EXTEND: kliknij stronę linii do przedłużenia.");
+        return true;
+      }
+
+      if (command.phase === "pick-target") {
+        const targetId = hitTest(rawPoint) || hitTest(snappedPoint);
+        const target = getEntityById(targetId);
+        const cutter = getEntityById(command.cutterId);
+        if (!cutter) {
+          cancelActiveCommand({ echo: false });
+          echoCommand("EXTEND: krawędź ograniczająca nie istnieje.", true);
+          return true;
+        }
+        if (!target || target.type !== "line") {
+          echoCommand("EXTEND: kliknij linię do przedłużenia.", true);
+          return true;
+        }
+        if (target.id === cutter.id) {
+          echoCommand("EXTEND: wybierz inną linię niż krawędź ograniczająca.", true);
+          return true;
+        }
+        if (isEntityLocked(target)) {
+          echoCommand("EXTEND: linia jest na zablokowanej warstwie.", true);
+          return true;
+        }
+
+        const replacement = buildExtendedLineEntity(target, cutter, point);
+        if (!replacement) {
+          echoCommand("EXTEND: nie znaleziono przecięcia poza końcem wskazanej linii.", true);
+          return true;
+        }
+
+        const targetIndex = state.entities.findIndex((entity) => entity.id === target.id);
+        if (targetIndex === -1) {
+          echoCommand("EXTEND: wskazana linia nie istnieje.", true);
+          return true;
+        }
+
+        saveHistory();
+        state.entities.splice(targetIndex, 1, replacement);
+        setPrimarySelection(replacement.id);
+        markDirty();
+        queueRender();
+        echoCommand("EXTEND: linia została przedłużona. Kliknij kolejną linię do przedłużenia.");
         return true;
       }
     }
@@ -7973,6 +8484,144 @@
     }
   }
 
+  function isFinitePositiveNumber(value) {
+    return Number.isFinite(Number(value)) && Number(value) > 0;
+  }
+
+  function isProductScanPayload(parsed) {
+    if (!parsed || typeof parsed !== "object") {
+      return false;
+    }
+    const meta = parsed.scanMeta;
+    if (!meta || typeof meta !== "object") {
+      return false;
+    }
+    return meta.source === "madcad-scan-product" && Boolean(normalizeSteelTemplate(meta.productMode));
+  }
+
+  function applyImportedProductMeasurements(productMode, rawMeasurements) {
+    const template = normalizeSteelTemplate(productMode) || "gate";
+    const measurements = rawMeasurements && typeof rawMeasurements === "object" ? rawMeasurements : {};
+    const preset = getSteelPreset(template);
+
+    state.steelPreset = template;
+    state.steelWidth = isFinitePositiveNumber(measurements.widthMm)
+      ? Math.max(200, Number(measurements.widthMm))
+      : preset.width;
+    state.steelHeight = isFinitePositiveNumber(measurements.heightMm)
+      ? Math.max(200, Number(measurements.heightMm))
+      : preset.height;
+    state.steelFrameProfile = isFinitePositiveNumber(measurements.frameProfileMm)
+      ? Math.max(20, Number(measurements.frameProfileMm))
+      : preset.frameProfile;
+    state.steelBarWidth = isFinitePositiveNumber(measurements.barWidthMm)
+      ? Math.max(5, Number(measurements.barWidthMm))
+      : preset.barWidth;
+    state.steelPanelCount = clamp(
+      Math.round(Number(measurements.panelCount)),
+      1,
+      120,
+      preset.panelCount
+    );
+    state.steelSectionCount = clamp(
+      Math.round(Number(measurements.sectionCount)),
+      1,
+      6,
+      preset.sectionCount
+    );
+    state.steelGateLeafCount = clamp(
+      Math.round(Number(measurements.gateLeafCount)),
+      1,
+      2,
+      preset.gateLeafCount
+    );
+    state.steelGroundClearance = Math.max(
+      0,
+      Number.isFinite(Number(measurements.groundClearanceMm))
+        ? Number(measurements.groundClearanceMm)
+        : preset.groundClearance
+    );
+    state.steelBasePlateHeight = Math.max(
+      0,
+      Number.isFinite(Number(measurements.basePlateHeightMm))
+        ? Number(measurements.basePlateHeightMm)
+        : preset.basePlateHeight
+    );
+    state.steelPostWidth = Math.max(
+      20,
+      Number.isFinite(Number(measurements.postWidthMm))
+        ? Number(measurements.postWidthMm)
+        : preset.postWidth
+    );
+    state.steelPostLength = Math.max(
+      200,
+      Number.isFinite(Number(measurements.postLengthMm))
+        ? Number(measurements.postLengthMm)
+        : preset.postLength
+    );
+    state.steelTopPanel =
+      typeof measurements.topPanel === "boolean" ? measurements.topPanel : preset.topPanel;
+    state.steelTopPanelThickness = Math.max(
+      2,
+      Number.isFinite(Number(measurements.topPanelThicknessMm))
+        ? Number(measurements.topPanelThicknessMm)
+        : preset.topPanelThickness
+    );
+    state.steelBottomPanel =
+      typeof measurements.bottomPanel === "boolean" ? measurements.bottomPanel : preset.bottomPanel;
+    state.steelBottomPanelThickness = Math.max(
+      2,
+      Number.isFinite(Number(measurements.bottomPanelThicknessMm))
+        ? Number(measurements.bottomPanelThicknessMm)
+        : preset.bottomPanelThickness
+    );
+    state.steelInnerFrame =
+      typeof measurements.innerFrame === "boolean" ? measurements.innerFrame : preset.innerFrame;
+    state.steelDiagonal =
+      typeof measurements.diagonal === "boolean" ? measurements.diagonal : preset.diagonal;
+    state.steelInfillPattern = normalizeInfillPattern(measurements.infillPattern) || preset.infillPattern;
+
+    if (template !== "gate") {
+      state.steelGateLeafCount = 1;
+      state.steelDiagonal = false;
+    }
+    if (template === "balcony") {
+      state.steelGroundClearance = 0;
+      state.steelBasePlateHeight = 0;
+      state.steelPostLength = Math.max(state.steelPostLength, state.steelHeight);
+    }
+
+    setWorkspaceMode("draw", { persist: false });
+    setRibbonPage("design", { persist: false });
+    syncDocumentControls();
+    markDirty();
+    queueRender();
+  }
+
+  function importProductScanPayload(parsed, fileName) {
+    const scanMeta = parsed && typeof parsed === "object" ? parsed.scanMeta || {} : {};
+    const template = normalizeSteelTemplate(scanMeta.productMode);
+    const measurements = scanMeta.measurements;
+    if (!template || !measurements || typeof measurements !== "object") {
+      throw new Error("Plik pomiaru produktu nie zawiera poprawnych measurements.");
+    }
+
+    applyImportedProductMeasurements(template, measurements);
+    const productLabel = steelTemplateLabel(template);
+    const generateNow = window.confirm(
+      localizeMessageText(
+        `Wykryto pomiar produktu z iPhone'a: ${productLabel}.\n\nOK = wygeneruj geometrię od razu\nAnuluj = tylko wypełnij formularz Stal`
+      )
+    );
+
+    if (generateNow) {
+      echoCommand(`Import pomiaru: przygotowano ${productLabel}. Generuję geometrię...`);
+      generateSteelTemplateFromState();
+    } else {
+      echoCommand(`Import pomiaru: wypełniono formularz Stal dla trybu ${productLabel}.`);
+    }
+  }
+
   function ensureLayerByName(name) {
     const existing = findLayerByName(name);
     if (existing) {
@@ -10394,7 +11043,7 @@
       updateAppBtn: "Sprawdza i instaluje aktualizacje aplikacji.",
       licenseCategoryBtn: "Otwiera panel informacji o licencji i aktywacji tokenu.",
       loadJsonBtn: "Wczytuje projekt z pliku JSON lub eksportu MadCAD Scan (.madcad.json).",
-      importScanBtn: "Importuje plan zeskanowany na iPhonie Pro przez MadCAD Scan (.madcad.json).",
+      importScanBtn: "Importuje pomiar Brama/Balkon/Ogrodzenie z iPhone'a i zasila formularz Stal albo generuje geometrię.",
       saveJsonBtn: "Zapisuje projekt do pliku JSON.",
       importDxfBtn: "Importuje geometrię z pliku DXF.",
       importDwgBtn: "Importuje geometrię z pliku DWG przez konwerter ODA.",
@@ -10408,6 +11057,8 @@
       redoBtn: "Ponawia cofniętą operację.",
       moveCmdBtn: "Przesuwa zaznaczone obiekty.",
       copyCmdBtn: "Kopiuje zaznaczone obiekty.",
+      trimCmdBtn: "Przycina wskazany fragment linii do krawędzi tnącej.",
+      extendCmdBtn: "Przedłuża linię do wskazanej krawędzi tnącej.",
       offsetCmdBtn: "Tworzy odsuniętą kopię wskazanego obiektu.",
       duplicateBtn: "Tworzy duplikat zaznaczonego obiektu.",
       deleteBtn: "Usuwa zaznaczony obiekt.",
@@ -10802,6 +11453,16 @@
       if (key === "f") {
         event.preventDefault();
         offsetCmdBtn.click();
+        return;
+      }
+      if (key === "t") {
+        event.preventDefault();
+        trimCmdBtn.click();
+        return;
+      }
+      if (key === "x") {
+        event.preventDefault();
+        extendCmdBtn.click();
         return;
       }
       if (key === "j") {
@@ -11203,6 +11864,16 @@
     if (copyCmdBtn) {
       copyCmdBtn.addEventListener("click", () => {
         startCopyCommand();
+      });
+    }
+    if (trimCmdBtn) {
+      trimCmdBtn.addEventListener("click", () => {
+        startTrimCommand();
+      });
+    }
+    if (extendCmdBtn) {
+      extendCmdBtn.addEventListener("click", () => {
+        startExtendCommand();
       });
     }
     if (offsetCmdBtn) {
@@ -11847,7 +12518,7 @@
     });
     if (importScanBtn) {
       importScanBtn.addEventListener("click", () => {
-        openJsonImportPicker("Wybierz plik skanu z iPhone'a (.madcad.json) do importu.");
+        openJsonImportPicker("Wybierz plik pomiaru z iPhone'a (.madcad.json) do importu.");
       });
     }
     jsonFileInput.addEventListener("change", async () => {
@@ -11858,6 +12529,11 @@
       const text = await file.text();
       try {
         const parsed = JSON.parse(text);
+        if (isProductScanPayload(parsed)) {
+          importProductScanPayload(parsed, file.name);
+          setFileMenuOpen(false);
+          return;
+        }
         const entitiesRaw = Array.isArray(parsed) ? parsed : parsed.entities;
         const layersRaw = Array.isArray(parsed.layers) ? parsed.layers : state.layers;
         if (!Array.isArray(entitiesRaw)) {
@@ -11875,6 +12551,7 @@
         setRibbonPage("home", { persist: false });
         markDirty();
         queueRender();
+        setFileMenuOpen(false);
         echoCommand(`Wczytano JSON: ${file.name} (${state.entities.length} obiektów).`);
       } catch (error) {
         alert(localizeMessageText(`Niepoprawny plik JSON: ${error.message}`));

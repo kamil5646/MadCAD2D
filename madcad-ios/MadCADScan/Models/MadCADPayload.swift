@@ -1,5 +1,148 @@
 import Foundation
 
+enum ProductMode: String, Codable, CaseIterable, Identifiable, Hashable {
+    case gate
+    case balcony
+    case fence
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .gate:
+            return "Brama"
+        case .balcony:
+            return "Balkon"
+        case .fence:
+            return "Ogrodzenie"
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .gate:
+            return "Światło, wysokość, skrzydła i montaż"
+        case .balcony:
+            return "Długość, wysokość balustrady i podziały"
+        case .fence:
+            return "Przęsło, słupki i podmurówka"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .gate:
+            return "door.garage.open"
+        case .balcony:
+            return "building.columns"
+        case .fence:
+            return "rectangle.split.3x1"
+        }
+    }
+
+    var defaultProjectPrefix: String {
+        switch self {
+        case .gate:
+            return "Brama"
+        case .balcony:
+            return "Balkon"
+        case .fence:
+            return "Ogrodzenie"
+        }
+    }
+}
+
+struct ProductMeasurementDraft: Hashable {
+    var mode: ProductMode
+    var widthMm: Double
+    var heightMm: Double
+    var frameProfileMm: Double
+    var barWidthMm: Double
+    var panelCount: Int
+    var sectionCount: Int
+    var gateLeafCount: Int
+    var groundClearanceMm: Double
+    var basePlateHeightMm: Double
+    var postWidthMm: Double
+    var postLengthMm: Double
+    var topPanel: Bool
+    var topPanelThicknessMm: Double
+    var bottomPanel: Bool
+    var bottomPanelThicknessMm: Double
+    var innerFrame: Bool
+    var diagonal: Bool
+    var infillPattern: String
+
+    func clamped() -> ProductMeasurementDraft {
+        ProductMeasurementDraft(
+            mode: mode,
+            widthMm: max(200, widthMm),
+            heightMm: max(200, heightMm),
+            frameProfileMm: max(20, frameProfileMm),
+            barWidthMm: max(5, barWidthMm),
+            panelCount: max(1, panelCount),
+            sectionCount: max(1, min(6, sectionCount)),
+            gateLeafCount: max(1, min(2, gateLeafCount)),
+            groundClearanceMm: max(0, groundClearanceMm),
+            basePlateHeightMm: max(0, basePlateHeightMm),
+            postWidthMm: max(20, postWidthMm),
+            postLengthMm: max(200, postLengthMm),
+            topPanel: topPanel,
+            topPanelThicknessMm: max(2, topPanelThicknessMm),
+            bottomPanel: bottomPanel,
+            bottomPanelThicknessMm: max(2, bottomPanelThicknessMm),
+            innerFrame: innerFrame,
+            diagonal: diagonal,
+            infillPattern: infillPattern
+        )
+    }
+
+    func asExport() -> ProductMeasurementExport {
+        let safe = clamped()
+        return ProductMeasurementExport(
+            widthMm: safe.widthMm,
+            heightMm: safe.heightMm,
+            frameProfileMm: safe.frameProfileMm,
+            barWidthMm: safe.barWidthMm,
+            panelCount: safe.panelCount,
+            sectionCount: safe.sectionCount,
+            gateLeafCount: safe.mode == .gate ? safe.gateLeafCount : nil,
+            groundClearanceMm: safe.mode == .balcony ? nil : safe.groundClearanceMm,
+            basePlateHeightMm: safe.mode == .balcony ? nil : safe.basePlateHeightMm,
+            postWidthMm: safe.mode == .gate ? nil : safe.postWidthMm,
+            postLengthMm: safe.mode == .fence ? safe.postLengthMm : nil,
+            topPanel: safe.topPanel,
+            topPanelThicknessMm: safe.topPanelThicknessMm,
+            bottomPanel: safe.bottomPanel,
+            bottomPanelThicknessMm: safe.bottomPanelThicknessMm,
+            innerFrame: safe.mode == .gate ? safe.innerFrame : nil,
+            diagonal: safe.mode == .gate ? safe.diagonal : nil,
+            infillPattern: safe.infillPattern
+        )
+    }
+}
+
+struct ProductMeasurementExport: Codable, Hashable {
+    let widthMm: Double
+    let heightMm: Double
+    let frameProfileMm: Double
+    let barWidthMm: Double
+    let panelCount: Int
+    let sectionCount: Int
+    let gateLeafCount: Int?
+    let groundClearanceMm: Double?
+    let basePlateHeightMm: Double?
+    let postWidthMm: Double?
+    let postLengthMm: Double?
+    let topPanel: Bool
+    let topPanelThicknessMm: Double
+    let bottomPanel: Bool
+    let bottomPanelThicknessMm: Double
+    let innerFrame: Bool?
+    let diagonal: Bool?
+    let infillPattern: String
+}
+
 struct MadCADLayer: Codable, Identifiable, Hashable {
     let id: String
     let name: String
@@ -135,12 +278,23 @@ struct MadCADScanBounds: Codable, Hashable {
     let maxY: Double
 }
 
+struct MadCADReferencePlan: Codable, Hashable {
+    let walls: [PlanSegment]
+    let openings: [PlanRect]
+    let dimensions: [PlanSegment]
+    let bounds: PlanBounds
+}
+
 struct MadCADScanMeta: Codable, Hashable {
     let source: String
     let deviceModel: String
     let capturedAt: String
-    let roomName: String
-    let boundsMm: MadCADScanBounds
+    let roomName: String?
+    let projectName: String?
+    let boundsMm: MadCADScanBounds?
+    let productMode: ProductMode?
+    let measurements: ProductMeasurementExport?
+    let referencePlan: MadCADReferencePlan?
 }
 
 struct MadCADProjectPayload: Codable, Hashable {

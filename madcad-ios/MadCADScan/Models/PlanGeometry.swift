@@ -12,7 +12,7 @@ struct PlanPoint: Hashable, Codable {
     }
 }
 
-struct PlanSegment: Identifiable, Hashable {
+struct PlanSegment: Identifiable, Hashable, Codable {
     let id: UUID
     let start: PlanPoint
     let end: PlanPoint
@@ -27,7 +27,7 @@ struct PlanSegment: Identifiable, Hashable {
     }
 }
 
-struct PlanRect: Identifiable, Hashable {
+struct PlanRect: Identifiable, Hashable, Codable {
     let id: UUID
     let origin: PlanPoint
     let width: Double
@@ -85,4 +85,36 @@ struct RecentExportRecord: Codable, Identifiable, Hashable {
     let exportedAt: Date
     let wallCount: Int
     let openingCount: Int
+    let productMode: ProductMode?
+    let primaryMeasurement: String?
+}
+
+struct NormalizedScreenPoint: Hashable {
+    let x: Double
+    let y: Double
+
+    func cgPoint(in size: CGSize) -> CGPoint {
+        CGPoint(x: x * size.width, y: y * size.height)
+    }
+}
+
+struct CapturedMeasurementPoint: Identifiable, Hashable {
+    let id: UUID
+    let stepID: String
+    let title: String
+    let normalizedPoint: NormalizedScreenPoint
+    let worldX: Double
+    let worldY: Double
+    let worldZ: Double
+
+    var worldPoint: (x: Double, y: Double, z: Double) {
+        (worldX, worldY, worldZ)
+    }
+}
+
+struct CaptureStepDefinition: Identifiable, Hashable {
+    let id: String
+    let title: String
+    let subtitle: String
+    let prompt: String
 }

@@ -32,7 +32,7 @@
 		0379A4C5781088A91A8567F5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		1CB61BC79B5D2F3E1A01E42F /* StartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartView.swift; sourceTree = "<group>"; };
 		2352A2F6C627A44943778570 /* RoomToMadCADExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomToMadCADExporter.swift; sourceTree = "<group>"; };
-		290ECA2603E1CDA32976B187 /* MadCADScan.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MadCADScan.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		290ECA2603E1CDA32976B187 /* MadCAD Scan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "MadCAD Scan.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		3D49556287F8C3D083A65A26 /* RoomCaptureController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomCaptureController.swift; sourceTree = "<group>"; };
 		4C03221C61D6D5387E0F4451 /* ReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewView.swift; sourceTree = "<group>"; };
 		5C88AFD17000BAD2FD14C6DC /* ExportHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportHistoryStore.swift; sourceTree = "<group>"; };
@@ -107,7 +107,7 @@
 		2DA702C3B0D67E59E4894EAE /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				290ECA2603E1CDA32976B187 /* MadCADScan.app */,
+				290ECA2603E1CDA32976B187 /* MadCAD Scan.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -178,7 +178,7 @@
 			packageProductDependencies = (
 			);
 			productName = MadCADScan;
-			productReference = 290ECA2603E1CDA32976B187 /* MadCADScan.app */;
+			productReference = 290ECA2603E1CDA32976B187 /* MadCAD Scan.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -191,7 +191,6 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					AE620BD742144C5F8ED32868 = {
-						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -263,6 +262,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = P3QLTD589L;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = MadCADScan/Support/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -286,6 +286,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = P3QLTD589L;
 				ENABLE_PREVIEWS = YES;
 				INFOPLIST_FILE = MadCADScan/Support/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;

@@ -2,14 +2,75 @@ import Foundation
 import RoomPlan
 import simd
 
+struct ProductReviewBundle {
+    let measurements: ProductMeasurementDraft
+    let preview: ExportPreview
+    let summary: ExportSummary
+}
+
 struct RoomToMadCADExporter {
     private enum LayerName {
-        static let walls = "ŚCIANY"
-        static let openings = "OTWORY"
-        static let dimensions = "WYMIARY"
+        static let reference = "REFERENCJE"
     }
 
-    func export(room: CapturedRoom, roomName: String, deviceModel: String) throws -> ExportBundle {
+    private let isoFormatter = ISO8601DateFormatter()
+
+    func buildProductReview(room: CapturedRoom, mode: ProductMode) throws -> ProductReviewBundle {
+        let preview = try buildReferencePreview(room: room)
+        let measurements = suggestMeasurements(for: mode, room: room, preview: preview)
+        return ProductReviewBundle(
+            measurements: measurements,
+            preview: preview,
+            summary: ExportSummary(
+                wallCount: preview.walls.count,
+                openingCount: preview.openings.count,
+                dimensionCount: preview.dimensions.count
+            )
+        )
+    }
+
+    func exportProduct(
+        room: CapturedRoom,
+        projectName: String,
+        deviceModel: String,
+        measurements draft: ProductMeasurementDraft
+    ) throws -> ExportBundle {
+        let preview = try buildReferencePreview(room: room)
+        let draft = draft.clamped()
+        let referenceLayer = MadCADLayer(id: UUID().uuidString, name: LayerName.reference, visible: true, locked: false)
+        let payload = MadCADProjectPayload(
+            version: 3,
+            exportedAt: isoFormatter.string(from: Date()),
+            entities: [],
+            layers: [referenceLayer],
+            activeLayerId: referenceLayer.id,
+            scanMeta: MadCADScanMeta(
+                source: "madcad-scan-product",
+                deviceModel: deviceModel,
+                capturedAt: isoFormatter.string(from: Date()),
+                roomName: nil,
+                projectName: projectName,
+                boundsMm: MadCADScanBounds(minX: preview.bounds.minX, minY: preview.bounds.minY, maxX: preview.bounds.maxX, maxY: preview.bounds.maxY),
+                productMode: draft.mode,
+                measurements: draft.asExport(),
+                referencePlan: makeReferencePlan(from: preview)
+            )
+        )
+
+        let data = try JSONEncoder.prettyPrinted.encode(payload)
+        return ExportBundle(
+            payload: payload,
+            data: data,
+            preview: preview,
+            summary: ExportSummary(
+                wallCount: preview.walls.count,
+                openingCount: preview.openings.count,
+                dimensionCount: preview.dimensions.count
+            )
+        )
+    }
+
+    private func buildReferencePreview(room: CapturedRoom) throws -> ExportPreview {
         let walls = room.walls.compactMap(makeWallSegment)
         let openings = uniqueOpenings(from: room).compactMap(makeOpeningRect)
 
@@ -21,53 +82,113 @@ struct RoomToMadCADExporter {
         let normalizedOpenings = openings.map { normalize(rect: $0, bounds: rawBounds) }
         let normalizedBounds = PlanBounds.from(segments: normalizedWalls, rects: normalizedOpenings) ?? rawBounds
         let roomCenter = normalizedBounds.center
-
-        let wallLayer = MadCADLayer(id: UUID().uuidString, name: LayerName.walls, visible: true, locked: false)
-        let openingLayer = MadCADLayer(id: UUID().uuidString, name: LayerName.openings, visible: true, locked: false)
-        let dimensionLayer = MadCADLayer(id: UUID().uuidString, name: LayerName.dimensions, visible: true, locked: false)
-
-        let wallEntities = normalizedWalls.map {
-            MadCADEntity.line(start: $0.start, end: $0.end, layerId: wallLayer.id)
-        }
-        let openingEntities = normalizedOpenings.map {
-            MadCADEntity.rect(origin: $0.origin, width: $0.width, height: $0.height, layerId: openingLayer.id)
-        }
-        let dimensionEntities = normalizedWalls.map {
-            let dimPoint = dimensionPoint(for: $0, roomCenter: roomCenter)
-            return MadCADEntity.dimension(start: $0.start, end: $0.end, dimPoint: dimPoint, layerId: dimensionLayer.id)
+        let dimensions = normalizedWalls.map { wall in
+            let dimPoint = dimensionPoint(for: wall, roomCenter: roomCenter)
+            return PlanSegment(id: wall.id, start: wall.start, end: dimPoint, layerName: "WYMIAR")
         }
 
-        let payload = MadCADProjectPayload(
-            version: 2,
-            exportedAt: ISO8601DateFormatter().string(from: Date()),
-            entities: wallEntities + openingEntities + dimensionEntities,
-            layers: [wallLayer, openingLayer, dimensionLayer],
-            activeLayerId: wallLayer.id,
-            scanMeta: MadCADScanMeta(
-                source: "roomplan",
-                deviceModel: deviceModel,
-                capturedAt: ISO8601DateFormatter().string(from: Date()),
-                roomName: roomName,
-                boundsMm: MadCADScanBounds(minX: normalizedBounds.minX, minY: normalizedBounds.minY, maxX: normalizedBounds.maxX, maxY: normalizedBounds.maxY)
-            )
+        return ExportPreview(
+            walls: normalizedWalls,
+            openings: normalizedOpenings,
+            dimensions: dimensions,
+            bounds: normalizedBounds
         )
+    }
 
-        let data = try JSONEncoder.prettyPrinted.encode(payload)
-        return ExportBundle(
-            payload: payload,
-            data: data,
-            preview: ExportPreview(
-                walls: normalizedWalls,
-                openings: normalizedOpenings,
-                dimensions: normalizedWalls,
-                bounds: normalizedBounds
-            ),
-            summary: ExportSummary(
-                wallCount: normalizedWalls.count,
-                openingCount: normalizedOpenings.count,
-                dimensionCount: dimensionEntities.count
-            )
+    private func makeReferencePlan(from preview: ExportPreview) -> MadCADReferencePlan? {
+        guard !preview.walls.isEmpty || !preview.openings.isEmpty else {
+            return nil
+        }
+        return MadCADReferencePlan(
+            walls: preview.walls,
+            openings: preview.openings,
+            dimensions: preview.dimensions,
+            bounds: preview.bounds
         )
+    }
+
+    private func suggestMeasurements(for mode: ProductMode, room: CapturedRoom, preview: ExportPreview) -> ProductMeasurementDraft {
+        let longestWall = preview.walls.map(\.length).max() ?? preview.bounds.width
+        let estimatedHeight = estimateWallHeight(from: room)
+        switch mode {
+        case .gate:
+            return ProductMeasurementDraft(
+                mode: .gate,
+                widthMm: max(1200, roundToTen(longestWall)),
+                heightMm: max(1200, roundToTen(estimatedHeight > 0 ? estimatedHeight : 1500)),
+                frameProfileMm: 40,
+                barWidthMm: 20,
+                panelCount: 18,
+                sectionCount: 1,
+                gateLeafCount: 2,
+                groundClearanceMm: 40,
+                basePlateHeightMm: 0,
+                postWidthMm: 60,
+                postLengthMm: max(1700, roundToTen((estimatedHeight > 0 ? estimatedHeight : 1500) + 200)),
+                topPanel: true,
+                topPanelThicknessMm: 20,
+                bottomPanel: true,
+                bottomPanelThicknessMm: 20,
+                innerFrame: false,
+                diagonal: false,
+                infillPattern: "vertical"
+            )
+        case .balcony:
+            return ProductMeasurementDraft(
+                mode: .balcony,
+                widthMm: max(1000, roundToTen(longestWall)),
+                heightMm: max(900, roundToTen(min(1400, estimatedHeight > 0 ? estimatedHeight * 0.7 : 1100))),
+                frameProfileMm: 40,
+                barWidthMm: 16,
+                panelCount: 10,
+                sectionCount: 2,
+                gateLeafCount: 1,
+                groundClearanceMm: 0,
+                basePlateHeightMm: 0,
+                postWidthMm: 50,
+                postLengthMm: 1200,
+                topPanel: true,
+                topPanelThicknessMm: 16,
+                bottomPanel: true,
+                bottomPanelThicknessMm: 16,
+                innerFrame: false,
+                diagonal: false,
+                infillPattern: "horizontal"
+            )
+        case .fence:
+            return ProductMeasurementDraft(
+                mode: .fence,
+                widthMm: max(1000, roundToTen(longestWall)),
+                heightMm: max(1000, roundToTen(estimatedHeight > 0 ? estimatedHeight : 1500)),
+                frameProfileMm: 40,
+                barWidthMm: 18,
+                panelCount: 17,
+                sectionCount: 1,
+                gateLeafCount: 1,
+                groundClearanceMm: 60,
+                basePlateHeightMm: 250,
+                postWidthMm: 60,
+                postLengthMm: max(1700, roundToTen((estimatedHeight > 0 ? estimatedHeight : 1500) + 200)),
+                topPanel: true,
+                topPanelThicknessMm: 18,
+                bottomPanel: true,
+                bottomPanelThicknessMm: 18,
+                innerFrame: false,
+                diagonal: false,
+                infillPattern: "horizontal"
+            )
+        }
+    }
+
+    private func estimateWallHeight(from room: CapturedRoom) -> Double {
+        let heights = room.walls.map { max(Double($0.dimensions.y), Double($0.dimensions.z)) * 1000.0 }
+        guard !heights.isEmpty else { return 0 }
+        let sorted = heights.sorted()
+        return sorted[sorted.count / 2]
+    }
+
+    private func roundToTen(_ value: Double) -> Double {
+        (value / 10.0).rounded() * 10.0
     }
 
     private func uniqueOpenings(from room: CapturedRoom) -> [CapturedRoom.Surface] {
@@ -80,7 +201,7 @@ struct RoomToMadCADExporter {
     private func makeWallSegment(from surface: CapturedRoom.Surface) -> PlanSegment? {
         let points = projectedFloorPoints(for: surface)
         guard let pair = longestPair(in: points) else { return fallbackWallSegment(from: surface) }
-        return PlanSegment(id: surface.identifier, start: pair.0, end: pair.1, layerName: LayerName.walls)
+        return PlanSegment(id: surface.identifier, start: pair.0, end: pair.1, layerName: "ŚCIANY")
     }
 
     private func fallbackWallSegment(from surface: CapturedRoom.Surface) -> PlanSegment? {
@@ -91,7 +212,7 @@ struct RoomToMadCADExporter {
         let half = simd_double2(axis.x * length / 2, axis.y * length / 2)
         let start = PlanPoint(x: center.x - half.x, y: center.y - half.y)
         let end = PlanPoint(x: center.x + half.x, y: center.y + half.y)
-        return PlanSegment(id: surface.identifier, start: start, end: end, layerName: LayerName.walls)
+        return PlanSegment(id: surface.identifier, start: start, end: end, layerName: "ŚCIANY")
     }
 
     private func makeOpeningRect(from surface: CapturedRoom.Surface) -> PlanRect? {
@@ -104,7 +225,7 @@ struct RoomToMadCADExporter {
         let width = max(80, maxX - minX)
         let height = max(80, maxY - minY)
         let origin = PlanPoint(x: minX, y: minY)
-        return PlanRect(id: surface.identifier, origin: origin, width: width, height: height, layerName: LayerName.openings)
+        return PlanRect(id: surface.identifier, origin: origin, width: width, height: height, layerName: "OTWORY")
     }
 
     private func projectedFloorPoints(for surface: CapturedRoom.Surface) -> [PlanPoint] {
@@ -178,7 +299,7 @@ enum ExportError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .noUsableWalls:
-            return "Skan nie zawiera czytelnych ścian do eksportu. Spróbuj ponownie zeskanować pomieszczenie."
+            return "Pomiar nie zawiera czytelnych krawędzi do wykorzystania jako referencja. Spróbuj ponownie pokazać obszar produktu i jego kontekst montażowy."
         }
     }
 }

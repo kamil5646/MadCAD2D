@@ -1,20 +1,24 @@
 # MadCAD Scan
 
-Natywna aplikacja iOS do skanowania pomieszczeń za pomocą LiDAR / RoomPlan i eksportu planu 2D do pliku `*.madcad.json`.
+Natywna aplikacja iOS do zbierania wymiarów pod produkt za pomocą LiDAR / RoomPlan i eksportu ich do pliku `*.madcad.json` dla desktopowego MadCAD.
 
-## Co robi v1
+## Co robi obecna wersja
 - działa tylko na **iPhone Pro z LiDAR**
-- skanuje pomieszczenie przez **RoomPlan**
-- eksportuje 2D do MadCAD jako:
-  - `line` dla ścian
-  - `rect` dla otworów
-  - `dimension` dla długości ścian
-- import do desktopowego MadCAD przez `Pliki -> Wczytaj JSON`
+- prowadzi użytkownika przez tryby:
+  - `Brama`
+  - `Balkon`
+  - `Ogrodzenie`
+- używa **RoomPlan** jako warstwy pomocniczej do stabilizacji geometrii i sugestii wymiarów
+- głównym rezultatem eksportu są:
+  - potwierdzone wymiary produktu
+  - podstawowe parametry montażowe
+  - opcjonalna techniczna referencja ze skanu
+- import do desktopowego MadCAD przez `Pliki -> Import pomiaru iPhone`
 
 ## Struktura aplikacji
-- `Start`: nowy skan i lista ostatnich eksportów
-- `Scan`: live capture przez `RoomCaptureView`
-- `Review`: podgląd uproszczonego planu 2D i liczby ścian / otworów / wymiarów
+- `Start`: wybór trybu pomiaru i lista ostatnich eksportów
+- `Scan`: zbieranie kontekstu LiDAR dla produktu
+- `Review`: potwierdzenie i korekta wymiarów produktu
 - `Export`: zapis do Files albo Share Sheet
 
 ## Wymagania
@@ -41,14 +45,14 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
 6. Zezwól na dostęp do kamery i ruchu.
 
 ## Flow testowy na urządzeniu
-1. `Nowy skan`
-2. obejdź ściany, drzwi i okna
-3. `Zakończ skan`
-4. sprawdź podgląd w `Review`
+1. wybierz `Brama`, `Balkon` albo `Ogrodzenie`
+2. obejdź obszar produktu i pokaż krawędzie montażowe
+3. przejdź do potwierdzenia wymiarów
+4. sprawdź i popraw liczby w `Review`
 5. `Zapisz do Files` lub `Udostępnij`
-6. na desktopie MadCAD: `Pliki -> Import skanu iPhone` albo `Pliki -> Wczytaj JSON`
+6. na desktopie MadCAD: `Pliki -> Import pomiaru iPhone`
 
-Pelna checklista testu na prawdziwym iPhone Pro:
+Pełna checklista testu na prawdziwym iPhone Pro:
 - [DEVICE-TEST-CHECKLIST.md](DEVICE-TEST-CHECKLIST.md)
 
 ## Format eksportu
@@ -58,15 +62,17 @@ Payload jest zgodny z desktopowym MadCAD i zawiera:
 - `entities`
 - `layers`
 - `activeLayerId`
-- opcjonalne `scanMeta`
+- `scanMeta`
 
-## Warstwy eksportu
-- `ŚCIANY`
-- `OTWORY`
-- `WYMIARY`
+Najważniejsze pola w `scanMeta`:
+- `source = "madcad-scan-product"`
+- `productMode`
+- `measurements`
+- opcjonalna techniczna `referencePlan`
 
-## Ograniczenia v1
-- brak ręcznej miarki AR punkt-punkt
+## Ograniczenia obecnej wersji
+- LiDAR pomaga, ale użytkownik nadal potwierdza finalne wymiary ręcznie
+- brak pełnej punkt-po-punkcie miarki AR dla każdego wymiaru montażowego
 - brak chmury i synchronizacji
 - brak pełnego 3D w desktopowym MadCAD
 - brak iPadów i zwykłych iPhone'ów bez LiDAR
