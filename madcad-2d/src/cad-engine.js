@@ -10665,7 +10665,7 @@
 
     const chooseNow = window.confirm(
       localizeMessageText(
-        "Brak ODA File Converter (wymagane dla DWG). Kliknij OK, aby wskazać ODAFileConverter lub aplikację ODA File Converter, albo Anuluj, aby otworzyć stronę pobrania."
+        "Brak ODA File Converter (wymagane dla DWG). Kliknij OK, aby wskazać ODAFileConverter albo folder/aplikację ODA File Converter, albo Anuluj, aby otworzyć stronę pobrania."
       )
     );
 
@@ -10799,7 +10799,7 @@
     }
     if (typeof window.desktopApp.installOdaAddon !== "function") {
       echoCommand(
-        "Automatyczna instalacja ODA niedostępna. Wskaż ODAFileConverter lub aplikację ODA ręcznie.",
+        "Automatyczna instalacja ODA niedostępna. Wskaż ODAFileConverter albo folder/aplikację ODA ręcznie.",
         true,
         { toast: false }
       );

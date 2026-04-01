@@ -138,6 +138,22 @@ async function normalizeOdaConverterPath(candidatePath) {
     return null;
   }
 
+  if (process.platform === 'win32') {
+    if (!(await pathExists(rawPath))) {
+      return rawPath;
+    }
+    try {
+      const stats = await fs.stat(rawPath);
+      if (stats.isDirectory()) {
+        const nestedExecutable = await findWindowsOdaExecutable(rawPath);
+        return nestedExecutable || rawPath;
+      }
+    } catch (_error) {
+      return rawPath;
+    }
+    return rawPath;
+  }
+
   if (process.platform !== 'darwin') {
     return rawPath;
   }
@@ -164,6 +180,54 @@ async function normalizeOdaConverterPath(candidatePath) {
   }
 
   return rawPath;
+}
+
+async function findWindowsOdaExecutable(rootPath, maxDepth = 4) {
+  const normalizedRoot = String(rootPath || '').trim();
+  if (!normalizedRoot || !(await pathExists(normalizedRoot))) {
+    return null;
+  }
+
+  const queue = [{ dir: normalizedRoot, depth: 0 }];
+  const visited = new Set();
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current || visited.has(current.dir)) {
+      continue;
+    }
+    visited.add(current.dir);
+
+    let entries = [];
+    try {
+      entries = await fs.readdir(current.dir, { withFileTypes: true });
+    } catch (_error) {
+      continue;
+    }
+
+    for (const entry of entries) {
+      const fullPath = path.join(current.dir, entry.name);
+      if (entry.isFile() && entry.name.toLowerCase() === 'odafileconverter.exe') {
+        return fullPath;
+      }
+    }
+
+    if (current.depth >= maxDepth) {
+      continue;
+    }
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) {
+        continue;
+      }
+      const lower = entry.name.toLowerCase();
+      if (!/oda|open design|converter|fileconverter/.test(lower) && current.depth > 0) {
+        continue;
+      }
+      queue.push({ dir: path.join(current.dir, entry.name), depth: current.depth + 1 });
+    }
+  }
+
+  return null;
 }
 
 function httpsGetBuffer(url) {
@@ -869,14 +933,14 @@ async function installOdaFromMsi(msiPath) {
     windowsHide: true
   });
 
-  const retries = 6;
+  const retries = 20;
   for (let attempt = 0; attempt < retries; attempt += 1) {
     const resolved = await resolveOdaConverterPath();
     if (resolved && (await isHealthyOdaConverterPath(resolved))) {
       await setSavedOdaConverterPath(resolved);
       return resolved;
     }
-    await sleep(1000);
+    await sleep(1500);
   }
 
   throw new Error('Instalator MSI zakończony, ale nie znaleziono ODAFileConverter.exe.');
@@ -983,6 +1047,21 @@ async function resolveOdaConverterPath() {
   } else if (process.platform === 'win32') {
     candidates.push('C:\\Program Files\\ODA\\ODAFileConverter\\ODAFileConverter.exe');
     candidates.push('C:\\Program Files (x86)\\ODA\\ODAFileConverter\\ODAFileConverter.exe');
+    candidates.push('C:\\Program Files\\ODA\\ODA File Converter\\ODAFileConverter.exe');
+    candidates.push('C:\\Program Files (x86)\\ODA\\ODA File Converter\\ODAFileConverter.exe');
+    candidates.push('C:\\Program Files\\Open Design Alliance\\ODAFileConverter\\ODAFileConverter.exe');
+    candidates.push('C:\\Program Files (x86)\\Open Design Alliance\\ODAFileConverter\\ODAFileConverter.exe');
+
+    const envRoots = [
+      process.env.ProgramFiles,
+      process.env['ProgramFiles(x86)'],
+      process.env.LOCALAPPDATA
+    ].filter(Boolean);
+    for (const envRoot of envRoots) {
+      candidates.push(envRoot);
+      candidates.push(path.join(envRoot, 'ODA'));
+      candidates.push(path.join(envRoot, 'Open Design Alliance'));
+    }
   } else {
     candidates.push('/usr/bin/ODAFileConverter');
     candidates.push('/usr/local/bin/ODAFileConverter');
@@ -1669,7 +1748,9 @@ ipcMain.handle('madcad:choose-oda-path', async (event) => {
     const senderWindow = BrowserWindow.fromWebContents(event.sender) || null;
     const result = await dialog.showOpenDialog(senderWindow, {
       title: t('Wskaż ODA File Converter', 'Choose ODA File Converter'),
-      properties: process.platform === 'darwin' ? ['openFile', 'openDirectory'] : ['openFile'],
+      properties: process.platform === 'win32' || process.platform === 'darwin'
+        ? ['openFile', 'openDirectory']
+        : ['openFile'],
       buttonLabel: t('Ustaw ścieżkę', 'Set path')
     });
 
