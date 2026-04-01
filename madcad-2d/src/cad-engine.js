@@ -19,7 +19,6 @@
   const redoBtn = document.getElementById("redoBtn");
   const saveJsonBtn = document.getElementById("saveJsonBtn");
   const loadJsonBtn = document.getElementById("loadJsonBtn");
-  const importScanBtn = document.getElementById("importScanBtn");
   const exportDxfBtn = document.getElementById("exportDxfBtn");
   const exportDwgBtn = document.getElementById("exportDwgBtn");
   const exportSvgBtn = document.getElementById("exportSvgBtn");
@@ -839,7 +838,6 @@
       ["#updateAppBtn", "Updates"],
       ["#fileMenuBtn", "Files (Alt+S)"],
       ["#loadJsonBtn", "Load JSON (Ctrl+O)"],
-      ["#importScanBtn", "Import iPhone measurement"],
       ["#saveJsonBtn", "Save JSON (Ctrl+S)"],
       ["#importDxfBtn", "Import DXF (Alt+I)"],
       ["#importDwgBtn", "Import DWG (Alt+W)"],
@@ -906,7 +904,6 @@
       Pliki: "Files",
       "Projekt, import/eksport CAD, wydruk i ustawienia aplikacji": "Project, CAD import/export, printing and app settings",
       Projekt: "Project",
-      "Import pomiaru iPhone": "Import iPhone measurement",
       CAD: "CAD",
       Aplikacja: "App",
       Wydruk: "Print",
@@ -8488,140 +8485,6 @@
     return Number.isFinite(Number(value)) && Number(value) > 0;
   }
 
-  function isProductScanPayload(parsed) {
-    if (!parsed || typeof parsed !== "object") {
-      return false;
-    }
-    const meta = parsed.scanMeta;
-    if (!meta || typeof meta !== "object") {
-      return false;
-    }
-    return meta.source === "madcad-scan-product" && Boolean(normalizeSteelTemplate(meta.productMode));
-  }
-
-  function applyImportedProductMeasurements(productMode, rawMeasurements) {
-    const template = normalizeSteelTemplate(productMode) || "gate";
-    const measurements = rawMeasurements && typeof rawMeasurements === "object" ? rawMeasurements : {};
-    const preset = getSteelPreset(template);
-
-    state.steelPreset = template;
-    state.steelWidth = isFinitePositiveNumber(measurements.widthMm)
-      ? Math.max(200, Number(measurements.widthMm))
-      : preset.width;
-    state.steelHeight = isFinitePositiveNumber(measurements.heightMm)
-      ? Math.max(200, Number(measurements.heightMm))
-      : preset.height;
-    state.steelFrameProfile = isFinitePositiveNumber(measurements.frameProfileMm)
-      ? Math.max(20, Number(measurements.frameProfileMm))
-      : preset.frameProfile;
-    state.steelBarWidth = isFinitePositiveNumber(measurements.barWidthMm)
-      ? Math.max(5, Number(measurements.barWidthMm))
-      : preset.barWidth;
-    state.steelPanelCount = clamp(
-      Math.round(Number(measurements.panelCount)),
-      1,
-      120,
-      preset.panelCount
-    );
-    state.steelSectionCount = clamp(
-      Math.round(Number(measurements.sectionCount)),
-      1,
-      6,
-      preset.sectionCount
-    );
-    state.steelGateLeafCount = clamp(
-      Math.round(Number(measurements.gateLeafCount)),
-      1,
-      2,
-      preset.gateLeafCount
-    );
-    state.steelGroundClearance = Math.max(
-      0,
-      Number.isFinite(Number(measurements.groundClearanceMm))
-        ? Number(measurements.groundClearanceMm)
-        : preset.groundClearance
-    );
-    state.steelBasePlateHeight = Math.max(
-      0,
-      Number.isFinite(Number(measurements.basePlateHeightMm))
-        ? Number(measurements.basePlateHeightMm)
-        : preset.basePlateHeight
-    );
-    state.steelPostWidth = Math.max(
-      20,
-      Number.isFinite(Number(measurements.postWidthMm))
-        ? Number(measurements.postWidthMm)
-        : preset.postWidth
-    );
-    state.steelPostLength = Math.max(
-      200,
-      Number.isFinite(Number(measurements.postLengthMm))
-        ? Number(measurements.postLengthMm)
-        : preset.postLength
-    );
-    state.steelTopPanel =
-      typeof measurements.topPanel === "boolean" ? measurements.topPanel : preset.topPanel;
-    state.steelTopPanelThickness = Math.max(
-      2,
-      Number.isFinite(Number(measurements.topPanelThicknessMm))
-        ? Number(measurements.topPanelThicknessMm)
-        : preset.topPanelThickness
-    );
-    state.steelBottomPanel =
-      typeof measurements.bottomPanel === "boolean" ? measurements.bottomPanel : preset.bottomPanel;
-    state.steelBottomPanelThickness = Math.max(
-      2,
-      Number.isFinite(Number(measurements.bottomPanelThicknessMm))
-        ? Number(measurements.bottomPanelThicknessMm)
-        : preset.bottomPanelThickness
-    );
-    state.steelInnerFrame =
-      typeof measurements.innerFrame === "boolean" ? measurements.innerFrame : preset.innerFrame;
-    state.steelDiagonal =
-      typeof measurements.diagonal === "boolean" ? measurements.diagonal : preset.diagonal;
-    state.steelInfillPattern = normalizeInfillPattern(measurements.infillPattern) || preset.infillPattern;
-
-    if (template !== "gate") {
-      state.steelGateLeafCount = 1;
-      state.steelDiagonal = false;
-    }
-    if (template === "balcony") {
-      state.steelGroundClearance = 0;
-      state.steelBasePlateHeight = 0;
-      state.steelPostLength = Math.max(state.steelPostLength, state.steelHeight);
-    }
-
-    setWorkspaceMode("draw", { persist: false });
-    setRibbonPage("design", { persist: false });
-    syncDocumentControls();
-    markDirty();
-    queueRender();
-  }
-
-  function importProductScanPayload(parsed, fileName) {
-    const scanMeta = parsed && typeof parsed === "object" ? parsed.scanMeta || {} : {};
-    const template = normalizeSteelTemplate(scanMeta.productMode);
-    const measurements = scanMeta.measurements;
-    if (!template || !measurements || typeof measurements !== "object") {
-      throw new Error("Plik pomiaru produktu nie zawiera poprawnych measurements.");
-    }
-
-    applyImportedProductMeasurements(template, measurements);
-    const productLabel = steelTemplateLabel(template);
-    const generateNow = window.confirm(
-      localizeMessageText(
-        `Wykryto pomiar produktu z iPhone'a: ${productLabel}.\n\nOK = wygeneruj geometrię od razu\nAnuluj = tylko wypełnij formularz Stal`
-      )
-    );
-
-    if (generateNow) {
-      echoCommand(`Import pomiaru: przygotowano ${productLabel}. Generuję geometrię...`);
-      generateSteelTemplateFromState();
-    } else {
-      echoCommand(`Import pomiaru: wypełniono formularz Stal dla trybu ${productLabel}.`);
-    }
-  }
-
   function ensureLayerByName(name) {
     const existing = findLayerByName(name);
     if (existing) {
@@ -10802,7 +10665,7 @@
 
     const chooseNow = window.confirm(
       localizeMessageText(
-        "Brak ODA File Converter (wymagane dla DWG). Kliknij OK, aby wskazać plik ODAFileConverter, lub Anuluj, aby otworzyć stronę pobrania."
+        "Brak ODA File Converter (wymagane dla DWG). Kliknij OK, aby wskazać ODAFileConverter lub aplikację ODA File Converter, albo Anuluj, aby otworzyć stronę pobrania."
       )
     );
 
@@ -10936,7 +10799,7 @@
     }
     if (typeof window.desktopApp.installOdaAddon !== "function") {
       echoCommand(
-        "Automatyczna instalacja ODA niedostępna. Wskaż ODAFileConverter ręcznie.",
+        "Automatyczna instalacja ODA niedostępna. Wskaż ODAFileConverter lub aplikację ODA ręcznie.",
         true,
         { toast: false }
       );
@@ -11042,8 +10905,7 @@
       fileMenuBtn: "Menu plików: otwieranie, zapis, import, eksport i ustawienia aplikacji.",
       updateAppBtn: "Sprawdza i instaluje aktualizacje aplikacji.",
       licenseCategoryBtn: "Otwiera panel informacji o licencji i aktywacji tokenu.",
-      loadJsonBtn: "Wczytuje projekt z pliku JSON lub eksportu MadCAD Scan (.madcad.json).",
-      importScanBtn: "Importuje pomiar Brama/Balkon/Ogrodzenie z iPhone'a i zasila formularz Stal albo generuje geometrię.",
+      loadJsonBtn: "Wczytuje projekt z pliku JSON.",
       saveJsonBtn: "Zapisuje projekt do pliku JSON.",
       importDxfBtn: "Importuje geometrię z pliku DXF.",
       importDwgBtn: "Importuje geometrię z pliku DWG przez konwerter ODA.",
@@ -12514,13 +12376,8 @@
     };
 
     loadJsonBtn.addEventListener("click", () => {
-      openJsonImportPicker("Wybierz plik JSON lub eksport MadCAD Scan (.madcad.json) do wczytania.");
+      openJsonImportPicker("Wybierz plik JSON do wczytania.");
     });
-    if (importScanBtn) {
-      importScanBtn.addEventListener("click", () => {
-        openJsonImportPicker("Wybierz plik pomiaru z iPhone'a (.madcad.json) do importu.");
-      });
-    }
     jsonFileInput.addEventListener("change", async () => {
       const [file] = jsonFileInput.files;
       if (!file) {
@@ -12529,11 +12386,6 @@
       const text = await file.text();
       try {
         const parsed = JSON.parse(text);
-        if (isProductScanPayload(parsed)) {
-          importProductScanPayload(parsed, file.name);
-          setFileMenuOpen(false);
-          return;
-        }
         const entitiesRaw = Array.isArray(parsed) ? parsed : parsed.entities;
         const layersRaw = Array.isArray(parsed.layers) ? parsed.layers : state.layers;
         if (!Array.isArray(entitiesRaw)) {

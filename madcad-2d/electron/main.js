@@ -121,13 +121,49 @@ async function getSavedOdaConverterPath() {
   if (!savedPath) {
     return null;
   }
-  return (await pathExists(savedPath)) ? savedPath : null;
+  const normalizedPath = await normalizeOdaConverterPath(savedPath);
+  return normalizedPath && (await pathExists(normalizedPath)) ? normalizedPath : null;
 }
 
 async function setSavedOdaConverterPath(filePath) {
   const config = await readCadConfig();
-  config.odaConverterPath = String(filePath || '').trim();
+  const normalizedPath = await normalizeOdaConverterPath(filePath);
+  config.odaConverterPath = String(normalizedPath || filePath || '').trim();
   await writeCadConfig(config);
+}
+
+async function normalizeOdaConverterPath(candidatePath) {
+  const rawPath = String(candidatePath || '').trim();
+  if (!rawPath) {
+    return null;
+  }
+
+  if (process.platform !== 'darwin') {
+    return rawPath;
+  }
+
+  if (!(await pathExists(rawPath))) {
+    return rawPath;
+  }
+
+  if (rawPath.toLowerCase().endsWith('.app')) {
+    const nestedExecutable = path.join(rawPath, 'Contents', 'MacOS', 'ODAFileConverter');
+    return (await pathExists(nestedExecutable)) ? nestedExecutable : rawPath;
+  }
+
+  try {
+    const stats = await fs.stat(rawPath);
+    if (stats.isDirectory()) {
+      const appBundle = await findAppBundleInDir(rawPath);
+      if (appBundle) {
+        return path.join(appBundle, 'Contents', 'MacOS', 'ODAFileConverter');
+      }
+    }
+  } catch (_error) {
+    return rawPath;
+  }
+
+  return rawPath;
 }
 
 function httpsGetBuffer(url) {
@@ -899,13 +935,14 @@ async function pathExists(filePath) {
 }
 
 async function isHealthyOdaConverterPath(candidatePath) {
-  if (!candidatePath || !(await pathExists(candidatePath))) {
+  const normalizedPath = await normalizeOdaConverterPath(candidatePath);
+  if (!normalizedPath || !(await pathExists(normalizedPath))) {
     return false;
   }
   if (process.platform !== 'darwin') {
     return true;
   }
-  const normalized = String(candidatePath);
+  const normalized = String(normalizedPath);
   const appMarker = '.app/Contents/MacOS/';
   const markerIndex = normalized.indexOf(appMarker);
   if (markerIndex === -1) {
@@ -952,8 +989,9 @@ async function resolveOdaConverterPath() {
   }
 
   for (const candidate of candidates) {
-    if (await isHealthyOdaConverterPath(candidate)) {
-      return candidate;
+    const normalizedCandidate = await normalizeOdaConverterPath(candidate);
+    if (await isHealthyOdaConverterPath(normalizedCandidate)) {
+      return normalizedCandidate;
     }
   }
   return null;
@@ -1228,10 +1266,6 @@ function createMenu() {
           label: t('Wczytaj JSON', 'Open JSON'),
           accelerator: 'CmdOrCtrl+O',
           click: () => executeRendererShortcut({ key: 'o' })
-        },
-        {
-          label: t('Import skanu iPhone', 'Import iPhone scan'),
-          click: () => executeRendererShortcut({ id: 'importScanBtn' })
         },
         {
           label: t('Zapisz JSON', 'Save JSON'),
@@ -1635,7 +1669,7 @@ ipcMain.handle('madcad:choose-oda-path', async (event) => {
     const senderWindow = BrowserWindow.fromWebContents(event.sender) || null;
     const result = await dialog.showOpenDialog(senderWindow, {
       title: t('Wskaż ODA File Converter', 'Choose ODA File Converter'),
-      properties: ['openFile'],
+      properties: process.platform === 'darwin' ? ['openFile', 'openDirectory'] : ['openFile'],
       buttonLabel: t('Ustaw ścieżkę', 'Set path')
     });
 
@@ -1644,7 +1678,8 @@ ipcMain.handle('madcad:choose-oda-path', async (event) => {
     }
 
     const selectedPath = result.filePaths[0];
-    if (!(await pathExists(selectedPath))) {
+    const normalizedSelection = await normalizeOdaConverterPath(selectedPath);
+    if (!normalizedSelection || !(await pathExists(normalizedSelection))) {
       return {
         ok: false,
         canceled: false,
@@ -1652,13 +1687,13 @@ ipcMain.handle('madcad:choose-oda-path', async (event) => {
       };
     }
 
-    await setSavedOdaConverterPath(selectedPath);
+    await setSavedOdaConverterPath(normalizedSelection);
     const converterPath = await resolveOdaConverterPath();
     return {
       ok: true,
       canceled: false,
       installed: Boolean(converterPath),
-      path: converterPath || selectedPath
+      path: converterPath || normalizedSelection
     };
   } catch (error) {
     return {

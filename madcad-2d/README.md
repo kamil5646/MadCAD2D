@@ -93,7 +93,7 @@ Jeśli import/eksport DWG nie działa, skonfiguruj ODA ręcznie:
 
 1. Otwórz w aplikacji `Zapisz/Drukuj`.
 2. Wejdź w opcję instalacji/konfiguracji DWG.
-3. Wskaż plik `ODAFileConverter`.
+3. Wskaż plik `ODAFileConverter` albo na macOS całą aplikację `ODA File Converter.app`.
 
 Typowe ścieżki:
 - macOS:
